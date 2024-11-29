@@ -1,5 +1,18 @@
 .home-page {
   padding: 20px;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.content {
+  flex-grow: 1;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.content.collapsed {
+  margin-left: 80px; /* Width when sidebar is collapsed */
 }
 
 .home-page h2 {
@@ -9,6 +22,12 @@
 
 .home-page p {
   margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .home-page {
+    margin-left: 80px;
+  }
 }
 
 .home-page .search-bar {

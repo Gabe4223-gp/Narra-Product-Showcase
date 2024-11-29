@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function BillingPage() {
+function BillingPage({ onLogout }) {
   return (
     <div className="billing-page">
       <h1>Billing</h1>

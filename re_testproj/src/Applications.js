@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function ApplicationsPage() {
+function ApplicationsPage({ onLogout }) {
   return (
     <div className="applications-page">
       <h1>Applications</h1>

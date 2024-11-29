@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function ChatPage() {
+function ChatPage( { onLogout } ) {
   return (
     <div className="applications-page">
       <h1>Chat</h1>

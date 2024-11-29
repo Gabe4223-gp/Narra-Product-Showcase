@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function TenantsPage() {
+function TenantsPage( { onLogout } ) {
   return (
     <div className="tenants-page">
       <h1>Tenant Info</h1>
