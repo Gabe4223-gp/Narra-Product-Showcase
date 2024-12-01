@@ -1,4 +1,4 @@
-# Tenent_PrProj
+# Narra
 online property rental management app
 
 App description here:
