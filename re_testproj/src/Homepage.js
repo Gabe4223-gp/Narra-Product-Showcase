@@ -1,34 +1,40 @@
 import React, { useState } from 'react';
-import Sidebar from './Sidebar';
 import './Homepage.css';
 import { Link } from 'react-router-dom';
+import { FaChartBar, FaUsers, FaCog } from 'react-icons/fa';
 
 function HomePage( { onLogout } ) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
   return (
-    <div className="home-page">
-      <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
-      <div className={'content ${isCollapsed ? "collapsed" : ""}'}>
-        <h1>Home Page</h1>
-        <div className="search-bar">
-          <input type="text" placeholder="Search" />
-          <button>Search</button>
+    <div className="homepage">
+      <h1>Dashboard</h1>
+      <div className="info-boxes">
+        <div className="info-box">
+          <div className="info-box-header">
+            <FaChartBar className="info-icon" /> Analytics
+          </div>
+          <div className="info-box-content">
+            <p>View and manage your billing information.</p>
+            {/* Add more content or charts as needed */}
+          </div>
         </div>
-        <h2>Home</h2>
-        <p>Welcome to your property management dashboard.</p>
-        <Link to="/billing"><h2>Billings</h2></Link>
-        <p>View and manage your billing information.</p>
-        <Link to="/applications"><h2>Applications</h2></Link>
-        <p>Review and process tenant applications.</p>
-        <Link to="/tenant"><h2>Tenant</h2></Link>
-        <p>Manage your tenants and their lease agreements.</p>
-        <Link to="/chat"><h2>Chat</h2></Link>
-        <p>Communicate with tenants and property owners.</p>
+        <div className="info-box">
+          <div className="info-box-header">
+            <FaUsers className="info-icon" /> Users
+          </div>
+          <div className="info-box-content">
+            <p>Review and process tenant applications.</p>
+            {/* Add user statistics or management tools */}
+          </div>
+        </div>
+        <div className="info-box">
+          <div className="info-box-header">
+            <FaCog className="info-icon" /> Settings
+          </div>
+          <div className="info-box-content">
+            <p>Manage your tenants and their lease agreements.</p>
+            {/* Add settings options or links */}
+          </div>
+        </div>
       </div>
     </div>
   );

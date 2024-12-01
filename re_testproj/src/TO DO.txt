@@ -1,5 +1,7 @@
 THINGS TO DO:
 
+-PAY AUTH0
 -CSS styling for login and dashboard
 -Login.js Real Authentification with backend API Call (Auth0, Firefall)
 -Database for users email and password
+-Make settings/profile page

@@ -1,9 +1,24 @@
 .header {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  color: #ecf0f1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 25px;
+  padding: 0 20px;
+  z-index: 1000;
   background-color: #272d2d;
+  flex-shrink: 0;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #ecf0f1;
+  font-size: 1.5em;
+  cursor: pointer;
+  margin-right: 20px;
 }
 
 .header .logo1 {
@@ -63,4 +78,15 @@
   .header .account ul li b {
     text-decoration: none;
     color: #ffffff;
+  }
+
+  .btn-logout {
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+  }
+  
+  .btn-logout:hover {
+    color: #b1b1b1;
   }

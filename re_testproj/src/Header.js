@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
-import { Link } from 'react-router-dom';
-import { AuthContext } from './AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
+import { FaBars } from 'react-icons/fa';
 
 const logo1 = require('./images/tenent.png');
 const logo2 = require('./images/settings.png');
@@ -13,15 +13,18 @@ const user = {
     imageSize: 50,
   };
 
-function Header() {
-  const { logout } = React.useContext(AuthContext);
+function Header({toggleSidebar, isSidebarCollapsed}) {
+  const { logout } = useAuth0();
 
   const handleLogout = () => {
-    logout();
+    logout({
+      returnTo: window.location.origin,
+    });
   };
 
     return (
       <div className="header">
+        <button className="toggle-button" onClick={toggleSidebar}> <FaBars /> </button>
         <img src={logo1} alt="Tenent Property Software" className="logo1" />
         <nav className="navbar">
           <ul>
@@ -41,7 +44,7 @@ function Header() {
             src={user.avatar}
             alt={'Photo of ' + user.name}
             style={{width: user.imageSize, height: user.imageSize}} />
-            <li><button onClick={handleLogout}>Logout</button></li>
+            <li><button onClick={handleLogout} className="btn-logout">Logout</button></li>
             {/*<Link to="/profile"><img 
             className="avatar" 
             src={user.avatar}

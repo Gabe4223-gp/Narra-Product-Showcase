@@ -1,49 +1,63 @@
-.home-page {
-  padding: 20px;
+/* Homepage.css */
+
+.homepage {
+  padding: 80px 20px 20px; /* Top padding accounts for the fixed Header */
+  background-color: #f4f6f8;
+  min-height: calc(100vh - 60px); /* Subtract Header height */
+}
+
+.homepage h1 {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #34495e;
+}
+
+.info-boxes {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.content {
-  flex-grow: 1;
-  padding: 20px;
-  transition: margin-left 0.3s ease;
+.info-box {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 30%;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
 }
 
-.content.collapsed {
-  margin-left: 80px; /* Width when sidebar is collapsed */
+.info-box-header {
+  background-color: #34495e;
+  color: #ecf0f1;
+  padding: 10px 15px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  align-items: center;
+  font-size: 1.1em;
 }
 
-.home-page h2 {
-  margin-top: 30px;
-  margin-bottom: 10px;
+.info-icon {
+  margin-right: 10px;
+  font-size: 1.2em;
 }
 
-.home-page p {
-  margin-bottom: 20px;
+.info-box-content {
+  padding: 15px;
+  color: #2c3e50;
+  flex: 1;
 }
 
-@media (max-width: 768px) {
-  .home-page {
-    margin-left: 80px;
-  }
-}
-
-.home-page .search-bar {
-    display: flex;
+@media (max-width: 992px) {
+  .info-boxes {
+    flex-direction: column;
     align-items: center;
   }
-  
-  .home-page .search-bar input {
-    padding: 5px;
-    border: 1px solid #ccc;
+
+  .info-box {
+    width: 80%;
   }
-  
-  .home-page .search-bar button {
-    padding: 5px 10px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-  }
+}

@@ -1,0 +1,76 @@
+/* Billings.css */
+
+.billings {
+  padding: 80px 20px 20px; /* Top padding accounts for the fixed Header */
+  background-color: #f4f6f8;
+  min-height: calc(100vh - 60px); /* Subtract Header height */
+}
+
+.billings h1 {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #34495e;
+}
+
+.billings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.payment-history {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-history h2 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.payment-history table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-history th, .payment-history td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.payment-history th {
+  background-color: #34495e;
+  color: #ecf0f1;
+}
+
+.payment-history tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.payment-history a {
+  color: #1abc9c;
+  text-decoration: none;
+}
+
+.payment-history a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+  .billings-container {
+    flex-direction: row;
+  }
+
+  .payment-history, .payment-methods {
+    flex: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .billings-container {
+    flex-direction: column;
+  }
+}
