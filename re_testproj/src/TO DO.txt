@@ -1,7 +1,15 @@
 THINGS TO DO:
 
 -PAY AUTH0
+-PAY STRIPE
+-PAY PAYPAL DVELOPERS
+-Set up convenience fee
 -CSS styling for login and dashboard
 -Login.js Real Authentification with backend API Call (Auth0, Firefall)
 -Database for users email and password
 -Make settings/profile page
+-implement with quickbooks
+-work on accounting implementation afterwards
+
+
+-Run backend server: node server.js

@@ -1,5 +1,5 @@
 import React, {useEffect, useState } from 'react';
-//import PaymentMethods from '../components/PaymentMethods';
+import PaymentMethods from './PaymentMethods';
 import { Link } from 'react-router-dom';
 import './Billings.css';
 
@@ -65,7 +65,7 @@ function BillingPage({ onLogout }) {
         </div>
 
         {/* Payment Methods Section ADD IT LATER*/}
-
+        <PaymentMethods />
       </div>
       <Link to="/back"><p>back</p></Link>
     </div>

@@ -2,9 +2,12 @@
   "name": "re_testproj",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://Gabe4223-gp.github.io/Tenent_PrProj",
+  "homepage": "https://Gabe4223-gp.github.io/Narra",
   "dependencies": {
     "@auth0/auth0-react": "^2.2.4",
+    "@paypal/react-paypal-js": "^8.7.0",
+    "@stripe/react-stripe-js": "^3.0.0",
+    "@stripe/stripe-js": "^5.2.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
