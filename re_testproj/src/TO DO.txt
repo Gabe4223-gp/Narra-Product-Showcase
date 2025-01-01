@@ -1,5 +1,6 @@
 THINGS TO DO:
 
+-PAY Redis
 -PAY AUTH0
 -PAY STRIPE
 -PAY PAYPAL DVELOPERS
@@ -8,8 +9,37 @@ THINGS TO DO:
 -Login.js Real Authentification with backend API Call (Auth0, Firefall)
 -Database for users email and password
 -Make settings/profile page
+-deploy backend on hosting platform (AWS, Heroku, Vercel)
 -implement with quickbooks
 -work on accounting implementation afterwards
 
 
+
 -Run backend server: node server.js
+Things to keep note of with server:
+    ~ app.post() is set to usd currency, change if necessary
+    ~ PaymentForm is connected to backend currently on development port localhost5000,
+
+
+
+Things to change for payment:
+PaymentForm.js
+index.js
+Server.js
+Billings.js
+
+
+
+As of now I have implemented all, including optional infinite scroll, except for deploying the backend to AWS EC2, Sharding, and scalability with AWS RDS for PostgreSQL and update DATABASE_URL (Citus as well for distributed databases) and used asymmetrically signed token for jwt middleware (with jwks-rsa and express-oauth2-jwt-bearer package) and implemented it with this structure, note I did not update the frontend:
+
+backend/
+├── server.js                # Main server entry point
+├── routes/
+│   └── protectedRoutes.js   # Example protected routes
+├── middleware/
+│   └── authMiddleware.js    # Middleware for token validation
+├── config/
+│   └── config.js            # Configuration file for Auth0 settings
+└── package.json             # Dependencies and scripts
+
+Additionally, to enrure everything runs on one terminal, I used npm-run-all and fixed the scripts section on package.json so that running "npm start" runs frontend, backend, server, and postgreSQL.

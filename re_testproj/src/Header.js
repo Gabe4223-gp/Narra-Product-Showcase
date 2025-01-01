@@ -45,11 +45,6 @@ function Header({toggleSidebar, isSidebarCollapsed}) {
             alt={'Photo of ' + user.name}
             style={{width: user.imageSize, height: user.imageSize}} />
             <li><button onClick={handleLogout} className="btn-logout">Logout</button></li>
-            {/*<Link to="/profile"><img 
-            className="avatar" 
-            src={user.avatar}
-            alt={'Photo of ' + user.name}
-            style={{width: user.imageSize, height: user.imageSize}} /></Link>*/}
            </ul>
         </nav>
       </div>

@@ -1,10 +1,12 @@
 // components/PaymentMethods.js
-import React from 'react';
+import React, { useState } from 'react';
 import PaymentForm from './PaymentForm';
 import PayPalButtonsComponent from './PayPalButtonsComponent';
 import './PaymentMethods.css';
 
 function PaymentMethods() {
+  const [message, setMessage] = useState('');
+
   const handlePayPalSuccess = (details, name) => {
     alert(`Transaction completed by ${name}!`);
     // Optionally, update payment history in your backend here
@@ -15,6 +17,15 @@ function PaymentMethods() {
     console.error('PayPal Checkout Error:', error);
   };
 
+  const handleStripeSuccess = () => {
+    setMessage('Payment succeeded! Thank you for your purchase.');
+  };
+
+  const handleStripeError = (error) => {
+    setMessage(`Payment failed: ${error}`);
+    console.error('Stripe Payment Error:', error);
+  };
+
   return (
     <div className="payment-methods">
       <h2>Payment Methods</h2>
@@ -22,7 +33,7 @@ function PaymentMethods() {
         {/* Stripe Payment Form */}
         <div className="payment-option">
           <h3>Pay with Credit or Debit Card</h3>
-          <PaymentForm />
+          <PaymentForm onSuccess={handleStripeSuccess} onError={handleStripeError} />
         </div>
 
         {/* PayPal Payment Buttons */}
@@ -35,6 +46,7 @@ function PaymentMethods() {
           />
         </div>
       </div>
+      {message && <div className="payment-message">{message}</div>}
     </div>
   );
 }

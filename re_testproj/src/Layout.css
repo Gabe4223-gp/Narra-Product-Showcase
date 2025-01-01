@@ -19,6 +19,10 @@
   transition: margin-left 0.3s ease;
 }
 
+.main-content.expanded {
+  margin-left: 60px; /* Adjust based on collapsed sidebar width */
+}
+
 .sidebar.collapsed + .main-content {
     margin-left: 60px; /* If you have positioning that requires it */
 }

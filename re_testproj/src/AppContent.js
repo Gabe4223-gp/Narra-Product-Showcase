@@ -24,10 +24,10 @@ function AppContent() {
     <>
       <Routes>
         {/* Public Route: Login */}
-        <Route path="/" element={!isAuthenticated ? <Login /> : <Navigate to="/homepage" replace />} />
+        <Route path="/*" element={!isAuthenticated ? <Login /> : <Navigate to="/homepage" replace />} />
         {/* Protected Routes */}
         {isAuthenticated && (
-          <Route path="/" element={<Layout />}>
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Homepage />} />
             <Route path="/homepage" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>}/>
             <Route path="/billing" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Billings /></ProtectedRoute>} />

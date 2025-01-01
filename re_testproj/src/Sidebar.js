@@ -20,25 +20,25 @@ function Sidebar({ isCollapsed }) {
         <ul>
           <li>
             <NavLink to="/homepage" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaHome />
+              <FaHome className="sidebar-icon" />
               {!isCollapsed && <span>Dashboard</span>}
             </NavLink>
           </li>
           <li>
             <NavLink to="/chat" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaComments />
+              <FaComments className="sidebar-icon" />
               {!isCollapsed && <span>Chat</span>}
             </NavLink>
           </li>
           <li>
             <NavLink to="/billing" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaClipboardList />
+              <FaClipboardList className="sidebar-icon" />
               {!isCollapsed && <span>Billings</span>}
             </NavLink>
           </li>
           <li>
             <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaCog />
+              <FaCog className="sidebar-icon" />
               {!isCollapsed && <span>Settings</span>}
             </NavLink>
           </li>
