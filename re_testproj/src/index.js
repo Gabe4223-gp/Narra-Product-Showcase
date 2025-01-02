@@ -7,19 +7,23 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import reportWebVitals from './reportWebVitals';
+
 
 //Replace these with Stripe Publishable key
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = loadStripe(stripeKey);
 
 //PayPal client ID from .env
+const paypalID = process.env.REACT_APP_PAYPAL_CLIENT_ID;
 const paypalOptions = {
-  'client-id': process.env.REACT_APP_PAYPAL_CLIENT_ID,
-  currency: 'USD',
+  'client-id': paypalID,
+  currency: 'PHP', //CHANGE IF NECESSARY
 }
 
 //Replace these with Auth0 domain and client ID
-const domain = 'dev-dzsihvgdbhs65j6v.us.auth0.com';
-const clientId = 'H4X3e7LJf4jpZrYfLHA5qPCJvCBQpnRe';
+const domain = process.env.REACT_APP_AUTH0_DOMAIN;
+const clientId = process.env.REACT_APP_AUTH0_CLIENT_ID;
 
 ReactDOM.render(
   <React.StrictMode>
@@ -41,3 +45,5 @@ ReactDOM.render(
   </React.StrictMode>,
   document.getElementById('root')
 );
+
+reportWebVitals();

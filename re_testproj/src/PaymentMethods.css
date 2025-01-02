@@ -30,3 +30,10 @@
   margin-bottom: 15px;
   color: #2c3e50;
 }
+
+.payment-message {
+  margin-top: 20px;
+  text-align: center;
+  color: #2ecc71;
+  font-weight: bold;
+}
