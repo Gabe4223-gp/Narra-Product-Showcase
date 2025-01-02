@@ -1,0 +1,155 @@
+.property-profile-card,
+.leases-dashboard {
+  flex: 1; /* Make both containers take up equal width */
+  background-color: #ffffff;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-header {
+  display: flex; /* Use flexbox for alignment */
+  align-items: center; /* Vertically align items */
+  justify-content: space-between; /* Space out the name and button */
+  border-bottom: 2px solid #ddd; /* Add a line below the property name */
+  margin-bottom: 10px; /* Add some space below the header */
+  padding-bottom: 10px;
+}
+
+.property-name {
+  font-size: 16px; /* Adjusted for better visibility */
+  font-weight: bold;
+  color: #333;
+  margin: 0; /* Remove margins for better alignment */
+}
+
+.leases-header {
+  display: flex; /* Use flexbox for alignment */
+  align-items: center; /* Vertically align items */
+  justify-content: space-between; /* Space out the name and button */
+  border-bottom: 2px solid #ddd; /* Add a line below the property name */
+  margin-bottom: 10px; /* Add some space below the header */
+  padding-bottom: 10px;
+}
+
+.invoices-header {
+  display: flex; /* Use flexbox for alignment */
+  align-items: center; /* Vertically align items */
+  justify-content: space-between; /* Space out the name and button */
+  border-bottom: 2px solid #ddd; /* Add a line below the property name */
+  margin-bottom: 10px; /* Add some space below the header */
+  padding-bottom: 10px;
+}
+
+.leases-title {
+  font-size: 15px; /* Adjusted for better visibility */
+  font-weight: bold;
+  color: #333;
+  margin: 0; /* Remove margins for better alignment */
+}
+
+.edit-button {
+  background: none; /* Transparent background */
+  color: #333; /* Blue color for better visibility */
+  border: none;
+  font-size: 12px; /* Adjusted size for clarity */
+  cursor: pointer;
+  transition: color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.edit-button:hover {
+  color: #054ad2; /* Darker blue on hover */
+}
+
+.property-content {
+  display: flex;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.property-image {
+  width: 40%; /* Image takes up 40% of the card width */
+  height: auto; /* Maintain the aspect ratio */
+  margin-right: 10%; /* Space between the image and the property details */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the image */
+}
+
+.property-data {
+  width: 60%; /* Property details take up the remaining 60% */
+  display: flex;
+  flex-direction: column; /* Stack the property details vertically */
+}
+
+.property-profile-card p {
+  margin: 8px 0; /* Margin between paragraphs */
+  font-size: 14px;
+  color: #555;
+}
+
+.top-container {
+  display: flex; /* Use flexbox for layout */
+  flex-direction: row; /* Arrange items in a row */
+  gap: 20px; /* Space between the property and lease containers */
+  margin-bottom: 20px; /* Space below the row */
+}
+
+.edit-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-controls input {
+  margin: 10px 0;
+  padding: 8px;
+  font-size: 14px;
+  width: 90%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.edit-controls button {
+  padding: 0;
+  background: none;
+  color: #333; /* Black color */
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease; /* Smooth transition for color */
+  font-size: 12px;
+  margin-top: 2%;
+  margin-left: 80%;
+}
+
+.edit-controls button:hover {
+  color: #0066ff; /* Blue color on hover */
+}
+
+.invoices-dashboard {
+  background-color: #ffffff;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  width: 60%; /* Takes up full width of the parent */
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%; /* Ensures it stays within bounds */
+  flex: 1;
+}
+
+.back-button {
+  padding: 0;
+  background: none;
+  color: #333; /* Black color */
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease; /* Smooth transition for color */
+  font-size: 12px;
+  margin-bottom: 2%;
+}

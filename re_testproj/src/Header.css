@@ -2,14 +2,38 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 60px;
-  color: #ecf0f1;
+  height: 90px;
   display: flex;
   align-items: center;
   padding: 0 20px;
   z-index: 1000;
-  background-color: #272d2d;
   flex-shrink: 0;
+  border-bottom: 1px solid #cfcfcf;
+}
+
+.narra-logo {
+  font-size: 30px;
+  font-family: "Montserrat";
+  color: #ddd;
+  font-weight: normal;
+  margin-right: 20.5px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  background-color: #4a6385;
+  color: #fff;
+  height: 100%;
+  padding: 0 15px;
+  width: fit-content;
+  margin-left: -1.6%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.left-section.collapsed {
+  width: 34px; /* Shrinks the left section when collapsed */
 }
 
 .toggle-button {
@@ -18,12 +42,18 @@
   color: #ecf0f1;
   font-size: 1.5em;
   cursor: pointer;
-  margin-right: 20px;
+  margin-right: 10px;
 }
 
 .header .logo1 {
   width: 140px;
   height: auto;
+  transition: opacity 0.3s ease; /* Smooth fading effect for the logo */
+}
+
+.left-section.collapsed .logo1 {
+  opacity: 0; /* Hide the logo when collapsed */
+  pointer-events: none; /* Disable interactions with the logo */
 }
 
 .header .navbar ul {
@@ -39,7 +69,8 @@
 
 .header .navbar ul li a {
   text-decoration: none;
-  color: #ffffff;
+  color: #333;
+  margin-left: 100%;
 }
 
 .header .logo2 {

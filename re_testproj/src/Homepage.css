@@ -1,63 +1,179 @@
-/* Homepage.css */
+/* Global Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #f4f7fa;
+}
 
+/* Homepage container */
 .homepage {
-  padding: 80px 20px 20px; /* Top padding accounts for the fixed Header */
-  background-color: #f4f6f8;
-  min-height: calc(100vh - 60px); /* Subtract Header height */
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 30px;
 }
 
-.homepage h1 {
-  text-align: center;
-  margin-bottom: 40px;
-  color: #34495e;
+/* Heading for the page */
+.homepage h5 {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 13px;    
+  margin-top: auto;
 }
 
-.info-boxes {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.info-box {
-  background-color: #ffffff;
+/* Property List Box */
+.property-list-box {
+  background-color: white;
+  padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: 30%;
-  min-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.blank-box {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #bbb;
+}
+
+/* Property Item Styles */
+.property-item {
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.property-item p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.property-item button {
+  padding: 0;
+  background: none;
+  color: #333; /* Default color */
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none; /* Removes underline */
+  transition: color 0.3s ease; /* Smooth transition for text color */
+}
+
+.property-item button:hover {
+  color: #0066ff; /* Blue color on hover */
+}
+
+/*Create new property button*/
+#create-property-btn {
+  padding: 0;
+  background: none;
+  color: #333; /* Black color */
+  border: none;
+  font-size: 24px; /* Size of the + sign or text */
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease; /* Smooth transition for color */
+  font-size: 10px;
+}
+
+#create-property-btn:hover {
+  color: #0066ff; /* Blue color on hover */
+}
+
+/* Modal Styles */
+#property-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 300px;
+  width: 40%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.modal-content h6 {
+  font-weight: normal;
+}
+
+.modal-content form {
   display: flex;
   flex-direction: column;
 }
 
-.info-box-header {
-  background-color: #34495e;
-  color: #ecf0f1;
-  padding: 10px 15px;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
+.modal-content label {
+  font-size: 16px;
+  margin-bottom: -30px;
+  margin-top: -10px;
+}
+
+.modal-content input {
+  padding: 5px;
+  margin-bottom: -9px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  margin-top: -10px;
+  width: auto;
+  position: relative;
+  left: 100px;
+  top: -40px;
+  max-width: 200px;
+}
+
+.modal-content button {
+  padding: 7px;
+  background-color: #32425a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+  width: 30%;
+  margin: auto;
+  margin-top: 20px;
+}
+
+.modal-content button:hover {
+  background-color: #0056e3;
+}
+
+#close-modal {
+  background-color: #ccc;
+  margin-top: 10px;
+}
+
+#close-modal:hover {
+  background-color: #aaa;
+}
+
+.blank-box {
+  padding: 50px;
+  margin-bottom: 15px;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  background-color: #fff;
   display: flex;
-  align-items: center;
-  font-size: 1.1em;
-}
-
-.info-icon {
-  margin-right: 10px;
-  font-size: 1.2em;
-}
-
-.info-box-content {
-  padding: 15px;
-  color: #2c3e50;
-  flex: 1;
-}
-
-@media (max-width: 992px) {
-  .info-boxes {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .info-box {
-    width: 80%;
-  }
+  flex-direction: column;
+  align-items: flex-start;
 }

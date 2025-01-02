@@ -25,6 +25,12 @@ function Sidebar({ isCollapsed }) {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/tenant" className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaUser />
+              {!isCollapsed && <span>Tenants</span>}
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/chat" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaComments />
               {!isCollapsed && <span>Chat</span>}
