@@ -1,9 +1,11 @@
 THINGS TO DO:
 
+-Try to fix .env so that it is not shown in server calls and remove from git history all sensitive info
+(e.g. const sequelize = new Sequelize('postgres://postgres:***REMOVED***@localhost:5432/narra_payment_history'))
+-PAY Paymongo
 -PAY Redis
 -PAY AUTH0
 -PAY STRIPE
--PAY PAYPAL DVELOPERS
 -Set up convenience fee
 -CSS styling for login and dashboard
 -Login.js Real Authentification with backend API Call (Auth0, Firefall)
@@ -43,3 +45,23 @@ backend/
 └── package.json             # Dependencies and scripts
 
 Additionally, to enrure everything runs on one terminal, I used npm-run-all and fixed the scripts section on package.json so that running "npm start" runs frontend, backend, server, and postgreSQL.
+
+Sharding involves partitioning your database across multiple machines. For development purposes, this isn't necessary, but for large-scale applications:
+
+PostgreSQL: Consider using extensions like Citus for distributed databases.
+Application-Level Sharding: Implement sharding logic based on client_id or other criteria.
+Try to fix .env so that it is not shown in server calls and remove from git history all sensitive info
+
+Deployment Considerations
+When deploying to AWS:
+
+Use AWS RDS for PostgreSQL: Managed relational database service.
+Use AWS ElastiCache for Redis: Managed Redis service.
+Use AWS S3 for Invoice Storage: Store and serve static invoice files.
+Containerization: Consider using Docker to containerize your application for easier deployment and scalability.
+CI/CD Pipelines: Implement continuous integration and deployment pipelines for automated testing and deployment.
+
+Verify Email Configuration for Sending Bills:
+
+Ensure process.env.EMAIL_USER and process.env.EMAIL_PASSWORD are correctly set in your .env file.
+Gmail often blocks unauthorized access; you might need to enable Less Secure App Access or use an App Password.

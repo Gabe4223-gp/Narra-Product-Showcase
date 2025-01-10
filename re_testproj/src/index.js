@@ -6,7 +6,6 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import reportWebVitals from './reportWebVitals';
 
 
@@ -15,31 +14,30 @@ const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = loadStripe(stripeKey);
 
 //PayPal client ID from .env
-const paypalID = process.env.REACT_APP_PAYPAL_CLIENT_ID;
-const paypalOptions = {
-  'client-id': paypalID,
-  currency: 'PHP', //CHANGE IF NECESSARY
-}
+
 
 //Replace these with Auth0 domain and client ID
 const domain = process.env.REACT_APP_AUTH0_DOMAIN;
 const clientId = process.env.REACT_APP_AUTH0_CLIENT_ID;
+const audience = process.env.REACT_APP_AUTH0_AUDIENCE;
 
 ReactDOM.render(
   <React.StrictMode>
     <Auth0Provider
       domain={domain}
       clientId={clientId}
-      redirectUri={window.location.origin}
+      authorizationParams={{
+        redirect_uri: window.location.origin,
+        audience: audience,
+        scope: 'openid read:payments write:payments offline_access',
+      }}
       cacheLocation='localstorage' // Optional: Persist login state
       useRefreshTokens={true} // Optional: Use refresh tokens
     >
       <Elements stripe={stripePromise}>
-        <PayPalScriptProvider options={paypalOptions}>
-          <Router>
-            <App />
-          </Router>
-        </PayPalScriptProvider>
+        <Router>
+          <App />
+        </Router>
       </Elements>
     </Auth0Provider>
   </React.StrictMode>,

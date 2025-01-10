@@ -1,116 +1,61 @@
-/* Billings.css */
-
-.billings {
-  padding: 80px 20px 20px; /* Top padding accounts for the fixed Header */
+.billings-page {
+  padding: 20px;
   background-color: #f4f6f8;
-  min-height: calc(100vh - 60px); /* Subtract Header height */
 }
 
-.billings h1 {
+.billings-page h1 {
   text-align: center;
-  margin-bottom: 40px;
-  color: #34495e;
+  margin-bottom: 20px;
+  color: #2c3e50;
 }
 
-.billings-container {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.payment-history {
+.bills-container {
   background-color: #ffffff;
+  margin: 20px 0;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.payment-history h2 {
-  margin-bottom: 20px;
-  color: #2c3e50;
+.bills-container h2 {
+  margin-bottom: 10px;
+  color: #34495e;
 }
 
-.payment-history table {
+.bills-container table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.payment-history th, .payment-history td {
-  padding: 12px 15px;
+.bills-container th,
+.bills-container td {
+  padding: 10px;
   border: 1px solid #ddd;
   text-align: center;
 }
 
-.payment-history th {
+.bills-container th {
   background-color: #34495e;
   color: #ecf0f1;
 }
 
-.payment-history tr:nth-child(even) {
+.bills-container tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-.payment-history a {
-  color: #1abc9c;
-  text-decoration: none;
-}
-
-.payment-history a:hover {
-  text-decoration: underline;
-}
-
-/* Loading Spinner */
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #1abc9c;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  animation: spin 2s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Error Message */
-.error-message {
-  color: #e74c3c;
-  text-align: center;
-  margin: 20px 0;
-  font-weight: bold;
-}
-
-/* Pagination Controls */
-.pagination {
+.bills-container .actions {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
+  justify-content: flex-end;
+  margin-top: 10px;
   gap: 10px;
 }
 
-.pagination button {
-  background-color: #1abc9c;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+.bills-container .action-link {
+  color: #1abc9c;
+  text-decoration: none;
+  font-weight: bold;
 }
 
-.pagination button:hover:not(:disabled) {
-  background-color: #16a085;
-}
-
-.pagination button:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
-}
-
-.pagination span {
-  color: #34495e;
+.bills-container .action-link:hover {
+  text-decoration: underline;
 }

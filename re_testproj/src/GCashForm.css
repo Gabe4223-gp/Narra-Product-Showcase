@@ -1,0 +1,55 @@
+.gcash-form {
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gcash-form h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.gcash-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.gcash-form input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.gcash-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.gcash-form button:hover {
+  background-color: #2980b9;
+}
+
+.gcash-logo {
+    display: block;
+    margin: 0 auto 15px;
+    max-width: 100px;
+    height: auto;
+}  
+
+.gcash-message {
+  margin-top: 15px;
+  text-align: center;
+  color: #e74c3c; /* Red for error, green for success */
+}

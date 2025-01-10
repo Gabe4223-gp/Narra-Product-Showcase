@@ -1,0 +1,110 @@
+/* Tenant.css */
+
+/* General Layout */
+.tenants {
+    padding: 40px 20px;
+    background-color: #f4f6f8;
+    min-height: calc(100vh - 60px); /* Adjust for fixed header */
+  }
+  
+  .tenants h1 {
+    text-align: center;
+    color: #34495e;
+    margin-bottom: 20px;
+  }
+  
+  .tenants-container {
+    display: flex;
+    gap: 20px;
+  }
+  
+  /* Left Column */
+  .left-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .profile-container {
+    text-align: center;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .profile-picture {
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+  }
+  
+  .profile-actions {
+    margin-top: 10px;
+  }
+  
+  .profile-link {
+    margin: 0 10px;
+    color: #1abc9c;
+    text-decoration: none;
+  }
+  
+  .profile-link:hover {
+    text-decoration: underline;
+  }
+  
+  .billing-account-container,
+  .lease-decisions-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .billing-account-container h2,
+  .lease-decisions-container h2 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+  }
+  
+  .billing-methods div {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .billing-methods div:last-child {
+    border-bottom: none;
+  }
+  
+  /* Right Column */
+  .right-column {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .actions-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .actions-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Error Message */
+  .error-message {
+    color: #e74c3c;
+    text-align: center;
+    font-weight: bold;
+  }
+  

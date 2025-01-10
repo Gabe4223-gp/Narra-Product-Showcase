@@ -1,30 +1,29 @@
 // Sample data insertion script (Optional)
 
 // backend/seed.js
+require('dotenv').config();
 const { Sequelize, DataTypes } = require('sequelize');
-const dotenv = require('dotenv');
-const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
-dotenv.config();
-
-// Initialize Sequelize with PostgreSQL
+// Initialize Sequelize
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
-  logging: false,
+  logging: false, // Set to true for debugging
 });
-
-const { v4: uuidv4 } = require('uuid');
-const validUuid = uuidv4();// Generates a valid uuid
 
 // Define the Payment model
 const Payment = sequelize.define('Payment', {
   id: {
     type: DataTypes.UUID,
-    defaultValue: Sequelize.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  external_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   client_id: {
-    type: DataTypes.UUID,
+    type: DataTypes.STRING,
     allowNull: false,
   },
   name: {
@@ -32,11 +31,11 @@ const Payment = sequelize.define('Payment', {
     allowNull: false,
   },
   amountPaid: {
-    type: DataTypes.INTEGER, // Stored in cents
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   totalAmount: {
-    type: DataTypes.INTEGER, // Stored in cents
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   dateOfPayment: {
@@ -52,43 +51,50 @@ const Payment = sequelize.define('Payment', {
     allowNull: false,
   },
 }, {
-  indexes: [
-    {
-      fields: ['client_id'],
-    },
-    {
-      fields: ['dateOfPayment'],
-    },
-  ],
+  tableName: 'Payments',
 });
 
+// Seed Data
 const seedPayments = async () => {
-  await sequelize.sync({ force: true }); // Warning: This will drop existing tables
+  try {
+    // Sync the database schema
+    await sequelize.sync({ force: true });
+    console.log('Database synced.');
 
-  await Payment.bulkCreate([
-    {
-      client_id: validUuid, // Replace with actual client IDs
-      name: 'Malaking Talong',
-      amountPaid: 2000, // $20.00
-      totalAmount: 2000,
-      dateOfPayment: new Date('2023-10-01T10:30:00Z'),
-      subject: 'October Monthly Bill',
-      invoiceUrl: 'http://localhost:5000/invoices/invoice1.pdf',
-    },
-    {
-      client_id: validUuid,
-      name: 'Big Tiyanak',
-      amountPaid: 1500, // $15.00
-      totalAmount: 1500,
-      dateOfPayment: new Date('2023-09-01T09:15:00Z'),
-      subject: 'September Monthly Bill',
-      invoiceUrl: 'http://localhost:5000/invoices/invoice2.pdf',
-    },
-    // Add more payment records as needed
-  ]);
+    // Seed data
+    const validUuid = uuidv4(); // Replace with actual UUIDs
+    const payments = [
+      {
+        client_id: validUuid,
+        name: 'Malaking Talong',
+        amountPaid: 2000,
+        totalAmount: 2000,
+        dateOfPayment: new Date('2023-10-01T10:30:00Z'),
+        subject: 'October Monthly Bill',
+        invoiceUrl: 'http://localhost:5000/invoices/invoice1.pdf',
+      },
+      {
+        client_id: validUuid,
+        name: 'Tiyanak',
+        amountPaid: 1500,
+        totalAmount: 1500,
+        dateOfPayment: new Date('2023-09-01T09:15:00Z'),
+        subject: 'September Monthly Bill',
+        invoiceUrl: 'http://localhost:5000/invoices/invoice2.pdf',
+      },
+    ];
 
-  console.log('Payment history seeded!');
-  process.exit();
+    await Payment.bulkCreate(payments);
+    console.log('Payment history seeded successfully!');
+  } catch (error) {
+    console.error('Error seeding payments:', error);
+  } finally {
+    // Close the database connection
+    await sequelize.close();
+    console.log('Database connection closed.');
+    process.exit();
+  }
 };
 
+// Run the seeding script
 seedPayments();

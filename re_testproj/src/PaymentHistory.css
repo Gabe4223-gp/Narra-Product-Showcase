@@ -1,0 +1,79 @@
+/* General Payment History Styling */
+.payment-history {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-history h2 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+/* Table Styling */
+.payment-history table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.payment-history th, .payment-history td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.payment-history th {
+  background-color: #34495e;
+  color: #ecf0f1;
+}
+
+.payment-history tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.payment-history td a {
+  color: #1abc9c;
+  text-decoration: none;
+}
+
+.payment-history td a:hover {
+  text-decoration: underline;
+}
+
+/* Empty State Styling */
+.payment-history-empty {
+  text-align: center;
+  font-style: italic;
+  color: gray;
+  margin-top: 20px;
+}
+
+/* Spinner Styling */
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1abc9c;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 2s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error Message Styling */
+.error-message {
+  color: #e74c3c;
+  text-align: center;
+  margin: 20px 0;
+  font-weight: bold;
+}
