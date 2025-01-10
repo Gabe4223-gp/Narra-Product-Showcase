@@ -1,8 +1,69 @@
 import React, { useState } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
-import { Link } from 'react-router-dom';
-import { FaChartBar, FaUsers, FaCog } from 'react-icons/fa';
+
+class PropertyClass {
+  constructor(
+    id = Math.random(), 
+    companyName = "NA", 
+    propertyName = "NA", 
+    propertyAddress = "NA", 
+    image = "https://via.placeholder.com/150", 
+    owner = "NA", 
+    tenants = [], 
+    units = [], 
+    createdAt = new Date()) 
+    {
+    this.id = id;  
+    this.companyName = companyName;  
+    this.propertyName = propertyName;
+    this.propertyAddress = propertyAddress;
+    this.image = image;
+    this.owner = owner;
+    this.tenants = tenants;
+    this.units = units;
+    this.createdAt = createdAt;
+  }
+
+  // Method to remove a tenant by ID
+  removeTenant(tenantIndex) {
+    this.tenants.splice(tenantIndex, 1) 
+  }
+
+  addTenant(newTenant) {
+    this.tenants.push(newTenant); // Append the new tenant to the tenants array
+  }
+
+  // Method to get the total number of units
+  getUnitCount() {
+      return this.units.length;
+  }
+
+  // Method to get the total number of tenants
+  getTenantCount() {
+    return this.tenants.length;
+  }
+
+  getOccupancy() {
+    if (this.units.length === 0) {
+        return 0;  // Or return an appropriate message indicating no units available
+    }
+    return this.tenants.length / this.units.length;
+  }
+
+  // Method to get the property details
+  getPropertyDetails() {
+      return {
+          id: this.id,
+          name: this.name,
+          address: this.address,
+          owner: this.owner,
+          unitCount: this.getUnitCount(),
+          tenantCount: this.getTenantCount(),
+          createdAt: this.createdAt,
+      };
+  }
+}
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
@@ -25,17 +86,20 @@ function HomePage({ onLogout }) {
     const companyName = document.getElementById("company-name").value;
     const propertyName = document.getElementById("property-name").value;
     const propertyAddress = document.getElementById("property-address").value;
+    const owner = document.getElementById("owner").value;
 
     // Create a new property object
-    const newProperty = {
+    const newProperty = new PropertyClass(
+      Math.random(),
       companyName,
       propertyName,
       propertyAddress,
-      image: uploadedImage || defaultImage,
-      tenantCount: 0, // default value for tenant count
-      unitCount: 0, // default value for unit count
-      occupancyRate: 0, // default value for occupancy rate
-    };
+      uploadedImage || defaultImage,
+      owner,
+      [],
+      [],
+      new Date(),
+    )
 
     // Add the new property to the state
     setProperties([...properties, newProperty]);
@@ -91,6 +155,7 @@ function HomePage({ onLogout }) {
               </button>
               <p>Company: {property.companyName}</p>
               <p>Address: {property.propertyAddress}</p>
+              <p>Owner: {property.owner}</p>
             </div>
           ))
         )}
@@ -114,6 +179,10 @@ function HomePage({ onLogout }) {
               <label>
                 <h6>Address:</h6>
                 <input type="text" id="property-address" required />
+              </label>
+              <label>
+                <h6>Owner:</h6>
+                <input type="text" id="owner" required />
               </label>
               <label>
                 <h6>Upload Image:</h6>
