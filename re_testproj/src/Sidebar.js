@@ -26,7 +26,7 @@ function Sidebar({ isCollapsed }) {
           </li>
           <li>
             <NavLink to="/tenant" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaUser />
+              <FaUser className="sidebar-icon"/>
               {!isCollapsed && <span>Tenants</span>}
             </NavLink>
           </li>

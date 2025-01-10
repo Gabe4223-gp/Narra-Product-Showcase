@@ -16,7 +16,7 @@ body {
 
 /* Heading for the page */
 .homepage h5 {
-  font-size: 13px;
+  font-size: 16px;
   color: #333;
   margin-bottom: 13px;    
   margin-top: auto;
@@ -75,11 +75,10 @@ body {
   background: none;
   color: #333; /* Black color */
   border: none;
-  font-size: 24px; /* Size of the + sign or text */
   cursor: pointer;
   text-decoration: none;
   transition: color 0.3s ease; /* Smooth transition for color */
-  font-size: 10px;
+  font-size: 11px;
 }
 
 #create-property-btn:hover {
