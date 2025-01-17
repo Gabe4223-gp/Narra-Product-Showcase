@@ -1,7 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import "./TenantProfile.css";
 import DocumentViewer from './DocumentViewer.js';
-import { PDFDocument, rgb } from 'pdf-lib';
+import Lease from './Lease.js';
 
 class AuthorizedOccupant {
     constructor(name = "", email = "", phone = "", governmentID = null) {
@@ -24,6 +24,8 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
         email: tenant.Email,
         leaseStarted: tenant.LeaseStarted,
         leaseExpiry: tenant.LeaseExpiry,
+        moveinDate: tenant.moveinDate,
+        moveoutDate: tenant.moveoutDate,
         billingDeadline: tenant.BillingDeadline,
         nationality: tenant.Nationality,
         occupation: tenant.Occupation,
@@ -35,44 +37,14 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
         creditcardName: tenant.CreditCardName,
         creditcardNo: tenant.CreditCardNo,
         creditcardDate: tenant.CreditCardDate,
-
+        primaryPaymentMethod: tenant.primaryPaymentMethod
     });
     const [showAuthorizedModal, setShowAuthorizedModal] = useState(false);
-    const [showLeaseDocument, setshowLeaseDocument] = useState(false);
     const [newAuthorizedOccupant, setNewAuthorizedOccupant] = useState(new AuthorizedOccupant());
     const [showAddOccupantInputs, setShowAddOccupantInputs] = useState(false);
     const [authorizedOccupants, setAuthorizedOccupants] = useState(tenant.authorizedOccupants || []);
-    const [leaseDocs, setLeaseDocs] = useState(tenant.leaseDoc || []);
     const [selectedDoc, setSelectedDoc] = useState(null);
-    const [showRenewLease, setshowRenewLease] = useState(false);
-
-    //Lease Generation const
-    const storedFormData = JSON.parse(localStorage.getItem('leaseFormData')) || {};
-    const [leaseStartDate, setLeaseStartDate] = useState(storedFormData.leaseStartDate || '');
-    const [leaseEndDate, setLeaseEndDate] = useState(storedFormData.leaseEndDate || '');
-    const [leaseEndTime, setLeaseEndTime] = useState(storedFormData.leaseEndTime || '');
-    const [unitNumber, setUnitNumber] = useState(storedFormData.unitNumber || '');
-    const [monthlyRent, setMonthlyRent] = useState(storedFormData.monthlyRent || '');
-    const [rentDeposit, setRentDeposit] = useState(storedFormData.rentDeposit || '');
-    const [equivalentMonths, setEquivalentMonths] = useState(storedFormData.equivalentMonths || '');
-    const [utilitiesDeposit, setUtilitiesDeposit] = useState(storedFormData.utilitiesDeposit || '');
-    const [petDeposit, setPetDeposit] = useState(storedFormData.petDeposit || '');
-    const [signers, setSigners] = useState(storedFormData.signers || []);
     const [forPreview, setForPreview] = useState(false);
-
-    //Form date for lease generation
-    const formData = {
-        startDate: leaseStartDate,
-        endDate: leaseEndDate,
-        endTime: leaseEndTime,
-        unitNo: unitNumber,
-        monthlyRent: monthlyRent,
-        rentDeposit: rentDeposit,
-        utilitiesDeposit: utilitiesDeposit,
-        petDeposit: petDeposit,
-        equivalentMonths: equivalentMonths,
-        signers: signers
-      };
 
     //Edit tenant
     const handleEditTenantChange = (field, value) => {
@@ -94,7 +66,9 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
             editedTenant.email &&
             editedTenant.phone &&
             editedTenant.occupation &&
-            editedTenant.nationality 
+            editedTenant.nationality &&
+            editedTenant.moveinDate &&
+            editedTenant.moveoutDate
         ) {
             // Call the callback to update the parent component (Tenant.js)
             onEditTenantDetails(editedTenant);
@@ -118,51 +92,6 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
             reader.readAsDataURL(file);
         } else {
             alert("Please upload a valid image file.");
-        }
-    };
-
-    const handleLeaseUpload = (event) => {
-        const files = event.target.files;
-        if (files.length > 1) {
-            alert('Please upload only one file.');
-            return;
-        }
-    
-        const selectedFile = files[0];
-        if (selectedFile) {
-            handleLeaseChange(selectedFile, tenant);  // Pass tenant along with the file
-        }
-    };
-
-    // Trigger file input click programmatically
-    const handleUploadClick = () => {
-        document.getElementById('fileInput').click();  // Trigger file input click
-    };
-
-    const handleLeaseChange = (file) => {
-        const allowedTypes = [
-            'application/pdf',          // PDF
-            'image/jpeg',               // JPEG image
-            'image/png',                // PNG image
-        ];
-    
-        if (file && allowedTypes.includes(file.type)) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const newDoc = {
-                    fileUrl: reader.result,
-                    dateUploaded: new Date().toISOString(),
-                    fileType: file.type,
-                };
-
-                setLeaseDocs([...leaseDocs, newDoc]);
-
-                // Call the callback to update the parent component (Tenant.js)
-                onUpdateLeaseDocs(newDoc);
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert('Invalid file type. Please upload a PDF or image.');
         }
     };
 
@@ -265,186 +194,30 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
         </tr>
     );
 
-    //Lease Signor functions
-    // Add new signer
-    const addSigner = () => {
-        setSigners([...signers, { name: '' }]);
+    const handleMarkasMovedOut = () => {
+        setEditedTenant((prevTenant) => ({
+            ...prevTenant,
+            moveoutDate: new Date(),
+        }));
+
+        // Call the callback to update the parent component (Tenant.js)
+        onEditTenantDetails(editedTenant);
     };
 
-    // Handle signer name change
-    const handleSignerChange = (index, value) => {
-        const newSigners = [...signers];
-        newSigners[index].name = value;
-        setSigners(newSigners);
-    };
+    const handleSetForPreview = () => {
+        setForPreview(true);
+    }
 
-    // Remove signer
-    const removeSigner = (index) => {
-        const newSigners = signers.filter((_, i) => i !== index);
-        setSigners(newSigners);
-    };
-
+    const handleLoadLeaseDoc = (doc) => {
+        setSelectedDoc(doc);
+    }
     
-    // Renew Lease Generator
-    const generatePDF = async () => {
-        // Generate the PDF and get the Blob URL
-        const pdfBlobUrl = await generatePDFWithTemplate(formData);
-
-        // Store form data in localStorage for future use
-        localStorage.setItem('leaseFormData', JSON.stringify(formData));
-      
-        // You can use the pdfBlobUrl to pass it to your DocumentViewer component
-        setSelectedDoc({
-          fileUrl: pdfBlobUrl,
-          fileType: 'application/pdf',  // PDF type
-        });
-
-        setForPreview(true); //Sets the lease signing function as true
-      };
-
-    const generatePDFWithTemplate = async (formData) => {
-        const existingPdfBytes = await fetch("/template1.pdf").then((res) =>
-          res.arrayBuffer()
-        );
-      
-        // Load the existing PDF
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        const pages = pdfDoc.getPages();
-        const page = pages[0]; // Assume we are editing the first page
-      
-        // Define the coordinates for each field
-        const coordinates = {
-          startDate: { x: 50, y: 600 },  // Lease Start Date
-          endDate: { x: 50, y: 580 },    // Lease End Date
-          unitNo: { x: 50, y: 560 },     // Unit No
-          monthlyRent: { x: 50, y: 540 }, // Monthly Rent
-          rentDeposit: { x: 50, y: 520 }, // Rent Deposit
-          utilitiesDeposit: { x: 50, y: 500 }, // Utilities Deposit
-          petDeposit: { x: 50, y: 480 }, // Pet Deposit
-          endTime: { x: 50, y: 460 },    // End Time
-          equivalentMonths: { x: 50, y: 440 }, // Equivalent Months
-          signers: { x: 50, y: 420 } // Starting Y for Lease Signers
-        };
-      
-        // Place form data at the blank line coordinates
-        page.drawText(formData.startDate || "", {
-          x: coordinates.startDate.x,
-          y: coordinates.startDate.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.endDate || "", {
-          x: coordinates.endDate.x,
-          y: coordinates.endDate.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.unitNo || "", {
-          x: coordinates.unitNo.x,
-          y: coordinates.unitNo.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.monthlyRent || "", {
-          x: coordinates.monthlyRent.x,
-          y: coordinates.monthlyRent.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.rentDeposit || "", {
-          x: coordinates.rentDeposit.x,
-          y: coordinates.rentDeposit.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.utilitiesDeposit || "", {
-          x: coordinates.utilitiesDeposit.x,
-          y: coordinates.utilitiesDeposit.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.petDeposit || "", {
-          x: coordinates.petDeposit.x,
-          y: coordinates.petDeposit.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.endTime || "", {
-          x: coordinates.endTime.x,
-          y: coordinates.endTime.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        page.drawText(formData.equivalentMonths || "", {
-          x: coordinates.equivalentMonths.x,
-          y: coordinates.equivalentMonths.y,
-          size: 12,
-          color: rgb(0, 0, 0),
-        });
-      
-        // Place the Lease Signers' names dynamically
-        formData.signers.forEach((signer, index) => {
-          const signerY = coordinates.signers.y - (index * 20);  // Adjust Y position for each signer
-          page.drawText(signer.name || "", {
-            x: coordinates.signers.x,
-            y: signerY,
-            size: 12,
-            color: rgb(0, 0, 0),
-          });
-        });
-      
-        // Save the updated PDF
-        const pdfBytes = await pdfDoc.save();
-        const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        return URL.createObjectURL(pdfBlob);  // Return Blob URL
-      };
-
-      useEffect(() => {
-        // On component mount, load the current lease from localStorage
-        const currentLeaseId = localStorage.getItem('currentLeaseId');
-        if (currentLeaseId) {
-            setLeaseDocs(prevDocs => prevDocs.map(doc => {
-                if (doc.id === currentLeaseId) {
-                    doc.isCurrentLease = true;
-                } else {
-                    doc.isCurrentLease = false;
-                }
-                return doc;
-            }));
-        }
-    }, []);
-
-    const handleSetCurrentLease = (newCurrentDoc) => {
-        // Save the new current lease ID in localStorage
-        localStorage.setItem('currentLeaseId', newCurrentDoc.id);
-
-        // Update the leaseDocs state to mark the current lease
-        setLeaseDocs(prevDocs => {
-            return prevDocs.map(doc => {
-                if (doc.id === newCurrentDoc.id) {
-                    doc.isCurrentLease = true; // Mark as current lease
-                } else {
-                    doc.isCurrentLease = false; // Unmark other documents
-                }
-                return doc;
-            });
-        });
-    };
-
     if (selectedDoc !== null) {
         return (
           <DocumentViewer
             onBack={handleBack}
             selectedDoc={selectedDoc}
-            isPreview={forPreview}
+            forPreview={forPreview}
             tenant={tenant}
           />
         );
@@ -474,12 +247,13 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                             <p>Unit Number:  {editedTenant.unit}</p>
                             <p>Email:  {editedTenant.email}</p>
                             <p>Phone number:  {editedTenant.phone}</p>
+                            <p>Nationality:  {editedTenant.nationality}</p>
                         </div>
                         <div className="right-tenant-details">
-                            <p>Nationality:  {editedTenant.nationality}</p>
                             <p>Occupation:  {editedTenant.occupation}</p>
-                            <p>Lease Started:  {editedTenant.leaseStarted}</p>
-                            <p>Lease Expiry:  {editedTenant.leaseExpiry}</p>
+                            <p>Lease Started:  {editedTenant.leaseStarted ? editedTenant.leaseStarted : ""}</p>
+                            <p>Lease Expiry:  {editedTenant.leaseExpiry ? editedTenant.leaseExpiry : ""}</p>
+                            <p>Move In Date: {editedTenant.moveinDate}</p>
                             <button
                                 className="authorized-occupants"
                                 onClick={() => setShowAuthorizedModal(true)}
@@ -495,223 +269,25 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                     <div className='billing-details-row'>
                         <div className='left-billing-details'>
                             <p>eWallet Name:  {handleEmptyField(tenant.eWalletName)}</p>
-                            <p>eWallet Reference no:  {handleEmptyField(tenant.eWalletReferenceNo)}</p>
                             <p>Bank Name:  {handleEmptyField(tenant.bankName)}</p>
-                            <p>Bank Account No:  {handleEmptyField(tenant.bankReferenceNo)}</p>
+                            <p>Credit Card Name:  {handleEmptyField(tenant.creditcardName)}</p>
                         </div>
                         <div className='right-billing-details'>
-                            <p>Credit Card Name:  {handleEmptyField(tenant.creditcardName)}</p>
-                            <p>Credit Card Number:  {handleEmptyField(tenant.creditcardNo)}</p>
-                            <p>Credit Card Expiry Date:  {handleEmptyField(tenant.creditcardDate)}</p>
+                            <p>Primary Payment Method: {handleEmptyField(tenant.primaryPaymentMethod)}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div className='tenant-mid-section'>
-                
-                <div className="tenant-lease-decision">
-                    <h5>Lease Decision</h5>
-
-                    {leaseDocs && leaseDocs.length > 0 ? (
-                        <div>
-                            <button onClick={() => setshowLeaseDocument(true)} className='tenant-lease-view'>
-                                View Lease</button> 
-                            <button onClick={() => setshowRenewLease(true)} className="tenant-renew-lease"> Renew Lease </button>
-                        </div>
-                    ) : (
-                        <div>
-                            <button
-                            onClick={handleUploadClick}
-                            className="tenant-lease-upload">
-                            Upload Lease</button>
-                            <input
-                                type="file"
-                                id="fileInput"
-                                style={{ display: 'none' }} // Hide the input element
-                                onChange={(event) => handleLeaseUpload(event, tenant)} // Handle file change
-                            />
-                            
-                            <button onClick={() => setshowRenewLease(true)} className="tenant-renew-lease"> Create Lease </button>
-                        
-
-                        </div>  
-                    )}
-
-                    {showRenewLease && (
-                        <div className="lease-input-modal-overlay">
-                            <div className="modal-container">
-                                <h3 className="modal-header">Lease Details</h3>
-                                <form>
-                                    <label>
-                                        Lease Start Date:
-                                        <input 
-                                        type="date" 
-                                        value={leaseStartDate}
-                                        onChange={(e) => setLeaseStartDate(e.target.value)}
-                                        />
-                                    </label>
-                                    <div className='end-date-time'>
-                                        <label>
-                                            Lease End Date:
-                                        <input 
-                                        type="date" 
-                                        value={leaseEndDate}
-                                        onChange={(e) => setLeaseEndDate(e.target.value)}
-                                        />
-                                        </label>
-                                        <label>
-                                            End Time:
-                                            <input 
-                                            type="time" 
-                                            value={leaseEndTime}
-                                            onChange={(e) => setLeaseEndTime(e.target.value)}
-                                            />
-                                        </label>
-                                    </div>
-                                    <label>
-                                        Unit No:
-                                        <input 
-                                        type="number" 
-                                        value={unitNumber}
-                                        onChange={(e) => setUnitNumber(e.target.value)}
-                                        />
-                                    </label>
-                                    <label>
-                                        Monthly Rent:
-                                        <input 
-                                        type="number" 
-                                        value={monthlyRent}
-                                        onChange={(e) => setMonthlyRent(e.target.value)}
-                                        />
-                                    </label>
-                                    <div>
-                                        <label className='rent-deposit'>
-                                            Rent Deposit:
-                                            <input 
-                                            type="number" 
-                                            value={rentDeposit}
-                                            onChange={(e) => setRentDeposit(e.target.value)}
-                                            />
-                                        </label>
-                                        <label>
-                                            Equivalent Months:
-                                            <input type="number"
-                                            value={equivalentMonths}
-                                            onChange={(e) => setEquivalentMonths(e.target.value)}
-                                            />
-                                        </label>
-                                    </div>
-                                    <label>
-                                        Utilities Deposit:
-                                        <input type="number"
-                                        value={utilitiesDeposit}
-                                        onChange={(e) => setUtilitiesDeposit(e.target.value)}
-                                        />
-                                    </label>
-                                    <label>
-                                        Pet Deposit:
-                                        <input type="number"
-                                        value={petDeposit}
-                                        onChange={(e) => setPetDeposit(e.target.value)}
-                                        />
-                                    </label>
-                                    <div>
-                                        <h3>Lease Signers</h3>
-                                        {signers.map((signer, index) => (
-                                            <div key={index}>
-                                                <input
-                                                    type="text"
-                                                    value={signer.name}
-                                                    onChange={(e) => handleSignerChange(index, e.target.value)}
-                                                    placeholder="Enter signer name"
-                                                />
-                                                {index > 0 && (
-                                                    <button type="button" onClick={() => removeSigner(index)}>Remove Signer</button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <button type="button" onClick={addSigner}>Add Signer</button>
-                                    </div>
-                                </form>
-                                <div className="modal-actions">
-                                    <button 
-                                    type="button" 
-                                    onClick={() => generatePDF({
-                                        startDate: leaseStartDate,
-                                        endDate: leaseEndDate,
-                                        endTime: leaseEndTime,
-                                        unitNo: unitNumber,
-                                        monthlyRent: monthlyRent,
-                                        rentDeposit: rentDeposit,
-                                        equivalentMonths: equivalentMonths,
-                                        utilitiesDeposit: utilitiesDeposit,
-                                        petDeposit: petDeposit,
-                                        signers: signers,
-                                    })}>
-                                        Preview Lease
-                                    </button>
-                                    <button className="cancel" onClick={() => setshowRenewLease(false)}>Cancel</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-
-                    {/* Lease Modal */}
-                    {showLeaseDocument && (
-                        <div className="lease-modal-overlay">
-                            <div className="lease-modal-box">
-                                <h4>Lease Documents</h4>
-                                <button onClick={() => setshowLeaseDocument(false)} className="close-btn">Close</button>
-                                <div className="lease-docs-container">
-                                    <table className="lease-docs-table">
-                                    <thead>
-                                        <tr>
-                                        <th>Document</th>
-                                        <th>Upload Date</th>
-                                        <th>Current Lease</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {leaseDocs && leaseDocs
-                                    .sort((a, b) => new Date(b.dateUploaded) - new Date(a.dateUploaded)) // Sort by dateUploaded
-                                    .map((doc, index) => {
-                                        return (
-                                            <tr key={doc.id}>
-                                                <td>
-                                                    <a
-                                                        href="#"
-                                                        onClick={() => handleViewDocument(doc)}
-                                                        style={{ color: "#4CAF50", textDecoration: "underline" }}
-                                                    >
-                                                        Lease {index + 1}
-                                                    </a>
-                                                </td>
-                                                <td>{new Date(doc.dateUploaded).toLocaleDateString()}</td>
-                                                <td>
-                                                    {doc.isCurrentLease ? (
-                                                        <span>Current Lease</span> // Show if it's marked as current
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleSetCurrentLease(doc)} 
-                                                            style={{ background: "none", border: "none", color: "#007BFF", cursor: "pointer" }}
-                                                        >
-                                                            Set as Current Lease
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    </tbody>
-                                    </table>
-                                    
-                                </div>
-                            </div>
-                        </div>
-                    )};
-                </div>
+              
+                <Lease
+                tenant={tenant}
+                onUpdateLeaseDocs={onUpdateLeaseDocs}
+                onloadLeaseDoc={handleLoadLeaseDoc}
+                onSetForPreview={handleSetForPreview}
+                />
+            
 
                 <div className="tenant-billing-activity">
                     <h5>Billing Activity</h5>
@@ -720,9 +296,8 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
 
             <div className="tenant-actions">
                 <h5>Actions</h5>
-                <button>Upload Lease</button>
-                <button>Renew Lease</button>
                 <button>Create Bill</button>
+                <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
                 <button>Delete Tenant</button>
             </div>
 

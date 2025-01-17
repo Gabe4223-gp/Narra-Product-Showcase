@@ -24,7 +24,9 @@
       "request": "launch",
       "name": "Debug Frontend",
       "url": "http://localhost:3000",
-      "webRoot": "${workspaceFolder}/frontend/src"
+      "webRoot": "${workspaceFolder}/src",
+      "preLaunchTask": "npm start - re_testproj"
     }
+
   ]
 }
