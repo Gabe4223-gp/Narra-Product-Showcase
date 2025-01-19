@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import './Tenant.css';
 import TenantProfile from './TenantProfile';
 import * as XLSX from 'xlsx';
 
 class TenantClass {
   constructor({
-    id = null,
+    id = Math.random(),
     name = "NA",
     unit = "NA",
     phone = null,
@@ -13,6 +13,8 @@ class TenantClass {
     leaseStarted = null,
     leaseExpiry = null,
     leaseDoc = [],
+    moveinDate = "",
+    moveoutDate = "",
     billingDeadline = null,
     nationality = "NA",
     occupation = "NA",
@@ -25,6 +27,7 @@ class TenantClass {
     creditCardName = null,
     creditCardNo = null,
     creditCardDate = null,
+    primaryPaymentMethod = null
   } = {}) {
     this.id = id;
     this.name = name;
@@ -34,6 +37,8 @@ class TenantClass {
     this.leaseStarted = leaseStarted;
     this.leaseExpiry = leaseExpiry;
     this.leaseDoc = leaseDoc;
+    this.moveinDate = moveinDate;
+    this.moveoutDate = moveoutDate;
     this.billingDeadline = billingDeadline;
     this.nationality = nationality;
     this.occupation = occupation;
@@ -46,6 +51,7 @@ class TenantClass {
     this.creditCardName = creditCardName;
     this.creditCardNo = creditCardNo;
     this.creditCardDate = creditCardDate;
+    this.primaryPaymentMethod = primaryPaymentMethod
   }
 }
 
@@ -64,6 +70,8 @@ function Tenant() {
     leaseStarted: "",
     leaseExpiry: "",
     leaseDoc: [],
+    moveinDate: "",
+    moveoutDate: "",
     billingDeadline: "",
     nationality: "",
     occupation: "",
@@ -76,14 +84,8 @@ function Tenant() {
     creditcardName: "",
     creditcardNo: "",
     creditcardDate: "",
+    primaryPaymentMethod: "",
   });
-
-  const handleEditTenantDetails = (editedTenant) => {
-    const updatedTenants = tenants.map((tenant) =>
-        tenant.id === editedTenant.id ? { ...tenant, ...editedTenant } : tenant
-    );
-    setTenants(updatedTenants); // Update the tenants array in state
-  };
 
   const handleAddTenantChange = (field, value) => {
     setNewTenant({ ...newTenant, [field]: value });
@@ -93,7 +95,7 @@ function Tenant() {
     const tenant = new TenantClass(newTenant); // Instantiate Tenant class
     setTenants([...tenants, tenant]); // Add the new tenant object to the state
     setNewTenant({
-      id: Math.random(),
+      id: null,
       name: "",
       unit: "",
       phone: "",
@@ -101,6 +103,8 @@ function Tenant() {
       leaseStarted: "",
       leaseExpiry: "",
       leaseDoc: [],
+      moveinDate: "",
+      moveoutDate: "",
       billingDeadline: "",
       nationality: "",
       occupation: "",
@@ -113,6 +117,7 @@ function Tenant() {
       creditcardName: "",
       creditcardNo: "",
       creditcardDate: "",
+      primaryPaymentMethod: "",
     });
     setIsAddingTenant(false);
   };
@@ -125,16 +130,32 @@ function Tenant() {
     setSelectedTenant(null);
   };
 
-  const handleUpdateLeaseDocs = (updatedDoc) => {
+  const handleEditTenantDetails = (editedTenant) => {
     const updatedTenants = tenants.map((tenant) =>
-        tenant.id === selectedTenant.id
-            ? 
-            { ...tenant, leaseDoc: [...(tenant.leaseDoc || []), updatedDoc] }
-            : tenant
+        tenant.id === editedTenant.id ? { ...tenant, ...editedTenant } : tenant
     );
-    setTenants(updatedTenants);
+    setTenants(updatedTenants); // Update the tenants array in state
   };
 
+  const handleUpdateLeaseDocs = (updatedDoc, leaseStartDate, leaseEndDate) => {
+    const updatedTenants = tenants.map((tenant) =>
+      tenant.id === selectedTenant.id
+        ? {
+            ...tenant,
+            leaseDoc: [...(tenant.leaseDoc || []), updatedDoc],
+            leaseStarted: leaseStartDate,
+            leaseExpiry: leaseEndDate,
+          }
+        : tenant
+    );
+  
+    setTenants(updatedTenants); // Update the tenants state
+  
+    // Find the updated tenant in the updatedTenants array
+    const updatedTenant = updatedTenants.find((tenant) => tenant.id === selectedTenant.id);
+    setSelectedTenant(updatedTenant); // Set selectedTenant to the updated tenant
+  };
+  
   const updateAuthorizedOccupants = (updatedOccupants) => {
     const updatedTenants = tenants.map((tenant) =>
       tenant === selectedTenant
@@ -159,17 +180,15 @@ function Tenant() {
         Email: tenant.email,
         LeaseStarted: tenant.leaseStarted,
         LeaseExpiry: tenant.leaseExpiry,
+        MoveinDate: tenant.moveinDate,
+        MoveoutDate: tenant.moveoutDate,
         BillingDeadline: tenant.billingDeadline,
         Nationality: tenant.nationality,
         Occupation: tenant.occupation,
         AuthorizedOccupants: tenant.authorizedOccupants.map((occupant) => `${occupant.name} (${occupant.email})`).join(", "), // Joining authorized occupants into a string
         EWalletName: tenant.eWalletName,
-        EWalletReferenceNo: tenant.eWalletReferenceNo,
         BankName: tenant.bankName,
-        BankReferenceNo: tenant.bankReferenceNo,
         CreditCardName: tenant.creditcardName,
-        CreditCardNo: tenant.creditcardNo,
-        CreditCardDate: tenant.creditcardDate,
       }));
     
       // Create worksheet and workbook
@@ -196,17 +215,15 @@ function Tenant() {
     "Email",
     "LeaseStarted",
     "LeaseExpiry",
+    "Move In Date",
+    "Move Out Date",
     "BillingDeadline",
     "Nationality",
     "Occupation",
     "AuthorizedOccupants",
     "EWalletName",
-    "EWalletReferenceNo",
     "BankName",
-    "BankReferenceNo",
     "CreditCardName",
-    "CreditCardNo",
-    "CreditCardDate",
   ];
 
   // Import from Excel
@@ -243,6 +260,8 @@ function Tenant() {
           email: tenant.Email,
           leaseStarted: tenant.LeaseStarted,
           leaseExpiry: tenant.LeaseExpiry,
+          moveinDate: tenant.moveinDate,
+          moveoutDate: tenant.moveoutDate,
           billingDeadline: tenant.BillingDeadline,
           nationality: tenant.Nationality,
           occupation: tenant.Occupation,
@@ -256,12 +275,8 @@ function Tenant() {
               })
             : [],
           eWalletName: tenant.EWalletName,
-          eWalletReferenceNo: tenant.EWalletReferenceNo,
           bankName: tenant.BankName,
-          bankReferenceNo: tenant.BankReferenceNo,
           creditcardName: tenant.CreditCardName,
-          creditcardNo: tenant.CreditCardNo,
-          creditcardDate: tenant.CreditCardDate,
         }));
   
         // Append new tenants to state
@@ -343,8 +358,8 @@ function Tenant() {
                   <td>{tenant.name}</td>
                   <td>{tenant.unit}</td>
                   <td>{tenant.email}</td>
-                  <td>{tenant.leaseStarted}</td>
-                  <td>{tenant.leaseExpiry}</td>
+                  <td>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
+                  <td>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
                   <td>{tenant.billingDeadline}</td>
                   <td>
                     <button onClick={() => handleViewProfile(tenant)}>View</button>
@@ -442,6 +457,16 @@ function Tenant() {
                 value={newTenant.occupation}
                 onChange={(e) =>
                   handleAddTenantChange("occupation", e.target.value)
+                }
+              />
+            </label>
+            <label>
+              Move-In Date:
+              <input
+                type="date"
+                value={newTenant.moveinDate}
+                onChange={(e) =>
+                  handleAddTenantChange("moveinDate", e.target.value)
                 }
               />
             </label>

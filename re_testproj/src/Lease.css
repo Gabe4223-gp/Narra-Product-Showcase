@@ -1,0 +1,289 @@
+.lease-input-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Modal Form Styling */
+.lease-input-modal-overlay .modal-container {
+    background-color: #fff;
+    width: 40%;  
+    height: 60%;
+    max-width: 100%;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* Header Styling */
+.lease-input-modal-overlay h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-top: 0%;
+}
+
+.utility-fee-header {
+    font-size: 12px;
+    font-weight: normal;
+}
+
+/* Form Label Styling */
+.lease-input-modal-overlay label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #444;
+}
+
+/* Input and Select Styling */
+.lease-input-modal-overlay input[type="text"],
+.lease-input-modal-overlay input[type="number"],
+.lease-input-modal-overlay input[type="date"],
+.lease-input-modal-overlay select {
+    font-size: 12px;
+    padding: 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    margin-left: 3%;
+}
+
+/* Button Styling */
+.lease-input-modal-overlay button[type="button"],
+.lease-input-modal-overlay button[type="submit"] {
+    color: #2b2727;
+    border: none;
+    padding: 5px 10px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.lease-input-modal-overlay button[type="button"]:hover,
+.lease-input-modal-overlay button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Utility Item Styling */
+.lease-input-modal-overlay .utility-item {
+    margin-bottom: 15px;  /* Adjusted space */
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.lease-input-modal-overlay .utility-item label {
+    font-size: 12px;
+    font-weight: 500;
+    padding-left: 2%;
+}
+
+.lease-input-modal-overlay .utility-item input[type="number"],
+.lease-input-modal-overlay .utility-item select {
+    font-size: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    margin-left: 2%;
+}
+
+/* Add Utility Button */
+.lease-input-modal-overlay .utility-item button {
+    color: #3a3232;
+    border: none;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 3%;
+}
+
+.lease-input-modal-overlay .utility-item button:hover {
+    background-color: #2813c9;
+}
+
+/* Save and Cancel Buttons */
+.lease-input-modal-overlay .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.lease-input-modal-overlay .modal-actions button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.lease-input-modal-overlay .modal-actions button:hover {
+    background-color: #0056b3;
+}
+
+.lease-input-modal-overlay .modal-actions button.cancel {
+    background-color: #6c757d;
+}
+
+.lease-input-modal-overlay .modal-actions button.cancel:hover {
+    background-color: #5a6268;
+}
+
+/* Total Fees Display */
+.lease-input-modal-overlay .total-fees {
+    font-size: 16px;
+    font-weight: 500;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.lease-modal-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 3%;
+    width: 20%;
+    z-index: 1000;
+  }
+  
+/* Modal box styling */
+.lease-modal-box {
+background-color: white;
+padding: 20px;
+border-radius: 8px;
+width: 80%;
+max-width: 700px;
+box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+position: relative;
+animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 3%;
+    width: 20%;
+    z-index: 1000;
+}
+
+.modal h3 {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 13px;    
+    margin-top: auto;
+}
+
+.modal form label {
+    display: flex;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.modal form input,
+.modal form select {
+    padding: 3%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-left: 10%;
+    max-height: 10px;
+    max-width: 80%;
+}
+
+.modal form input[type="checkbox"] {
+    width: auto;
+    transform: scale(1.5);
+    margin-top: 2%;
+}
+
+.modal button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal button:first-of-type {
+    background-color: #007bff;
+    color: white;
+    margin-right: 10px;
+    margin-top: 5%;
+}
+
+.modal button:last-of-type {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+/* Lease document container styling */
+.lease-docs-container {
+margin-top: 20px;
+padding: 10px 0;
+max-height: 400px;
+overflow-y: auto; /* Make sure the content is scrollable if there are many documents */
+}
+
+/* Lease documents table */
+.lease-docs-table {
+width: 100%;
+border-collapse: collapse;
+}
+
+.lease-docs-table th,
+.lease-docs-table td {
+padding: 10px;
+text-align: left;
+border-bottom: 1px solid #ddd;
+}
+
+.lease-docs-table th {
+background-color: #f4f4f4;
+color: #333;
+font-weight: bold;
+}
+
+.lease-docs-table tr:hover {
+background-color: #f9f9f9;
+}
+
+.doc-link {
+color: #007bff;
+text-decoration: none;
+font-weight: 600;
+}
+
+.doc-link:hover {
+text-decoration: underline;
+}
+
+/* Unsupported document type message */
+.unsupported-type {
+    color: #f44336;
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 20px;
+}

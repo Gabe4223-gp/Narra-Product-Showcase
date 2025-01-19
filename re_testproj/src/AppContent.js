@@ -7,10 +7,12 @@ import Homepage from './Homepage';
 import Billings from './Billings';
 import Applications from './Applications';
 import Tenant from './Tenant';
-import Chat from './Chat';
+import Unit from './Unit';
+import Issues from './Issues';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
+import DocumentViewer from './DocumentViewer';
 //import Profile from './Profile';
 
 function AppContent() {
@@ -33,7 +35,8 @@ function AppContent() {
             <Route path="/billing" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Billings /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Applications /></ProtectedRoute>} />
             <Route path="/tenant" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tenant /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Chat /></ProtectedRoute>} />
+            <Route path="/unit" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Unit /></ProtectedRoute>} />
+            <Route path="/issues" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Issues /></ProtectedRoute>} />
             <Route path="/back" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>} />
           </Route>
         )}
