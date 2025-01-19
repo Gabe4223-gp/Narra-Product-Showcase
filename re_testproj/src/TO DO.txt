@@ -67,3 +67,5 @@ Ensure process.env.EMAIL_USER and process.env.EMAIL_PASSWORD are correctly set i
 Gmail often blocks unauthorized access; you might need to enable Less Secure App Access or use an App Password.
 
 Fix Tenant Page implementation with Josh's changes
+
+EC2 CD: narra_backend

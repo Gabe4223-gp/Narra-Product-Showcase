@@ -48,6 +48,19 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   logging: console.log, // Disable logging; enable for debugging
 });
 
+sequelize.authenticate()
+.then(() => console.log('Database connection has been established successfully.'))
+.catch((err) => console.error('Unable to connect to the database:', err));
+
+app.get('/db-test', async (req, res) => {
+  try {
+      await sequelize.authenticate();
+      res.send('Database connection successful!');
+  } catch (err) {
+      res.status(500).send('Database connection failed: ' + err.message);
+  }
+});
+
 // Define the Payment model
 const Payment = sequelize.define('Payment', {
   id: {
@@ -109,6 +122,10 @@ sequelize.sync()
 });
 
 
+
+app.get('/', (req, res) => {
+  res.send('Backend is running successfully!');
+});
 
 
 const Redis = require('ioredis');
