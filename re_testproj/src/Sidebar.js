@@ -2,6 +2,7 @@
 import React from 'react';
 import './Sidebar.css'; // Import the CSS file for styling
 import { NavLink } from 'react-router-dom';
+import { AiOutlineForm } from 'react-icons/ai';
 import {
   FaBars,
   FaHome,
@@ -22,6 +23,12 @@ function Sidebar({ isCollapsed }) {
             <NavLink to="/homepage" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaHome className="sidebar-icon" />
               {!isCollapsed && <span>Dashboard</span>}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/applications" className={({ isActive }) => isActive ? 'active' : ''}>
+              <AiOutlineForm className="sidebar-icon" />
+              {!isCollapsed && <span>Applications</span>}
             </NavLink>
           </li>
           <li>

@@ -2,6 +2,11 @@
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 const express = require('express');
+const bodyParser = require('body-parser');
+const emailMessageRoutes = require('./routes/emailMessageRoutes');
+const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
+const formRoutes = require('./routes/formRoutes');
+const docsRoutes = require('./routes/docsRoutes');
 const checkJwt = require('./middleware/authMiddleware');
 const protectedRoutes = require('./routes/protectedRoutes');
 const { createPaymongoIntent } = require('./paymongoService');
@@ -11,20 +16,49 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const BaseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: 'https://www.narra-ph.com',
   optionsSuccessStatus: 200,
   credentials:true,
 };
 // server.js (Ensure proper error handling and logging)
 const morgan = require('morgan');
 //const Stripe = require('stripe');
-
+const app = express();
+//Temporary data storage
+const Redis = require('ioredis');
+const redis = new Redis(); // Defaults to localhost:6379
+//Connect to AWS
+const AWS = require('aws-sdk');
+//Configure AWS SDK
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+//S3 Instance
+const s3 = new AWS.S3();
+// server.js (Implement Queueing System for Invoice Generation using Bull and Redis)
+const Bull = require('bull');
+// server.js (Implementing PDF generation for invoices using pdfkit)
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const { JwksRateLimitError } = require('jwks-rsa');
+// Initialize Bull queue
+const invoiceQueue = new Bull('invoice-generation', {
+  redis: {
+    host: '127.0.0.1',
+    port: 6379,
+  },
+});
 
 //Authentification
-const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
+app.use('/api/emails', checkJwt, emailMessageRoutes);
+app.use('/api/applications', checkJwt, tenantApplicationRoutes);
+app.use('/api/forms', checkJwt, formRoutes);
+app.use('/api/docs', checkJwt, docsRoutes);
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -37,9 +71,22 @@ app.use((err, req, res, next) => {
 
 // Serve static files (invoices) from the 'invoices' directory
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
+app.use('/uploads', express.static('uploads'));
 
 // Use morgan for HTTP request logging
 app.use(morgan('combined'));
+
+app.get('/', (req, res) => {
+  res.send('Backend is running successfully!');
+});
+
+
+
+
+
+
+
+
 
 // Initialize Sequelize with PostgreSQL
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -61,7 +108,7 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-// Define the Payment model
+// Define the Payment model (WILL MOVE TO A MODELS FOLDER)
 const Payment = sequelize.define('Payment', {
   id: {
     type: DataTypes.UUID,
@@ -123,15 +170,14 @@ sequelize.sync()
 
 
 
-app.get('/', (req, res) => {
-  res.send('Backend is running successfully!');
-});
 
 
-const Redis = require('ioredis');
-const redis = new Redis(); // Defaults to localhost:6379
 
-// Paginated Payments API
+
+
+
+//Billings.js AND Tenant.js PAYMENT API ENDPOINTS
+// Paginated Payments API (Checking Payment History)
 app.get('/api/payments', checkJwt, async (req, res) => {
   console.log('Query Params:', req.query);
   const page = Number.parseInt(req.query.page, 10);
@@ -208,120 +254,126 @@ app.get('/api/payments', checkJwt, async (req, res) => {
   }
 });
 
+//Saves Payment History with Billings.js Format to PostgreSQL
+app.post('/save-payment-history', checkJwt, async (req, res) => {
+  console.log("request body: ", req.body);
+  const { client_id, external_id, name, amountPaid, totalAmount, dateOfPayment, subject, invoiceUrl } = req.body;
 
+  try{
+    // Validate client_id and other required fields
+    if (!client_id || !amountPaid || !totalAmount || !dateOfPayment || !subject || !invoiceUrl) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
+    console.log('Received external_id:', external_id);
 
-
-const AWS = require('aws-sdk');
-
-//Configure AWS SDK
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
-
-//S3 Instance
-const s3 = new AWS.S3();
-
-//Endpoint for uploading invoice if necessary
-app.post('/api/upload-invoice', checkJwt, async (req, res) => {
-  const { fileName, fileType, fileContent} = req.body; //Adjust based on frontend implementation
-
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
-    ACL: 'public-read',
-  };
-
-  try {
-    const data = await s3.upload(params).promise();
-    res.json({ url: data.Location });
-  } catch (error) {
-    console.error('Error uploading invoice:', error);
-    res.status(500).json({ message: 'Error uploading invoice.' });
-  }
-});
-
-// server.js (Implement Queueing System for Invoice Generation using Bull and Redis)
-
-const Bull = require('bull');
-
-// server.js (Implementing PDF generation for invoices using pdfkit)
-
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const { JwksRateLimitError } = require('jwks-rsa');
-
-// Initialize Bull queue
-const invoiceQueue = new Bull('invoice-generation', {
-  redis: {
-    host: '127.0.0.1',
-    port: 6379,
-  },
-});
-
-// Endpoint to enqueue invoice generation
-app.post('/api/generate-invoice', checkJwt, async (req, res) => {
-  const { paymentId } = req.body;
-
-  try {
-    await invoiceQueue.add({ paymentId });
-    res.json({ message: 'Invoice generation started.' });
-  } catch (error) {
-    console.error('Error enqueuing invoice generation:', error);
-    res.status(500).json({ message: 'Unable to generate invoice.' });
-  }
-});
-
-// Process the queue
-invoiceQueue.process(async (job) => {
-  const { paymentId } = job.data;
-
-  // Fetch payment details from the database
-  const payment = await Payment.findByPk(paymentId);
-  if (!payment) {
-    throw new Error('Payment not found.');
+    //generate external_id if not provided
+    const externalIdValue = external_id || `generated_external_id_${new Date().getTime()}`;
+    if (!/^[a-zA-Z0-9_\-]+$/.test(externalIdValue)) {
+      console.error('Invalid external_id format:', externalIdValue);
+      return res.status(400).json({ error: 'Invalid external_id format' });
   }
 
-  // Generate PDF
-  console.log(`Generating invoice for payment ID: ${paymentId}`);
-  const doc = new PDFDocument();
-  const invoicePath = path.join(__dirname, 'invoices', `invoice-${paymentId}.pdf`);
-  const writeStream = fs.createWriteStream(invoicePath);
-  doc.pipe(writeStream);
+  console.log('Final external_id to be used:', externalIdValue);
 
-  // Add content to PDF
-  doc.fontSize(20).text('Invoice', { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(12).text(`Name: ${payment.name}`);
-  doc.text(`Amount Paid: $${(payment.amountPaid / 100).toFixed(2)}`);
-  doc.text(`Total Amount: $${(payment.totalAmount / 100).toFixed(2)}`);
-  doc.text(`Date of Payment: ${new Date(payment.dateOfPayment).toLocaleDateString()}`);
-  doc.text(`Subject: ${payment.subject}`);
-
-  doc.end();
-
-  // Wait for PDF to be written
-  await new Promise((resolve, reject) => {
-    writeStream.on('finish', resolve);
-    writeStream.on('error', reject);
+  const newPayment = await Payment.create({
+    id: uuidv4(), // Auto-generate UUID for the primary key
+    client_id,
+    external_id, // Save Stripe paymentIntent.id here
+    name,
+    amountPaid,
+    totalAmount,
+    dateOfPayment,
+    subject,
+    invoiceUrl,
   });
 
-  // Update payment.invoiceUrl
-  const invoiceUrl = `http://localhost:5000/invoices/invoice-${paymentId}.pdf`;
-  payment.invoiceUrl = invoiceUrl;
-  // Optionally upload to AWS S3 and save URL to the database
-  //payment.invoiceUrl = 's3://path-to-invoice.pdf'; // Replace with actual logic
-  await payment.save();
+  console.log('Payment saved successfully:', newPayment);
+      //Enqueue invoice generation
+      invoiceQueue.add({ paymentId: newPayment.id });
+      res.status(201).json({ message: 'Payment history saved successfully and invoice enqueued.', payment: newPayment });
+  } catch (error) {
+      console.error('Error saving payment history:', error);
+      res.status(500).json({ message: 'Unable to save payment history.', error: error.message });
+  }
 });
 
-// Handle queue errors
-invoiceQueue.on('failed', (job, err) => {
-  console.error(`Job ${job.id} failed:`, err);
+//Payment API Through Mastercard/Visa
+app.post('/create-payment-intent', checkJwt, async (req, res) => {
+  console.log('Request Headers: ', req.headers);
+  console.log('Decoded JWT payload:', req.auth.payload);
+  const { amount } = req.body;
+  const client_id = req.auth.payload.sub; // Auth0 user ID
+  console.log('Payment Intent Data:', {amount, client_id});
+
+  if (!amount || amount < 5000) { // 5000 centavos = PHP 50
+    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
+  }
+
+  try {
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'php',
+      metadata: { client_id },
+    });
+
+    console.log('Stripe Payment Intent:', paymentIntent);
+    console.log('Generated client_secret:', paymentIntent.client_secret);
+    res.status(200).json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error('Error creating payment intent:', error);
+    if (!res.headersSent) {
+    res.status(500).json({ message: 'Unable to create payment intent.' });
+    }
+  }
 });
 
+// Payment API through Bank Transfer
+app.post('/api/paymongo/bank-transfer-intent', async (req, res) => {
+  const { amount } = req.body;
+
+  // Validate the amount
+  if (!amount || amount < 5000) { // 5000 centavos = PHP 50
+    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
+  }
+
+  try {
+    // Call PayMongo service to create payment intent
+    const paymongoResponse = await createPaymongoIntent(amount);
+
+    // Extract reference number or other relevant details from PayMongo response
+    const { reference_number, client_key } = paymongoResponse.data.attributes;
+
+    res.status(200).json({
+      referenceNumber: reference_number,
+      clientSecret: client_key, // Optional, if needed for additional frontend processing
+    });
+  } catch (error) {
+    console.error('Error creating bank transfer intent:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to create bank transfer intent.' });
+  }
+});
+
+//Payment API through GCash
+app.post('/api/paymongo/gcash-intent', async (req, res) => {
+  const { amount } = req.body;
+
+  if (!amount || amount < 5000) {
+    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
+  }
+
+  try {
+    const paymongoResponse = await createGCashIntent(amount);
+    res.status(200).json({
+      paymentIntentId: paymongoResponse.data.id,
+      clientKey: paymongoResponse.data.attributes.client_key,
+    });
+  } catch (error) {
+    console.error('Error initiating GCash payment:', error.message);
+    res.status(500).json({ message: 'Failed to initiate GCash payment.' });
+  }
+});
 
 //Invoice generator endpoint for Tenant Billing
 // Utility function to generate the invoice PDF
@@ -425,126 +477,103 @@ app.post('/api/send-bill', async (req, res) => {
 
 
 
-app.post('/create-payment-intent', checkJwt, async (req, res) => {
-  console.log('Request Headers: ', req.headers);
-  console.log('Decoded JWT payload:', req.auth.payload);
-  const { amount } = req.body;
-  const client_id = req.auth.payload.sub; // Auth0 user ID
-  console.log('Payment Intent Data:', {amount, client_id});
 
-  if (!amount || amount < 5000) { // 5000 centavos = PHP 50
-    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
-  }
+
+
+
+
+
+
+//I DON'T REMEMBER EXACTLY WHAT THESE ARE FOR, BUT THEY ARE IN THE BILLING.JS OR PAYMENT METHOD
+
+//Endpoint for uploading invoice if necessary
+app.post('/api/upload-invoice', checkJwt, async (req, res) => {
+  const { fileName, fileType, fileContent} = req.body; //Adjust based on frontend implementation
+
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: fileName,
+    Body: Buffer.from(fileContent, 'base64'),
+    ContentType: fileType,
+    ACL: 'public-read',
+  };
 
   try {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: 'php',
-      metadata: { client_id },
-    });
-
-    console.log('Stripe Payment Intent:', paymentIntent);
-    console.log('Generated client_secret:', paymentIntent.client_secret);
-    res.status(200).json({ clientSecret: paymentIntent.client_secret });
+    const data = await s3.upload(params).promise();
+    res.json({ url: data.Location });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
-    if (!res.headersSent) {
-    res.status(500).json({ message: 'Unable to create payment intent.' });
-    }
+    console.error('Error uploading invoice:', error);
+    res.status(500).json({ message: 'Error uploading invoice.' });
   }
 });
 
-// Server.js
-app.post('/api/paymongo/bank-transfer-intent', async (req, res) => {
-  const { amount } = req.body;
-
-  // Validate the amount
-  if (!amount || amount < 5000) { // 5000 centavos = PHP 50
-    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
-  }
+// Endpoint to enqueue invoice generation
+app.post('/api/generate-invoice', checkJwt, async (req, res) => {
+  const { paymentId } = req.body;
 
   try {
-    // Call PayMongo service to create payment intent
-    const paymongoResponse = await createPaymongoIntent(amount);
-
-    // Extract reference number or other relevant details from PayMongo response
-    const { reference_number, client_key } = paymongoResponse.data.attributes;
-
-    res.status(200).json({
-      referenceNumber: reference_number,
-      clientSecret: client_key, // Optional, if needed for additional frontend processing
-    });
+    await invoiceQueue.add({ paymentId });
+    res.json({ message: 'Invoice generation started.' });
   } catch (error) {
-    console.error('Error creating bank transfer intent:', error.response?.data || error.message);
-    res.status(500).json({ message: 'Failed to create bank transfer intent.' });
+    console.error('Error enqueuing invoice generation:', error);
+    res.status(500).json({ message: 'Unable to generate invoice.' });
   }
 });
 
-//Endpoint for GCash Payments
-app.post('/api/paymongo/gcash-intent', async (req, res) => {
-  const { amount } = req.body;
+// Process the queue
+invoiceQueue.process(async (job) => {
+  const { paymentId } = job.data;
 
-  if (!amount || amount < 5000) {
-    return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
+  // Fetch payment details from the database
+  const payment = await Payment.findByPk(paymentId);
+  if (!payment) {
+    throw new Error('Payment not found.');
   }
 
-  try {
-    const paymongoResponse = await createGCashIntent(amount);
-    res.status(200).json({
-      paymentIntentId: paymongoResponse.data.id,
-      clientKey: paymongoResponse.data.attributes.client_key,
-    });
-  } catch (error) {
-    console.error('Error initiating GCash payment:', error.message);
-    res.status(500).json({ message: 'Failed to initiate GCash payment.' });
-  }
-});
+  // Generate PDF
+  console.log(`Generating invoice for payment ID: ${paymentId}`);
+  const doc = new PDFDocument();
+  const invoicePath = path.join(__dirname, 'invoices', `invoice-${paymentId}.pdf`);
+  const writeStream = fs.createWriteStream(invoicePath);
+  doc.pipe(writeStream);
 
+  // Add content to PDF
+  doc.fontSize(20).text('Invoice', { align: 'center' });
+  doc.moveDown();
+  doc.fontSize(12).text(`Name: ${payment.name}`);
+  doc.text(`Amount Paid: $${(payment.amountPaid / 100).toFixed(2)}`);
+  doc.text(`Total Amount: $${(payment.totalAmount / 100).toFixed(2)}`);
+  doc.text(`Date of Payment: ${new Date(payment.dateOfPayment).toLocaleDateString()}`);
+  doc.text(`Subject: ${payment.subject}`);
 
+  doc.end();
 
-app.post('/save-payment-history', checkJwt, async (req, res) => {
-  console.log("request body: ", req.body);
-  const { client_id, external_id, name, amountPaid, totalAmount, dateOfPayment, subject, invoiceUrl } = req.body;
-
-  try{
-    // Validate client_id and other required fields
-    if (!client_id || !amountPaid || !totalAmount || !dateOfPayment || !subject || !invoiceUrl) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    console.log('Received external_id:', external_id);
-
-    //generate external_id if not provided
-    const externalIdValue = external_id || `generated_external_id_${new Date().getTime()}`;
-    if (!/^[a-zA-Z0-9_\-]+$/.test(externalIdValue)) {
-      console.error('Invalid external_id format:', externalIdValue);
-      return res.status(400).json({ error: 'Invalid external_id format' });
-  }
-
-  console.log('Final external_id to be used:', externalIdValue);
-
-  const newPayment = await Payment.create({
-    id: uuidv4(), // Auto-generate UUID for the primary key
-    client_id,
-    external_id, // Save Stripe paymentIntent.id here
-    name,
-    amountPaid,
-    totalAmount,
-    dateOfPayment,
-    subject,
-    invoiceUrl,
+  // Wait for PDF to be written
+  await new Promise((resolve, reject) => {
+    writeStream.on('finish', resolve);
+    writeStream.on('error', reject);
   });
 
-  console.log('Payment saved successfully:', newPayment);
-      //Enqueue invoice generation
-      invoiceQueue.add({ paymentId: newPayment.id });
-      res.status(201).json({ message: 'Payment history saved successfully and invoice enqueued.', payment: newPayment });
-  } catch (error) {
-      console.error('Error saving payment history:', error);
-      res.status(500).json({ message: 'Unable to save payment history.', error: error.message });
-  }
+  // Update payment.invoiceUrl
+  const invoiceUrl = `http://localhost:5000/invoices/invoice-${paymentId}.pdf`;
+  payment.invoiceUrl = invoiceUrl;
+  // Optionally upload to AWS S3 and save URL to the database
+  //payment.invoiceUrl = 's3://path-to-invoice.pdf'; // Replace with actual logic
+  await payment.save();
 });
+
+// Handle queue errors
+invoiceQueue.on('failed', (job, err) => {
+  console.error(`Job ${job.id} failed:`, err);
+});
+
+
+
+
+
+
+
+
 
 
 const PORT = process.env.PORT || 5000;

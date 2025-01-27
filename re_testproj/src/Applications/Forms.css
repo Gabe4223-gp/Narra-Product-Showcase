@@ -1,0 +1,121 @@
+/* Container */
+.form-container {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .top-bar h3 {
+    margin: 0;
+    font-size: 20px;
+  }
+  
+  /* Table */
+  .form-list table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .form-list th,
+  .form-list td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+  }
+  
+  .form-list th {
+    background-color: #f1f1f1;
+  }
+  
+  /* Buttons */
+  .view-btn,
+  .download-btn,
+  .delete-btn {
+    margin-right: 5px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .view-btn {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .view-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  .download-btn {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .download-btn:hover {
+    background-color: #218838;
+  }
+  
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+  
+  /* Pagination */
+  .pagination {
+    margin-top: 20px;
+    text-align: right;
+  }
+  
+  .pagination button {
+    margin: 0 3px;
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .pagination button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+  
+  .pagination button:hover {
+    background-color: #0056b3;
+    color: white;
+  }
+  
+  /* Add New */
+  .add-new {
+    margin-top: 20px;
+    text-align: left;
+  }
+  
+  .add-new-btn {
+    background-color: #ffc107;
+    color: black;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .add-new-btn:hover {
+    background-color: #e0a800;
+  }
+  

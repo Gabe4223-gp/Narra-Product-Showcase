@@ -5,10 +5,11 @@ import { useAuth0 } from '@auth0/auth0-react';
 import Header from './Header';
 import Homepage from './Homepage';
 import Billings from './Billings';
-import Applications from './Applications';
+import Applications from './Applications/Applications';
 import Tenant from './Tenant';
 import Unit from './Unit';
 import Issues from './Issues';
+import Settings from './Settings/Settings';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
@@ -38,6 +39,7 @@ function AppContent() {
             <Route path="/unit" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Unit /></ProtectedRoute>} />
             <Route path="/issues" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Issues /></ProtectedRoute>} />
             <Route path="/back" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />
           </Route>
         )}
         {/* Redirect Unknown Routes */}

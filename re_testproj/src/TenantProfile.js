@@ -1,4 +1,7 @@
 import React, { useState, useEffect} from 'react';
+import PaymentMethods from './PaymentMethods.js';
+import SendBillPopup from './SendBillPopup.js';
+import PaymentHistory from './PaymentHistory.js';
 import "./TenantProfile.css";
 import DocumentViewer from './DocumentViewer.js';
 import Lease from './Lease.js';
@@ -45,6 +48,7 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
     const [authorizedOccupants, setAuthorizedOccupants] = useState(tenant.authorizedOccupants || []);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
+    const [showSendBillPopup, setShowSendBillPopup] = useState(false);
 
     //Edit tenant
     const handleEditTenantChange = (field, value) => {
@@ -290,16 +294,22 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
             
 
                 <div className="tenant-billing-activity">
-                    <h5>Billing Activity</h5>
+                    <PaymentHistory />
+                </div>
+                <div className="tenant-billing-account">
+                    <PaymentMethods />
                 </div>
             </div>
 
             <div className="tenant-actions">
                 <h5>Actions</h5>
-                <button>Create Bill</button>
+                <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
                 <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
                 <button>Delete Tenant</button>
             </div>
+            {showSendBillPopup && (
+                <SendBillPopup onClose={() => setShowSendBillPopup(false)} />
+            )}
 
             {showEditTenantDetails && (
                     
