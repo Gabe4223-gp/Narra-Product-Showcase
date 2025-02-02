@@ -1,96 +1,169 @@
 import React, { useState, useEffect} from 'react';
 import "./UnitProfile.css";
 import Utilities from './Utilities';
+import TenantProfile from './TenantProfile';
 
-function UnitProfile ({unit, onBack, onEditUnitDetails}) {
-
-    const [image, setImage] = useState(unit.image);
+function UnitProfile ({unitId, onBack}) {
+    const defaultImage = "https://via.placeholder.com/150";
+    const [unitDetails, setUnitDetails] = useState(null);
     const [showEditUnitDetails, setshowEditUnitDetails] = useState(false);
     const [selectedTenant, setSelectedTenant] = useState(null);
+    const [tenants, setTenants] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [editedUnit, setEditedUnit] = useState({
-        id: unit.id,
-        unitNo: unit.unitNo,
-        type: unit.type,
-        mode: unit.mode,
-        sizeValue: unit.sizeValue,
-        sizeUnit: unit.sizeUnit,
-        petsAllowed: unit.petsAllowed,
-        tenants: unit.tenants,
-        waterLastReading: unit.waterLastReading,
-        waterCurrentReading: unit.waterCurrentReading,
-        electricityLastReading: unit.electricityLastReading,
-        electricityCurrentReading: unit.electricityCurrentReading,
-        issues: unit.issues,
-        image: unit.image
+        
     });
 
-    const handleViewProfile = (tenant) => {
-        setSelectedTenant(tenant);
+    useEffect(() => {
+        if (unitDetails) {
+            setEditedUnit({
+                id: unitDetails.id,
+                unitNo: unitDetails.unitNo,
+                type: unitDetails.type,
+                mode: unitDetails.mode,
+                sizeValue: unitDetails.sizeValue,
+                sizeUnit: unitDetails.sizeunitDetails,
+                petsAllowed: unitDetails.petsAllowed,
+                tenants: unitDetails.tenants,
+                propertyId: unitDetails.propertyId,
+                waterLastReading: unitDetails.waterLastReading,
+                waterCurrentReading: unitDetails.waterCurrentReading,
+                electricityLastReading: unitDetails.electricityLastReading,
+                electricityCurrentReading: unitDetails.electricityCurrentReading,
+                issues: unitDetails.issues,
+                image: unitDetails.image
+            });
+        }
+    }, [unitDetails]);
+
+    const fetchUnitDetails = async () => {
+
+        try {
+          setUnitDetails(null); // Reset unit details
+   
+          if (!unitId) {
+            console.error("Please enter a unit ID.");
+            return;
+          }
+   
+          // Make a request to the backend
+          const response = await fetch(`http://localhost:5000/units/${unitId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+   
+          if (!response.ok) {
+            console.error("Failed to fetch unit details");
+          }
+   
+          const data = await response.json();
+          setUnitDetails(data.unit);
+          setTenants(data.tenants);
+
+
+        } catch (error) {
+          console.error("Error fetching unit details:", error);
+        }
+    };
+
+    // UseEffect to fetch unit details right when the page loads
+    useEffect(() => {
+        fetchUnitDetails();
+    }, []);
+
+    //Edit unit
+    const handleEditUnitChange = (field, value) => {  
+        if (field === 'petsAllowed') {
+            setEditedUnit({ ...editedUnit, [field]: value.target.checked });
+          } else {
+            setEditedUnit({ ...editedUnit, [field]: value });
+          }
+    };
+
+    const saveEditUnit = async () => {
+
+        try {
+            console.log("Step 1", editedUnit);
+
+            // Send unit and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/units/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                unit: editedUnit}),
+            });
+       
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error('Backend error:', errorMsg);
+              throw new Error('Failed to create unit');
+            }
+     
+            // Optionally: If you have a function that fetches units by IDs
+            fetchUnitDetails();
+       
+            setshowEditUnitDetails(false);
+          } catch (error) {
+            console.error('Error creating unit:', error);
+            alert(`Failed to save unit. Error: ${error.message}`);
+          }
+    };
+
+    const handleDeleteUnit = async () => {
+
+        const unitId = unitDetails.id;
+   
+        try {
+            // Make a DELETE request to the backend with the propertyId
+            const response = await fetch(`http://localhost:5000/units/delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ unitId }), // Send the propertyId in the request body
+            });
+   
+            if (!response.ok) {
+                console.error("Failed to delete unit:", response.statusText);
+                return;
+            }
+   
+            // Optionally handle the backend response
+            const data = await response.json();
+            console.log("unit deleted successfully:", data);
+            
+            setShowDeleteModal(false);
+            // Call the onBack function to return to the previous screen
+            onBack();
+        } catch (error) {
+            console.error("Error deleting unit:", error);
+        }
       };
 
-    //Edit tenant
-    const handleEditUnitChange = (field, value) => {
-        
-        setEditedUnit((prevUnit) => ({
-            ...prevUnit,
-            [field]: value,
-        }));
+    const handleViewProfile = (tenantId) => {
+        setSelectedTenant(tenantId);
+      };
+
+    const handleBack = () => {
+        fetchUnitDetails();
+        setSelectedTenant(null);
     };
 
-    // Set editable tenant whenever the prop changes
-    useEffect(() => {
-        setEditedUnit(unit);
-    }, [unit]); // Only re-run if the tenant prop changes
-
-    const saveEditUnit = () => {
-        if (
-            editedUnit.unitNo &&
-            editedUnit.type &&
-            editedUnit.mode &&
-            editedUnit.sizeValue
-        ) {
-            // Call the callback to update the parent component (Unit.js)
-            onEditUnitDetails(editedUnit);
-            setshowEditUnitDetails(false);
-        } else {
-            alert("Please fill in all fields.");
-        }
-    };
-
-    const handleImageChange = (event) => {
-        const file = event.target.files[0];
-        if (file && file.type.startsWith("image/")) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setImage(reader.result);
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert("Please upload a valid image file.");
-        }
-    };
-
-    const handleEditUnitUtilities = (editedUnit) => {
-        onEditUnitDetails(editedUnit)
-    };
-
-    const handleEditUnitIssues = (editedUnit) => {
-        onEditUnitDetails(editedUnit)
-    };
+    if (selectedTenant !== null) {
+    <TenantProfile
+    onBack={handleBack}
+    tenantId={selectedTenant.id}
+    />
+    }
 
     return (
         <div className="unit-profile">
             <button onClick={onBack}>Back</button>
             <div className="unit-top-section">
-                <div className="unit-image-container">
-                    <img src={image} alt="Unit" className="unit-image" />
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="unit-image-upload"
-                    />
-                </div>
 
                 <div className="unit-details">
                         <div className='unit-header'>
@@ -108,10 +181,10 @@ function UnitProfile ({unit, onBack, onEditUnitDetails}) {
                                 <p>Pets Allowed:  {editedUnit.petsAllowed ? "Yes" : "No"}</p>
                                 <p>
                                     Occupants: 
-                                    {editedUnit.tenants && editedUnit.tenants.length > 0 ? (
+                                    {tenants?.length > 0 ? (
                                         <ul>
-                                            {editedUnit.tenants.map((tenant, index) => (
-                                                <li key={index}>{tenant}</li>
+                                            {tenants.map((tenant, index) => (
+                                                <li key={index}>{tenant.name}</li>
                                             ))}
                                         </ul>
                                     ) : (
@@ -136,14 +209,14 @@ function UnitProfile ({unit, onBack, onEditUnitDetails}) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {editedUnit.tenants.length > 0 ? (
-                                    editedUnit.tenants.map((tenant, index) => (
+                                {tenants?.length > 0 ? (
+                                    tenants.map((tenant, index) => (
                                     <tr key={index}>
                                         <td>{tenant.name}</td>
                                         <td>{tenant.moveinDate}</td>
                                         <td>{tenant.moveoutDate}</td>
                                         <td>
-                                            <button onClick={() => handleViewProfile(tenant)}>View</button>
+                                            <button onClick={() => handleViewProfile(tenant.id)}>View</button>
                                         </td>
                                     </tr>
                                     ))
@@ -163,24 +236,32 @@ function UnitProfile ({unit, onBack, onEditUnitDetails}) {
 
             <div className='unit-mid-section'>
 
-                <div className="utility-details">
+                <div className="utility-details">    
                     <Utilities
-                    unit={editedUnit}
-                    onAddReading={handleEditUnitUtilities}
+                        unit={unitDetails}
+                        fetchUnitDetails={fetchUnitDetails}
                     />
                 </div>
 
                 <div className="issues-details">
                     
                 </div>
-                
-                
             </div>
 
             <div className="unit-actions">
                 <h5>Actions</h5>
-                <button>Delete Unit</button>
+                <button onClick={() => setShowDeleteModal(true)}>Delete Unit</button>
             </div>
+
+            {showDeleteModal && (
+                <div className='modal'>
+                    <div>
+                        Are you sure you want to delete this tenant?
+                    </div>
+                    <button onClick={handleDeleteUnit}>Confirm</button>
+                    <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                </div>
+            )}
 
             {showEditUnitDetails && (
                 
@@ -222,11 +303,11 @@ function UnitProfile ({unit, onBack, onEditUnitDetails}) {
                     <label>
                         Pets Allowed
                         <input
-                        type="checkbox"
-                        checked={!!editedUnit.petsAllowed} 
-                        onChange={(e) =>
-                            handleEditUnitChange("petsAllowed", e.target.checked)
-                        }
+                            type="checkbox"
+                            checked={editedUnit?.petsAllowed}
+                            onChange={(e) =>
+                            handleEditUnitChange("petsAllowed", e)
+                            }
                         />
                     </label>
                     </form>

@@ -148,46 +148,6 @@
     min-height: 50%;
 }
 
-button.authorized-occupants {
-    padding: 0;
-    background: none;
-    color: #0066ff; /* Black color */
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    transition: color 0.3s ease; /* Smooth transition for color */
-    font-size: 12px;
-}
-  
-button.authorized-occupants:hover {
-    color: #042286; /* Blue color on hover */
-}
-
-.authorized-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6); /* Dark background for overlay */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-  
-/* Modal box styling */
-.authorized-modal-box {
-background-color: white;
-padding: 20px;
-border-radius: 8px;
-width: 80%;
-max-width: 700px;
-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-position: relative;
-animation: fadeIn 0.3s ease-in-out;
-}
-
 /* Close button styling */
 .close-btn {
 color: #333;
@@ -203,37 +163,6 @@ right: 15px;
 
 .close-btn:hover {
 background-color: #0c4bdd;
-}
-  
-/* Authorized occupants container styling */
-.authorized-occupants-container {
-margin-top: 20px;
-padding: 10px 0;
-max-height: 400px;
-overflow-y: auto; /* Make sure the content is scrollable if there are many documents */
-}
-
-/* Authorized occupants table */
-.authorized-occupants-table {
-width: 100%;
-border-collapse: collapse;
-}
-
-.authorized-occupants-table th,
-.authorized-occupants-table td {
-padding: 10px;
-text-align: left;
-border-bottom: 1px solid #ddd;
-}
-
-.authorized-occupants-table th {
-background-color: #f4f4f4;
-color: #333;
-font-weight: bold;
-}
-
-.authorized-occupants-table tr:hover {
-background-color: #f9f9f9;
 }
 
 /* Add and Save buttons */
@@ -253,18 +182,6 @@ margin-right: 10px;
 background-color: #45a049;
 }
 
-/* Input fields for adding new occupant */
-.authorized-occupants-table input {
-width: 100%;
-padding: 5px;
-font-size: 1rem;
-border: 1px solid #ccc;
-border-radius: 4px;
-}
-
-.authorized-occupants-table input[type="file"] {
-padding: 5px;
-}
 
 /* Modal for Document Viewer */
 .document-viewer-modal {
@@ -349,6 +266,68 @@ padding: 5px;
 }
 
 .edit-tenant-modal button:last-of-type {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 3%;
+    width: 20%;
+    z-index: 1000;
+}
+
+.modal h3 {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 13px;    
+    margin-top: auto;
+}
+
+.modal form label {
+    display: flex;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.modal form input,
+.modal form select {
+    padding: 3%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-left: 10%;
+    max-height: 10px;
+    max-width: 80%;
+}
+
+.modal form input[type="checkbox"] {
+    width: auto;
+    transform: scale(1.5);
+    margin-top: 2%;
+}
+
+.modal button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal button:first-of-type {
+    background-color: #007bff;
+    color: white;
+    margin-right: 10px;
+    margin-top: 5%;
+}
+
+.modal button:last-of-type {
     background-color: #f0f0f0;
     color: #333;
 }

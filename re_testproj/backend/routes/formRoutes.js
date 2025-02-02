@@ -1,9 +1,10 @@
 const express = require('express');
 const { Form } = require('../models');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/authMiddleware'); // OAuth middleware
+const authenticateToken = require('../middleware/authMiddleware'); // OAuth middleware
 const multer = require('multer');
 const fs = require('fs');
+//const { verifyToken, validateDoc } = require('../middleware/auth');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 
@@ -29,9 +30,7 @@ const upload = multer({
 // Save a new form
 router.post(
   '/',
-  verifyToken,
   upload.fields([{ name: 'photo' }, { name: 'governmentId' }]),
-  validateForm,
   async (req, res) => {
     try {
       const { name, type, personalDetails, billingDetails, content } = req.body;

@@ -16,9 +16,17 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const BaseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const corsOptions = {
-  origin: 'https://www.narra-ph.com',
+  origin: function (origin, callback) {
+    const allowedOrigins = ['https://www.narra-ph.com', 'http://localhost:3000'];
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      // Allow requests with no origin (like mobile apps or Postman)
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   optionsSuccessStatus: 200,
-  credentials:true,
+  credentials: true, // Allow cookies and authentication credentials
 };
 // server.js (Ensure proper error handling and logging)
 const morgan = require('morgan');
@@ -50,6 +58,9 @@ const invoiceQueue = new Bull('invoice-generation', {
   },
 });
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
+
 //Authentification
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -57,8 +68,8 @@ app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
 app.use('/api/emails', checkJwt, emailMessageRoutes);
 app.use('/api/applications', checkJwt, tenantApplicationRoutes);
-app.use('/api/forms', checkJwt, formRoutes);
-app.use('/api/docs', checkJwt, docsRoutes);
+//app.use('/api/forms', checkJwt, formRoutes);
+//app.use('/api/docs', checkJwt, docsRoutes);
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -80,15 +91,8 @@ app.get('/', (req, res) => {
   res.send('Backend is running successfully!');
 });
 
-
-
-
-
-
-
-
-
 // Initialize Sequelize with PostgreSQL
+console.log('Database URL:', process.env.DATABASE_URL);
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
@@ -106,6 +110,274 @@ app.get('/db-test', async (req, res) => {
   } catch (err) {
       res.status(500).send('Database connection failed: ' + err.message);
   }
+});
+
+// Define Property model
+const Property = sequelize.define('Property', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
+    primaryKey: true,
+  },
+  companyName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  propertyName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'https://via.placeholder.com/150',
+  },
+  owner: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  tenants: {
+    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
+    allowNull: true,
+    defaultValue: [],
+  },
+  units: {
+    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
+    allowNull: true,
+    defaultValue: [],
+  },
+}, {
+  tableName: 'Properties', // Specify the table name (Tenants in this case)
+  timestamps: true, // Automatically includes createdAt and updatedAt fields
+});
+
+
+// Define Tenant model
+const Tenant = sequelize.define('Tenant', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  unit_id: {
+    type: DataTypes.STRING,
+    onDelete: 'SET NULL', // Optional: Set unitId to null if the unit is deleted
+  },
+  phone: {
+    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
+    allowNull: true,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isEmail: true, // Optional: Validates that the email is in a valid format
+    },
+  },
+  leaseStarted: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  leaseExpiry: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  leaseDocs: {
+    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
+    allowNull: true,
+    defaultValue: [],
+  },
+  moveinDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  moveoutDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  billingDeadline: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  nationality: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  occupation: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  image: {
+    type: DataTypes.STRING, // Changed from URL to STRING
+    allowNull: true,
+    defaultValue: 'https://via.placeholder.com/150',
+  },
+  eWalletName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  eWalletReferenceNo: {
+    type: DataTypes.STRING, // Changed from INTEGER to STRING
+    allowNull: true,
+  },
+  bankName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  bankReferenceNo: {
+    type: DataTypes.STRING, // Changed from INTEGER to STRING
+    allowNull: true,
+  },
+  creditCardName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  creditCardNo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  creditCardDate: {
+    type: DataTypes.DATE, // Changed from INTEGER to DATE
+    allowNull: true,
+  },
+  primaryPaymentMethod: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+}, {
+  tableName: 'Tenants', // Specify the table name (Tenants in this case)
+  timestamps: true, // Automatically includes createdAt and updatedAt fields
+});
+
+//Define Unit Modal
+const Unit = sequelize.define('Unit', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
+    primaryKey: true,
+  },
+  unitNo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  mode: {
+    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
+    allowNull: true,
+  },
+  sizeValue: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  sizeUnit: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  petsAllowed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
+  tenants: {
+    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
+    allowNull: true,
+    defaultValue: [],
+  },
+  propertyId: {
+    type: DataTypes.STRING, // Array of strings for document links
+    allowNull: true,
+  },
+  waterLastReading: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+  },
+  waterCurrentReading: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+  },
+  electricityLastReading: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+  },
+  electricityCurrentReading: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+  },
+  issues: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true,
+    defaultValue: [],
+  },
+  image: {
+    type: DataTypes.STRING, // Changed from URL to STRING
+    allowNull: true,
+    defaultValue: 'https://via.placeholder.com/150',
+  },
+}, {
+  tableName: 'Units', // Specify the table name (Units in this case)
+  timestamps: true, // Automatically includes createdAt and updatedAt fields
+});
+
+//Define Issue Modal
+const Issue = sequelize.define('Issue', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
+    primaryKey: true,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  subject: {
+    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
+    allowNull: true,
+  },
+  description: {
+    type: DataTypes.TEXT, // Changed to TEXT for longer descriptions
+    allowNull: true,
+  },
+  unit: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  tenantRaised: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  resolved: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false, // Default value for resolved
+  },
+  dateRaised: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW, // Default to current date and time
+  },
+  dateResolved: {
+    type: DataTypes.DATE,
+    allowNull: true, // Can be null if the issue is not resolved
+  },
+  documents: {
+    type: DataTypes.ARRAY(DataTypes.STRING), // Array of document URLs or paths
+    allowNull: true,
+  },
+}, {
+  timestamps: true, // Adds createdAt and updatedAt fields
+  tableName: 'Issues', // Optional: Define the table name explicitly
 });
 
 // Define the Payment model (WILL MOVE TO A MODELS FOLDER)
@@ -168,12 +440,1583 @@ sequelize.sync()
     console.error('Error syncing with the database:', error);
 });
 
+//Issue functions///////////////////////////////////////////////////////////////////////////////
+
+//Fetch issues
+app.post('/issues/byIds', async (req, res) => {
+  const { unitIds } = req.body;
+
+  // Validate input
+  if (!Array.isArray(unitIds) || unitIds.length === 0) {
+    return res.status(400).json({ error: 'unitIds must be a non-empty array' });
+  }
+
+  try {
+    // Fetch all units with their issues arrays
+    const unitsQuery = `
+      SELECT * 
+      FROM "Units" 
+      WHERE id IN (:unitIds)
+    `;
+
+    const units = await sequelize.query(unitsQuery, {
+      replacements: { unitIds },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Compile all issue IDs from the units' issues arrays
+    const allIssueIds = units
+      .map(unit => {
+        // Parse the issues array if it's stored as a JSON string
+        const issues = Array.isArray(unit.issues) ? unit.issues : JSON.parse(unit.issues || '[]');
+        return issues;
+      })
+      .flat() // Flatten the array of arrays into a single array
+      .filter((issueId, index, self) => self.indexOf(issueId) === index); // Remove duplicates
+
+    // If no issue IDs are found, return an empty array
+    if (allIssueIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch all issues corresponding to the compiled issue IDs
+    const issuesQuery = `
+      SELECT * 
+      FROM "Issues" 
+      WHERE id IN (:allIssueIds)
+    `;
+
+    const issues = await sequelize.query(issuesQuery, {
+      replacements: { allIssueIds },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Send the fetched issues back to the client
+    res.status(200).json(issues);
+  } catch (error) {
+    console.error('Error fetching units or issues:', error);
+    res.status(500).json({ error: 'Failed to fetch units or issues' });
+  }
+});
+
+//Save issues
+app.post('/issues', async (req, res) => {
+  const { issue, propertyId } = req.body;
+
+  // Validate input
+  if (!issue || !propertyId) {
+    return res.status(400).json({ error: 'Issue and propertyId are required' });
+  }
+
+  try {
+
+    // Step 1: Insert the issue ID into the relevant unit's issues array
+    const unitQuery = `
+      UPDATE "Units"
+      SET issues = array_append(issues, :issueId)
+      WHERE "unitNo" = :unitNo
+      AND "propertyId" = :propertyId
+      RETURNING *;
+    `;
+
+    const [updatedUnit] = await sequelize.query(unitQuery, {
+      replacements: {
+        issueId: issue.id,
+        unitNo: issue.unit,
+        propertyId: propertyId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    }); 
+
+    // Step 2: Insert the issue into the Issues table
+    const issueQuery = `
+      INSERT INTO "Issues" (
+        id, type, subject, description, unit, "tenantRaised", resolved, 
+        "dateRaised", "dateResolved", documents
+      ) VALUES (
+        :id, :type, :subject, :description, :unit, :tenantRaised, :resolved, 
+        :dateRaised, :dateResolved, ARRAY[:documents]::TEXT[]
+      )
+      RETURNING *;
+    `;
+
+    const [newIssue] = await sequelize.query(issueQuery, {
+      replacements: {
+        id: issue.id || DataTypes.UUIDV4, // Auto-generate UUID if not provided
+        type: issue.type,
+        subject: issue.subject,
+        description: issue.description,
+        unit: issue.unit,
+        tenantRaised: issue.tenantRaised,
+        resolved: issue.resolved || false, // Default to false if not provided
+        dateRaised: issue.dateRaised || new Date(), // Default to current date if not provided
+        dateResolved: issue.dateResolved || null, // Default to null if not provided
+        documents: issue.documents || [], // Default to empty array if not provided
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
+
+    // Send success response
+    res.status(201).json({
+      message: 'Issue created and added to unit successfully',
+      issue: newIssue[0], // Return the newly created issue
+      updatedUnit: updatedUnit[0], // Return the updated unit
+    });
+    
+  } catch (error) {
+    console.error('Error creating issue:', error);
+    res.status(500).json({ error: "Failed creating issue, possible that the unit doesn't exist" });
+  }
+});
+
+//Resolve issues
+app.post('/issues/resolve', async (req, res) => {
+  const { issueIds } = req.body;
+
+  console.log("Step 1", issueIds);
+
+  // Ensure issueIds is an array
+  if (!Array.isArray(issueIds) || issueIds.length === 0) {
+    return res.status(400).json({ error: 'Please select at least one issue' });
+  }
+
+  try {
+    // Create an array of promises
+    const updatePromises = issueIds.map(issueId => {
+      const issueQuery = `
+        UPDATE "Issues" 
+        SET resolved = true, "dateResolved" = NOW()
+        WHERE id = :issueId
+        RETURNING *;
+      `;
+
+      return sequelize.query(issueQuery, { 
+        replacements: { issueId }, 
+        type: sequelize.QueryTypes.UPDATE 
+      });
+    });
+
+    // Wait for all updates to complete
+    const updatedIssues = await Promise.all(updatePromises);
+
+    res.json({ success: true, updatedIssues });
+  } catch (error) {
+    console.error('Error updating issues:', error);
+    res.status(500).json({ error: 'An error occurred while updating issues' });
+  }
+
+});
+
+//Unresolve issues
+app.post('/issues/unresolve', async (req, res) => {
+  const { issueIds } = req.body;
+
+  console.log("Step 1", issueIds);
+
+  // Ensure issueIds is an array
+  if (!Array.isArray(issueIds) || issueIds.length === 0) {
+    return res.status(400).json({ error: 'Please select at least one issue' });
+  }
+
+  try {
+    // Create an array of promises
+    const updatePromises = issueIds.map(issueId => {
+      const issueQuery = `
+        UPDATE "Issues" 
+        SET resolved = false, "dateResolved" = NULL
+        WHERE id = :issueId
+        RETURNING *;
+      `;
+
+      return sequelize.query(issueQuery, { 
+        replacements: { issueId }, 
+        type: sequelize.QueryTypes.UPDATE 
+      });
+    });
+
+    // Wait for all updates to complete
+    const updatedIssues = await Promise.all(updatePromises);
+
+    res.json({ success: true, updatedIssues });
+  } catch (error) {
+    console.error('Error updating issues:', error);
+    res.status(500).json({ error: 'An error occurred while updating issues' });
+  }
+
+});
+
+//Delete issue
+app.delete('/issues/delete', async (req, res) => {
+  const { issueId } = req.body; // Assuming issueId is passed in the request body
+
+  try {
+
+    // Step 1: Fetch all units
+    const fetchAllUnitsQuery = `SELECT * FROM "Units";`;
+    const allUnits = await sequelize.query(fetchAllUnitsQuery, {
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Step 2: Map through all units and update the ones that contain the issueId
+    const updatePromises = allUnits.map(async (unit) => {
+      if (unit.issues && unit.issues.includes(issueId)) {
+        const updatedIssues = unit.issues.filter((id) => id !== issueId);
+
+        const updateUnitQuery = `
+          UPDATE "Units"
+          SET issues = ARRAY[:updatedIssues]::uuid[]
+          WHERE id = :unitId
+        `;
+
+        return sequelize.query(updateUnitQuery, {
+          replacements: {
+            updatedIssues,
+            unitId: unit.id,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+        });
+      }
+    });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises.filter(Boolean));
+
+    // Step 3: Delete the issue specified by issueId
+    const deleteIssueQuery = `DELETE FROM "Issues" WHERE id = :issueId`;
+
+    await sequelize.query(deleteIssueQuery, {
+      replacements: { issueId },
+      type: sequelize.QueryTypes.DELETE,
+    });
+
+    console.log(`Successfully deleted issue with ID ${issueId}`);
+
+    res.status(200).json({ message: "issue deleted and properties updated successfully." });
+  } catch (error) {
+    console.error("Error deleting issue and updating properties:", error);
+    res.status(500).json({ error: "Failed to delete issue and update properties." });
+  }
+});
+
+//Unit functions////////////////////////////////////////////////////////////////////////////////
+
+//Fetch units//
+app.post('/units/byIds', async (req, res) => {
+  const { unitIds } = req.body;
 
 
+  // Validate input
+  if (!unitIds || !Array.isArray(unitIds)) {
+    return res.status(400).json({ error: 'Invalid unit IDs' });
+  }
+
+  try {
+    // Use Promise.all to fetch tenants in parallel
+    const unitsPromises = unitIds.map(async (id) => {
+      const query = `SELECT * FROM "Units" WHERE id = :id`;
 
 
+      // Execute the query for each ID
+      const [unit] = await sequelize.query(query, {
+        replacements: { id },
+        type: sequelize.QueryTypes.SELECT,
+      });
 
 
+      return unit; // Return the tenant data for each ID
+    });
+
+
+    // Wait for all queries to complete
+    const units = await Promise.all(unitsPromises);
+
+
+    // Send the fetched units back to the client
+    res.status(200).json(units);
+  } catch (error) {
+    console.error('Error fetching units by IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch units' });
+  }
+});
+
+//Save unit//
+app.post('/units', async (req, res) => {
+
+  const { unit, propertyId } = req.body;
+
+  // Validate input
+  if (!unit || !propertyId) {
+    return res.status(400).json({ error: 'Invalid unit or property ID' });
+  }
+
+
+  try {
+
+    // Fetch tenants whose `unit_id` matches `unitNo`
+    const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit_id = :unitNo`;
+    const tenantResults = await sequelize.query(tenantsQuery, {
+      replacements: { unitNo: unit.unitNo },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    const tenantIds = tenantResults.map((tenant) => tenant.id); // Extract IDs
+  
+    const query = `
+      INSERT INTO "Units" (
+        id, "unitNo", type, mode, "sizeValue", "sizeUnit", "petsAllowed", tenants,
+        "propertyId", "waterLastReading", "waterCurrentReading", 
+        "electricityLastReading", "electricityCurrentReading", issues, image
+      ) VALUES (
+        :id, :unitNo, :type, :mode, :sizeValue, :sizeUnit, :petsAllowed, ARRAY[:tenants]::UUID[],
+        :propertyId, :waterLastReading, :waterCurrentReading, 
+        :electricityLastReading, :electricityCurrentReading, ARRAY[:issues]::UUID[], :image
+      )
+      RETURNING id;
+    `;
+
+    const [newUnit] = await sequelize.query(query, {
+      replacements: {
+        id: unit.id,
+        unitNo: unit.unitNo,
+        type: unit.type,
+        mode: unit.mode,
+        sizeValue: unit.sizeValue,
+        sizeUnit: unit.sizeUnit,
+        petsAllowed: unit.petsAllowed,
+        tenants: tenantIds || [],  // Empty array if no tenants
+        propertyId: propertyId,
+        // Pass the JSON objects directly (no need for JSON.stringify or [] notation)
+        waterLastReading: unit.waterLastReading && unit.waterLastReading.length > 0 ? JSON.stringify(unit.waterLastReading) : '[]', 
+        waterCurrentReading: unit.waterCurrentReading && unit.waterCurrentReading.length > 0 ? JSON.stringify(unit.waterCurrentReading) : '[]', 
+        electricityLastReading: unit.electricityLastReading && unit.electricityLastReading.length > 0 ? JSON.stringify(unit.electricityLastReading) : '[]',
+        electricityCurrentReading: unit.electricityCurrentReading && unit.electricityCurrentReading.length > 0 ? JSON.stringify(unit.electricityCurrentReading) : '[]',
+        issues: unit.issues || [],  // Empty array if no issues
+        image: unit.image || 'https://via.placeholder.com/150',  // Default image URL
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
+
+    // Update the "units" array of the selected property
+    const updateQuery = `
+      UPDATE "Properties"
+      SET units = array_append(units, :unitId)
+      WHERE id = :propertyId
+      RETURNING *;
+    `;
+    const [updatedProperty] = await sequelize.query(updateQuery, {
+      replacements: {
+        unitId: newUnit[0]?.id,
+        propertyId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    console.log(updatedProperty[0]?.units);
+
+    res.status(201).json({
+      message: 'Unit created and added to property successfully',
+      unit: newUnit,
+      units: updatedProperty[0]?.units,
+    });
+  } catch (error) {
+    console.error('Error creating unit:', error);
+    res.status(500).json({ error: 'Failed to create unit' });
+  }
+});
+
+//Save size units//
+app.post('/units/size', async (req, res) => {
+  
+  const { propertyId, sizeUnits } = req.body;
+
+  // Validate input
+  if (!propertyId) {
+    return res.status(400).json({ error: 'Invalid unit or property ID' });
+  }
+
+  try {
+
+    // Fetch all units with the given propertyId
+    const units = await sequelize.query(
+      `SELECT * FROM "Units" WHERE "propertyId" = :propertyId;`,
+      {
+        replacements: { propertyId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (units.length === 0) {
+      return res.status(404).json({ error: 'No units found for the given propertyId' });
+    }
+
+    // Function to update sizeUnit for all units in the Units table
+    const updateAllUnits = async (units, sizeUnits) => {
+      return await Promise.all(
+        units.map(async (unit, index) => {
+          await sequelize.query(
+            `UPDATE "Units" SET "sizeUnit" = :sizeUnit WHERE id = :unitId RETURNING *;`,
+            {
+              replacements: {
+                unitId: unit.id,  // Updating based on unit ID, not propertyId
+                sizeUnit: sizeUnits
+              },
+              type: sequelize.QueryTypes.UPDATE,
+            }
+          );
+          return unit.id;
+        })
+      );
+    };
+
+    // Step 3: Call the function and update the units
+    const updatedUnits = await updateAllUnits(units, sizeUnits);
+
+    // Step 4: Send response with updated units
+    res.status(200).json({
+      message: 'Units updated successfully!',
+      units: updatedUnits.flat(), // Flatten in case of nested arrays
+      sizeUnits: sizeUnits,
+    });
+  
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    res.status(500).json({ error: 'Unexpected server error' });
+  }
+
+});
+
+//Import
+app.post("/units/import", async (req, res) => {
+  try {
+    const { units, propertyId } = req.body; // Include `propertyId` from the frontend
+
+
+    if (!units|| units.length === 0) {
+      return res.status(400).json({ error: "No units provided for import." });
+    }
+
+
+    if (!propertyId) {
+      return res.status(400).json({ error: "Property ID is required for unit import." });
+    }
+
+    // Prepare the raw SQL query to insert units
+    const insertPromises = units.map(async (unit) => {
+      const query = `
+        INSERT INTO "Units"("id", "unitNo", "type", "mode", "sizeValue", "sizeUnit", "petsAllowed", "tenants", "propertyId", "waterLastReading", "waterCurrentReading", "electricityLastReading", "electricityCurrentReading", "issues", "image")
+        VALUES (
+        :id, :unitNo, :type, :mode, :sizeValue, :sizeUnit, :petsAllowed, ARRAY[:tenants]::UUID[],
+        :propertyId, ARRAY[:waterLastReading]::INTEGER[], ARRAY[:waterCurrentReading]::INTEGER[], 
+        ARRAY[:electricityLastReading]::INTEGER[], ARRAY[:electricityCurrentReading]::INTEGER[], ARRAY[:issues]::UUID[], :image)
+        RETURNING *;
+      `;
+
+      const values = {
+        id: unit.id,
+        unitNo: unit.unitNo || null,
+        type: unit.type || null,
+        mode: unit.mode || null,
+        sizeValue: unit.sizeValue || null,
+        sizeUnit: unit.sizeUnit || null,
+        petsAllowed: unit.petsAllowed === 'Yes' || unit.petsAllowed === 'Y' ? true : unit.petsAllowed === 'No' || unit.petsAllowed === 'N' ? false : null,
+        tenants: [],
+        propertyId: unit.propertyId || null,
+        waterLastReading: [],
+        waterCurrentReading: [],
+        electricityLastReading: [],
+        electricityCurrentReading: [],
+        issues: [],
+        image: unit.image || 'https://via.placeholder.com/150',
+      };
+
+
+      // Execute the query using Sequelize's raw query method
+      const [result] = await sequelize.query(query, {
+        replacements: values,
+        type: sequelize.QueryTypes.INSERT,
+      });
+
+
+      return result; // Return the inserted tenant data with the auto-generated ID
+    });
+
+
+    // Wait for all tenants to be inserted
+    const createdUnits = await Promise.all(insertPromises);
+
+
+    // Update the selected property to include the new tenants
+    const unitIds = createdUnits.flatMap((unitArray) => unitArray.map((unit) => unit.id));
+   
+    const updateQuery = `
+      UPDATE "Properties"
+      SET units = array_cat(units, :unitIds)
+      WHERE id = :propertyId
+      RETURNING *;
+    `;
+
+
+    if (!unitIds || unitIds.length === 0) {
+      throw new Error('No unit IDs provided to update the property.');
+    }
+
+
+    const [updatedProperty] = await sequelize.query(updateQuery, {
+      replacements: {
+        unitIds: `{${unitIds.join(',')}}`,
+        propertyId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    res.status(200).json({
+      message: "units imported and assigned to property successfully!",
+      units: createdUnits,
+      unitIds: updatedProperty[0]?.units,
+    });
+  } catch (error) {
+    console.error("Error importing units:", error);
+    res.status(500).json({ error: "Failed to import units." });
+  }
+});
+
+//Fetch unit for unitProfile//
+app.get("/units/:id", async (req, res) => {
+  try {
+    const unitId = req.params.id;
+
+    // Validate unit ID
+    if (!unitId) {
+      return res.status(400).json({ error: "unit ID is required." });
+    }
+
+    // Query the database to find the unit by ID
+    const query = `
+      SELECT *
+      FROM "Units"
+      WHERE "id" = :unitId
+    `;
+    const [ unit ] = await sequelize.query(query, {
+      replacements: { unitId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    console.log("Step 1", unit);
+
+    // Collect tenants from tenants array, if there are any tenants
+    if (unit.tenants && unit.tenants.length > 0) {
+      const tenantIdsArray = Array.isArray(unit.tenants) ? unit.tenants : [unit.tenants]; // Ensure it's an array
+
+      console.log("Step 2", `{${tenantIdsArray.join(',')}}`);
+
+      const tenantQuery = `
+        SELECT * FROM "Tenants" WHERE "id" = ANY(:tenantIds)
+      `;
+
+      const tenants = await sequelize.query(tenantQuery, {
+        replacements: { tenantIds: `{${tenantIdsArray.join(',')}}` },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+      console.log("Step 3", tenants);
+
+      // Check if tenants exist
+      if (!tenants || tenants.length < 1) {
+        return res.status(404).json({ error: "Unit has no tenants." });
+      }
+
+      // Return the unit details along with tenants
+      return res.status(200).json({ unit, tenants });
+
+    } else {
+      return res.status(404).json({ error: "No tenants associated with this unit." });
+    }
+
+  } catch (error) {
+    console.error("Error fetching unit:", error);
+    res.status(500).json({ error: "An error occurred while fetching the unit." });
+  }
+});
+
+//Edit a unit on unitProfile//
+app.post('/units/update', async (req, res) => {
+  const { unit } = req.body;
+
+  console.log("ooooo", unit);
+
+  try {
+
+    const query = `
+      UPDATE "Units"
+      SET
+        "unitNo" = :unitNo,
+        type = :type,
+        mode = :mode,
+        "sizeValue" = :sizeValue,
+        "sizeUnit" = :sizeUnit,
+        "petsAllowed" = :petsAllowed,
+        "waterLastReading" = :waterLastReading::JSONB,
+        "waterCurrentReading" = :waterCurrentReading::JSONB,
+        "electricityLastReading" = :electricityLastReading::JSONB,
+        "electricityCurrentReading" = :electricityCurrentReading::JSONB
+      WHERE id = :id
+      RETURNING *;
+    `;
+
+    const [updatedunit] = await sequelize.query(query, {
+      replacements: {
+        id: unit.id,
+        unitNo: unit.unitNo || null,
+        type: unit.type || null,
+        mode: unit.mode || null,
+        sizeValue: unit.sizeValue || null,
+        sizeUnit: unit.sizeUnit || null,
+        petsAllowed: unit.petsAllowed || null,
+        waterLastReading: JSON.stringify(unit.waterLastReading || []), // Convert to JSON string
+        waterCurrentReading: JSON.stringify(unit.waterCurrentReading || []),
+        electricityLastReading: JSON.stringify(unit.electricityLastReading || []),
+        electricityCurrentReading: JSON.stringify(unit.electricityCurrentReading || [])
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+
+    if (!updatedunit || updatedunit.length === 0) {
+      return res.status(404).json({ error: 'unit not found or no changes made.' });
+    }
+
+    res.status(200).json({ message: 'unit updated successfully!', unit: updatedunit[0] });
+  } catch (error) {
+    console.error('Error updating unit:', error);
+    res.status(500).json({ error: 'Failed to update unit.' });
+  }
+});
+
+//Edit a unit image on UnitProfile//
+app.post('/units/image', upload.single('image'), async (req, res) => {
+  const { propertyId } = req.body;
+  const imageBuffer = req.file.buffer; // Access the uploaded file as a buffer
+
+
+  try {
+      // Convert the buffer to a URL or upload it to a storage service
+      const imageUrl = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
+
+
+      // Update the database
+      const query = `
+          UPDATE "Properties"
+          SET image = :image
+          WHERE id = :id
+          RETURNING *;
+      `;
+      const [updatedProperty] = await sequelize.query(query, {
+          replacements: {
+              id: propertyId,
+              image: imageUrl, // Save the image URL in the database
+          },
+          type: sequelize.QueryTypes.UPDATE,
+      });
+
+
+      if (!updatedProperty || updatedProperty.length === 0) {
+          return res.status(404).json({ error: 'Property not found or no changes made.' });
+      }
+
+
+      res.status(200).json({ message: 'Property updated successfully!', property: updatedProperty[0] });
+  } catch (error) {
+      console.error('Error updating tenant:', error);
+      res.status(500).json({ error: 'Failed to update tenant.' });
+  }
+});
+
+//Delete unit
+app.delete('/units/delete', async (req, res) => {
+  const { unitId } = req.body; // Assuming unitId is passed in the request body
+
+  try {
+
+    // Step 1: Fetch all properties
+    const fetchAllPropertiesQuery = `SELECT * FROM "Properties";`;
+    const allProperties = await sequelize.query(fetchAllPropertiesQuery, {
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Step 2: Map through all properties and update the ones that contain the unitId
+    const updatePromises = allProperties.map(async (property) => {
+      if (property.units && property.units.includes(unitId)) {
+        const updatedUnits = property.units.filter((id) => id !== unitId);
+
+        const updatePropertyQuery = `
+          UPDATE "Properties"
+          SET units = ARRAY[:updatedUnits]::uuid[]
+          WHERE id = :propertyId;
+        `;
+
+        return sequelize.query(updatePropertyQuery, {
+          replacements: {
+            updatedUnits,
+            propertyId: property.id,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+        });
+      }
+    });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises.filter(Boolean));
+
+    // Step 3: Delete all Issues connected to the unit
+
+    const getUnitIssuesQuery = `
+      SELECT issues
+      FROM "Units"
+      WHERE id = :unitId
+    `;
+
+    const [unit] = await sequelize.query(getUnitIssuesQuery, {
+      replacements: { unitId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (unit && Array.isArray(unit.issues) && unit.issues.length > 0) {
+      const deleteIssueQuery = `
+        DELETE FROM "Issues"
+        WHERE id = ANY(ARRAY[:issues]::UUID[])
+      `;
+    
+      await sequelize.query(deleteIssueQuery, {
+        replacements: { issues: unit.issues }, // Pass the array of issue IDs to delete
+        type: sequelize.QueryTypes.DELETE,
+      });
+    }
+    
+    // Step 4: Delete the unit specified by unitId
+    const deleteunitQuery = `DELETE FROM "Units" WHERE id = :unitId`;
+
+    await sequelize.query(deleteunitQuery, {
+      replacements: { unitId },
+      type: sequelize.QueryTypes.DELETE,
+    });
+
+    console.log(`Successfully deleted unit with ID ${unitId}`);
+
+    res.status(200).json({ message: "unit deleted and properties updated successfully." });
+  } catch (error) {
+    console.error("Error deleting unit and updating properties:", error);
+    res.status(500).json({ error: "Failed to delete unit and update properties." });
+  }
+});
+
+
+//Property functions////////////////////////////////////////////////////////////////////////////////
+
+//Get all properties
+app.get('/properties', async (req, res) => {
+  try {
+    const [properties, metadata] = await sequelize.query('SELECT * FROM "Properties"'); // Raw SQL query
+    res.json(properties); // Send the properties as JSON
+  } catch (err) {
+    console.error('Error fetching properties:', err);
+    res.status(500).json({ error: 'Failed to fetch properties' });
+  }
+});
+
+//Adding new property
+app.post("/properties", async (req, res) => {
+  const { id, companyName, propertyName, address, image, owner, tenants, units } = req.body;
+
+
+  try {
+    // Use Sequelize query to insert the new property into the database
+    const [result] = await sequelize.query(
+      `
+      INSERT INTO "Properties" ("id", "companyName", "propertyName", "address", "image", "owner", "tenants", "units", "createdAt", "updatedAt")
+      VALUES (:id, :companyName, :propertyName, :address, :image, :owner, :tenants, :units, :createdAt, :updatedAt)
+      RETURNING *;
+      `,
+      {
+        replacements: {
+          id,
+          companyName,
+          propertyName,
+          address,
+          image: image || "https://via.placeholder.com/150", // Default image
+          owner,
+          tenants: tenants && tenants.length > 0 ? `{${tenants.join(",")}}` : "{}",
+          units: units && units.length > 0 ? `{${units.join(",")}}` : "{}",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        type: sequelize.QueryTypes.INSERT,
+      }
+    );
+
+
+    // Respond with the newly created property
+    res.status(201).json(result[0]); // `result[0]` contains the inserted row
+  } catch (error) {
+    console.error("Error creating property:", error.message);
+    res.status(500).json({ error: "Failed to create property. Please try again." });
+  }
+});
+
+//Fetch property//
+app.get("/properties/:id", async (req, res) => {
+  try {
+    const propertyId = req.params.id;
+
+
+    // Validate ID
+    if (!propertyId) {
+      return res.status(400).json({ error: "ID is required." });
+    }
+
+
+    // Query the database to find the tenant by ID
+    const query = `
+      SELECT *
+      FROM "Properties"
+      WHERE "id" = :propertyId
+    `;
+    const [property] = await sequelize.query(query, {
+      replacements: { propertyId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+
+    // Safely get the lengths
+    const unitCount = property.units.length;
+    const tenantCount = property.tenants.length;
+
+
+    // Check if the tenant exists
+    if (!property) {
+      return res.status(404).json({ error: "Property not found." });
+    }
+
+
+    res.status(200).json({
+      property,
+      unitCount,
+      tenantCount
+    });
+
+
+  } catch (error) {
+    console.error("Error fetching property:", error);
+    res.status(500).json({ error: "An error occurred while fetching the property." });
+  }
+});
+
+//Property image//
+app.post('/properties/image', upload.single('image'), async (req, res) => {
+  const { tenantId } = req.body;
+  const imageBuffer = req.file.buffer; // Access the uploaded file as a buffer
+
+
+  try {
+      // Convert the buffer to a URL or upload it to a storage service
+      const imageUrl = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
+
+
+      // Update the database
+      const query = `
+          UPDATE "Tenants"
+          SET image = :image
+          WHERE id = :id
+          RETURNING *;
+      `;
+      const [updatedTenant] = await sequelize.query(query, {
+          replacements: {
+              id: tenantId,
+              image: imageUrl, // Save the image URL in the database
+          },
+          type: sequelize.QueryTypes.UPDATE,
+      });
+
+
+      if (!updatedTenant || updatedTenant.length === 0) {
+          return res.status(404).json({ error: 'Tenant not found or no changes made.' });
+      }
+
+
+      res.status(200).json({ message: 'Tenant updated successfully!', tenant: updatedTenant[0] });
+  } catch (error) {
+      console.error('Error updating tenant:', error);
+      res.status(500).json({ error: 'Failed to update tenant.' });
+  }
+});
+
+//Edit a property//
+app.post('/properties/update', async (req, res) => {
+  const { property } = req.body;
+
+  try {
+    // Update the tenant in the "Tenants" table
+    const query = `
+      UPDATE "Properties"
+      SET
+        "companyName" = :companyName,
+        "propertyName" = :propertyName,
+        address = :address,
+        image = :image,
+        owner = :owner,
+        tenants = :tenants,
+        units = :units
+      WHERE id = :id
+      RETURNING *;
+    `;
+
+
+    const [updatedProperty] = await sequelize.query(query, {
+      replacements: {
+        id: property.id,
+        companyName: property.companyName || null,
+        propertyName: property.propertyName || null,
+        address: property.address || null,
+        image: property.image || null,
+        owner: property.owner || null,
+        tenants: `{${(property.tenants || []).join(',')}}`, // Format as PostgreSQL array
+        units: `{${(property.units || []).join(',')}}`,     // Format as PostgreSQL array
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+
+    // Parse the returned PostgreSQL arrays (if any) into JavaScript arrays
+    const units = updatedProperty.units
+    ? updatedProperty.units.slice(1, -1).split(',') // Remove '{' and '}' and split
+    : [];
+    const tenants = updatedProperty.tenants
+    ? updatedProperty.tenants.slice(1, -1).split(',') // Remove '{' and '}' and split
+    : [];
+
+
+    // Safely get the lengths
+    const unitCount = units.length;
+    const tenantCount = tenants.length;
+
+
+    console.log("here we are", unitCount, tenantCount)
+
+
+    if (!updatedProperty || updatedProperty.length === 0) {
+      return res.status(404).json({ error: 'Property not found or no changes made.' });
+    }
+
+
+    res.status(200).json({ message: 'Property updated successfully!',
+      property: updatedProperty,
+      unitCount: unitCount,
+      tenantCount: tenantCount });
+  } catch (error) {
+    console.error('Error updating tenant:', error);
+    res.status(500).json({ error: 'Failed to update tenant.' });
+  }
+});
+
+//Expiring Lease fetch//
+app.post("/properties/expiring-leases", async (req, res) => {
+  const { tenantIds } = req.body;
+
+
+  if (!tenantIds || tenantIds.length === 0) {
+    return res.status(400).json({ error: "Tenant IDs are required." });
+  }
+
+
+  try {
+    // Use Promise.all to fetch tenants in parallel
+    const tenantsPromises = tenantIds.map(async (id) => {
+      const query = `SELECT * FROM "Tenants" WHERE id = :id AND "leaseExpiry" <= NOW() + INTERVAL '2 months'`;
+
+
+      // Execute the query for each ID with the condition for lease expiry
+      const [tenant] = await sequelize.query(query, {
+        replacements: { id },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+
+      return tenant; // Return the tenant data for each ID
+    });
+
+
+    // Wait for all queries to complete
+    const tenants = await Promise.all(tenantsPromises);
+
+
+    console.log("lkasdhflakhs", tenants);
+
+
+    // Filter tenants where leaseExpiry is within the next 2 months (if needed)
+    const tenantsWithExpiringLeases = tenants.filter(tenant => tenant && tenant.leaseExpiry);
+
+
+    console.log("Tenants with expiring leases:", tenantsWithExpiringLeases);
+  } catch (error) {
+    console.error("Error fetching tenants with expiring leases:", error);
+    res.status(500).json({ error: "Failed to fetch expiring leases." });
+  }
+});
+
+//Delete Property//
+app.delete('/properties/delete', async (req, res) => {
+  const { propertyId, tenantIds, unitIds } = req.body; // Pass `propertyId` and `tenantIds` in the request body
+
+  console.log("The tenant IDS", tenantIds);
+
+  try {
+    // Delete all tenants associated with the property
+    const deleteTenantsPromises = tenantIds.map(async (tenantId) => {
+        const query = `DELETE FROM "Tenants" WHERE id = :tenantId`;
+
+        // Execute the delete query for each tenant ID
+        await sequelize.query(query, {
+            replacements: { tenantId },
+            type: sequelize.QueryTypes.DELETE,
+        });
+    });
+
+    // Wait for all tenant deletions to complete
+    await Promise.all(deleteTenantsPromises);
+
+    const deleteUnitsPromises = unitIds.map(async (unitId) => {
+ 
+      // Step 1: Retrieve unit and its associated issues
+      const selectUnitQuery = `SELECT * FROM "Units" WHERE id = :unitId`;
+      const unitResults = await sequelize.query(selectUnitQuery, {
+          replacements: { unitId },
+          type: sequelize.QueryTypes.SELECT,
+      });
+
+      if (unitResults.length === 0) {
+          console.log(`Unit with ID ${unitId} not found.`);
+          return;
+      }
+
+      const unitToDelete = unitResults[0]; // First result
+      const issuesToDelete = unitToDelete.issues || [];
+
+      // Step 2: Delete issues associated with the unit
+      if (issuesToDelete.length > 0) {
+          const deleteIssuesQuery = `DELETE FROM "Issues" WHERE id = ANY(ARRAY(:issues)::UUID[])`;
+          await sequelize.query(deleteIssuesQuery, {
+              replacements: { issues: issuesToDelete },
+              type: sequelize.QueryTypes.DELETE,
+          });
+      }
+
+      // Step 3: Delete the unit itself
+      const deleteUnitQuery = `DELETE FROM "Units" WHERE id = :unitId`;
+      await sequelize.query(deleteUnitQuery, {
+          replacements: { unitId },
+          type: sequelize.QueryTypes.DELETE,
+      });
+
+      console.log(`Unit ${unitId} and its issues deleted successfully.`);
+   
+  });
+  
+  // Execute all deletion promises
+  await Promise.all(deleteUnitsPromises);
+
+    // Wait for all tenant deletions to complete
+    await Promise.all(deleteUnitsPromises);
+
+    // Delete the property itself
+    const deletePropertyQuery = `DELETE FROM "Properties" WHERE id = :propertyId`;
+
+    await sequelize.query(deletePropertyQuery, {
+        replacements: { propertyId },
+        type: sequelize.QueryTypes.DELETE,
+    });
+
+    console.log(`Successfully deleted property with ID ${propertyId} and its associated tenants.`);
+    res.status(200).json({ message: "Property and associated tenants deleted successfully." });
+  } catch (error) {
+      console.error("Error deleting property and tenants:", error);
+      res.status(500).json({ error: "Failed to delete property and tenants." });
+  }
+});
+
+
+//Tenant functions////////////////////////////////////////////////////////////////////////////////
+
+//Fetch tenants//
+app.post('/tenants/byIds', async (req, res) => {
+  const { tenantIds } = req.body;
+
+
+  // Validate input
+  if (!tenantIds || !Array.isArray(tenantIds)) {
+    return res.status(400).json({ error: 'Invalid tenant IDs' });
+  }
+
+
+  try {
+    // Use Promise.all to fetch tenants in parallel
+    const tenantsPromises = tenantIds.map(async (id) => {
+      const query = `SELECT * FROM "Tenants" WHERE id = :id`;
+
+
+      // Execute the query for each ID
+      const [tenant] = await sequelize.query(query, {
+        replacements: { id },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+
+      return tenant; // Return the tenant data for each ID
+    });
+
+
+    // Wait for all queries to complete
+    const tenants = await Promise.all(tenantsPromises);
+
+
+    // Send the fetched tenants back to the client
+    res.status(200).json(tenants);
+  } catch (error) {
+    console.error('Error fetching tenants by IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch tenants' });
+  }
+});
+
+//Save tenant//
+app.post('/tenants', async (req, res) => {
+  const { tenant, propertyId } = req.body;
+
+
+  // Validate input
+  if (!tenant || !propertyId) {
+    return res.status(400).json({ error: 'Invalid tenant or property ID' });
+  }
+
+
+  try {
+    // Format leaseDoc if it's an array
+    const formattedLeaseDoc = tenant.leaseDoc && tenant.leaseDoc.length > 0
+      ? `{${tenant.leaseDoc.join(",")}}`
+      : "{}";
+
+
+    // Save the new tenant to the "Tenants" table
+    const query = `
+      INSERT INTO "Tenants" (
+        id, name, unit_id, phone, email, "leaseStarted", "leaseExpiry",
+        "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", nationality,
+        occupation, image, "eWalletName", "eWalletReferenceNo", "bankName",
+        "bankReferenceNo", "creditCardName", "creditCardNo", "creditCardDate",
+        "primaryPaymentMethod"
+      ) VALUES (
+        :id, :name, :unit_id, :phone, :email, :leaseStarted, :leaseExpiry,
+        :leaseDoc, :moveinDate, :moveoutDate, :billingDeadline, :nationality,
+        :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName,
+        :bankReferenceNo, :creditCardName, :creditCardNo, :creditCardDate,
+        :primaryPaymentMethod
+      )
+      RETURNING id;
+    `;
+    const [newTenant] = await sequelize.query(query, {
+      replacements: {
+        ...tenant,
+        leaseDoc: formattedLeaseDoc,
+      },
+      type: sequelize.QueryTypes.INSERT,
+   
+    });
+
+
+    // Update the "tenants" array of the selected property
+    const updateQuery = `
+      UPDATE "Properties"
+      SET tenants = array_append(tenants, :tenantId)
+      WHERE id = :propertyId
+      RETURNING *;
+    `;
+    const [updatedProperty] = await sequelize.query(updateQuery, {
+      replacements: {
+        tenantId: newTenant[0]?.id,
+        propertyId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    res.status(201).json({
+      message: 'Tenant created and added to property successfully',
+      tenant: newTenant,
+      tenants: updatedProperty[0]?.tenants,
+    });
+  } catch (error) {
+    console.error('Error creating tenant:', error);
+    res.status(500).json({ error: 'Failed to create tenant' });
+  }
+});
+
+//Fetch tenant for TenantProfile//
+app.get("/tenants/:id", async (req, res) => {
+  try {
+    const tenantId = req.params.id;
+
+
+    // Validate tenant ID
+    if (!tenantId) {
+      return res.status(400).json({ error: "Tenant ID is required." });
+    }
+
+
+    // Query the database to find the tenant by ID
+    const query = `
+      SELECT *
+      FROM "Tenants"
+      WHERE "id" = :tenantId
+    `;
+    const [tenant] = await sequelize.query(query, {
+      replacements: { tenantId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+
+    // Check if the tenant exists
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found." });
+    }
+
+
+    // Return the tenant details
+    res.status(200).json(tenant);
+
+
+  } catch (error) {
+    console.error("Error fetching tenant:", error);
+    res.status(500).json({ error: "An error occurred while fetching the tenant." });
+  }
+});
+
+//Edit a tenant on TenantProfile//
+app.post('/tenants/update', async (req, res) => {
+  const { tenant } = req.body;
+
+
+  console.log("ooooo", tenant);
+
+
+  try {
+    // Format leaseDocs if it's an array of objects
+    const formattedLeaseDoc = tenant.leaseDocs && tenant.leaseDocs.length > 0
+    ? `{${tenant.leaseDocs.map(doc => JSON.stringify(doc).replace(/"/g, '\\"')).join(",")}}`
+    : "{}";
+
+
+    console.log("Here's the formated doc", formattedLeaseDoc);
+
+
+    // Update the tenant in the "Tenants" table
+    const query = `
+      UPDATE "Tenants"
+      SET
+        name = :name,
+        unit_id = :unit_id,
+        phone = :phone,
+        email = :email,
+        "leaseStarted" = :leaseStarted,
+        "leaseExpiry" = :leaseExpiry,
+        "leaseDocs" = :leaseDocs,
+        "moveinDate" = :moveinDate,
+        "moveoutDate" = :moveoutDate,
+        "billingDeadline" = :billingDeadline,
+        nationality = :nationality,
+        occupation = :occupation,
+        image = :image,
+        "eWalletName" = :eWalletName,
+        "eWalletReferenceNo" = :eWalletReferenceNo,
+        "bankName" = :bankName,
+        "bankReferenceNo" = :bankReferenceNo,
+        "creditCardName" = :creditCardName,
+        "creditCardNo" = :creditCardNo,
+        "creditCardDate" = :creditCardDate,
+        "primaryPaymentMethod" = :primaryPaymentMethod
+      WHERE id = :id
+      RETURNING *;
+    `;
+
+
+    const [updatedTenant] = await sequelize.query(query, {
+      replacements: {
+        id: tenant.id,
+        name: tenant.name || null,
+        unit_id: tenant.unit_id || null,
+        phone: tenant.phone || null,
+        email: tenant.email || null,
+        leaseStarted: tenant.leaseStarted || null,
+        leaseExpiry: tenant.leaseExpiry || null,
+        leaseDocs: formattedLeaseDoc,
+        moveinDate: tenant.moveinDate || null,
+        moveoutDate: tenant.moveoutDate || null,
+        billingDeadline: tenant.billingDeadline || null,
+        nationality: tenant.nationality || null,
+        occupation: tenant.occupation || null,
+        image: tenant.image || null,
+        eWalletName: tenant.eWalletName || null,
+        eWalletReferenceNo: tenant.eWalletReferenceNo || null,
+        bankName: tenant.bankName || null,
+        bankReferenceNo: tenant.bankReferenceNo || null,
+        creditCardName: tenant.creditCardName || null,
+        creditCardNo: tenant.creditCardNo || null,
+        creditCardDate: tenant.creditCardDate || null,
+        primaryPaymentMethod: tenant.primaryPaymentMethod || null,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+
+    if (!updatedTenant || updatedTenant.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found or no changes made.' });
+    }
+
+
+    res.status(200).json({ message: 'Tenant updated successfully!', tenant: updatedTenant[0] });
+  } catch (error) {
+    console.error('Error updating tenant:', error);
+    res.status(500).json({ error: 'Failed to update tenant.' });
+  }
+});
+
+//Edit a tenant image on TenantProfile//
+app.post('/tenants/image', upload.single('image'), async (req, res) => {
+    const { propertyId } = req.body;
+    const imageBuffer = req.file.buffer; // Access the uploaded file as a buffer
+
+
+    try {
+        // Convert the buffer to a URL or upload it to a storage service
+        const imageUrl = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
+
+
+        // Update the database
+        const query = `
+            UPDATE "Properties"
+            SET image = :image
+            WHERE id = :id
+            RETURNING *;
+        `;
+        const [updatedProperty] = await sequelize.query(query, {
+            replacements: {
+                id: propertyId,
+                image: imageUrl, // Save the image URL in the database
+            },
+            type: sequelize.QueryTypes.UPDATE,
+        });
+
+
+        if (!updatedProperty || updatedProperty.length === 0) {
+            return res.status(404).json({ error: 'Property not found or no changes made.' });
+        }
+
+
+        res.status(200).json({ message: 'Property updated successfully!', property: updatedProperty[0] });
+    } catch (error) {
+        console.error('Error updating tenant:', error);
+        res.status(500).json({ error: 'Failed to update tenant.' });
+    }
+});
+
+//Import
+app.post("/tenants/import", async (req, res) => {
+  try {
+    const { tenants, propertyId } = req.body; // Include `propertyId` from the frontend
+
+
+    if (!tenants || tenants.length === 0) {
+      return res.status(400).json({ error: "No tenants provided for import." });
+    }
+
+
+    if (!propertyId) {
+      return res.status(400).json({ error: "Property ID is required for tenant import." });
+    }
+
+
+    // Prepare the raw SQL query to insert tenants
+    const insertPromises = tenants.map(async (tenant) => {
+      const query = `
+        INSERT INTO "Tenants"("id", "name", "unit_id", "phone", "email", "leaseStarted", "leaseExpiry", "moveinDate", "moveoutDate", "billingDeadline", "nationality", "occupation", "image", "eWalletName", "eWalletReferenceNo", "bankName", "bankReferenceNo", "creditCardName", "creditCardNo")
+        VALUES (:id, :name, :unit_id, :phone, :email, :leaseStarted, :leaseExpiry, :moveinDate, :moveoutDate, :billingDeadline, :nationality, :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName, :bankReferenceNo, :creditCardName, :creditCardNo)
+        RETURNING *;
+      `;
+
+
+      const values = {
+        id: tenant.id,
+        name: tenant.name,
+        unit_id: tenant.unit_id || null, // Ensure unit_id is set to null if missing
+        phone: tenant.phone || null,
+        email: tenant.email || null,
+        leaseStarted: tenant.leaseStarted || null,
+        leaseExpiry: tenant.leaseExpiry || null,
+        moveinDate: tenant.moveinDate || null,
+        moveoutDate: tenant.moveoutDate || null,
+        billingDeadline: tenant.billingDeadline || null,
+        nationality: tenant.nationality || null,
+        occupation: tenant.occupation || null,
+        image: tenant.image || null,
+        eWalletName: tenant.eWalletName || null,
+        eWalletReferenceNo: tenant.eWalletReferenceNo || null,
+        bankName: tenant.bankName || null,
+        bankReferenceNo: tenant.bankReferenceNo || null,
+        creditCardName: tenant.creditCardName || null,
+        creditCardNo: tenant.creditCardNo || null,
+      };
+
+
+      // Execute the query using Sequelize's raw query method
+      const [result] = await sequelize.query(query, {
+        replacements: values,
+        type: sequelize.QueryTypes.INSERT,
+      });
+
+
+      return result; // Return the inserted tenant data with the auto-generated ID
+    });
+
+
+    // Wait for all tenants to be inserted
+    const createdTenants = await Promise.all(insertPromises);
+
+
+    // Update the selected property to include the new tenants
+    const tenantIds = createdTenants.flatMap((tenantArray) => tenantArray.map((tenant) => tenant.id));
+    console.log(tenantIds);
+    const updateQuery = `
+      UPDATE "Properties"
+      SET tenants = array_cat(tenants, :tenantIds)
+      WHERE id = :propertyId
+      RETURNING *;
+    `;
+
+
+    if (!tenantIds || tenantIds.length === 0) {
+      throw new Error('No tenant IDs provided to update the property.');
+    }
+
+
+    const [updatedProperty] = await sequelize.query(updateQuery, {
+      replacements: {
+        tenantIds: `{${tenantIds.join(',')}}`,
+        propertyId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+
+    res.status(200).json({
+      message: "Tenants imported and assigned to property successfully!",
+      tenants: createdTenants,
+      tenantIds: updatedProperty[0]?.tenants,
+    });
+  } catch (error) {
+    console.error("Error importing tenants:", error);
+    res.status(500).json({ error: "Failed to import tenants." });
+  }
+});
+
+//Export
+app.post('/tenants/export', async (req, res) => {
+  const { ids } = req.body;
+
+
+  console.log(ids);
+
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).send('Invalid tenant IDs.');
+  }
+
+
+  try {
+    // Map through the ids array to execute individual SELECT queries for each ID
+    const tenantsPromises = ids.map(async (id) => {
+      const query = `SELECT * FROM "Tenants" WHERE id = :id`;
+
+
+      // Execute the query for each ID
+      const [tenant] = await sequelize.query(query, {
+        replacements: { id },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+
+      return tenant; // Return the tenant data for each ID
+    });
+
+
+    // Wait for all tenant queries to resolve
+    const tenants = await Promise.all(tenantsPromises);
+
+
+    // Send the tenant data back to the client
+    res.json(tenants);
+  } catch (error) {
+    console.error('Error fetching tenants for export:', error);
+    res.status(500).send('Failed to fetch tenant data.');
+  }
+});
+
+//Delete tenant
+app.delete('/tenants/delete', async (req, res) => {
+  const { tenantId } = req.body; // Assuming tenantId is passed in the request body
+
+  try {
+
+    // Step 2: Fetch all properties
+    const fetchAllPropertiesQuery = `SELECT * FROM "Properties";`;
+    const allProperties = await sequelize.query(fetchAllPropertiesQuery, {
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Step 3: Map through all properties and update the ones that contain the tenantId
+    const updatePromises = allProperties.map(async (property) => {
+      if (property.tenants && property.tenants.includes(tenantId)) {
+        const updatedTenants = property.tenants.filter((id) => id !== tenantId);
+
+        const updatePropertyQuery = `
+          UPDATE "Properties"
+          SET tenants = ARRAY[:updatedTenants]::uuid[]
+          WHERE id = :propertyId;
+        `;
+
+        return sequelize.query(updatePropertyQuery, {
+          replacements: {
+            updatedTenants,
+            propertyId: property.id,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+        });
+      }
+    });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises.filter(Boolean));
+
+    // Step 1: Delete the tenant specified by tenantId
+    const deleteTenantQuery = `DELETE FROM "Tenants" WHERE id = :tenantId`;
+
+    await sequelize.query(deleteTenantQuery, {
+      replacements: { tenantId },
+      type: sequelize.QueryTypes.DELETE,
+    });
+
+    console.log(`Successfully deleted tenant with ID ${tenantId}`);
+
+    res.status(200).json({ message: "Tenant deleted and properties updated successfully." });
+  } catch (error) {
+    console.error("Error deleting tenant and updating properties:", error);
+    res.status(500).json({ error: "Failed to delete tenant and update properties." });
+  }
+});
 
 
 //Billings.js AND Tenant.js PAYMENT API ENDPOINTS

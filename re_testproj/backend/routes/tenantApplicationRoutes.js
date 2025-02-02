@@ -1,6 +1,6 @@
 const express = require('express');
 const { TenantApplication } = require('../models'); // Import model
-const { authenticateToken } = require('../middleware/authMiddleware'); // Import OAuth middleware
+const authenticateToken = require('../middleware/authMiddleware'); // Import OAuth middleware
 const router = express.Router();
 
 // Middleware to protect routes

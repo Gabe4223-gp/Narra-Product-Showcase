@@ -1,7 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import './Utilities.css';
 
-function Utilities({ unit, onAddReading }) {
+function Utilities({ unit, fetchUnitDetails }) {
     const [showWaterReadingModal, setShowWaterReadingModal] = useState(false);
     const [showElectricityReadingModal, setShowElectricityReadingModal] = useState(false);
     const [tempReading, setTempReading] = useState({ last: '', current: '' }); // Temporary storage
@@ -10,21 +10,41 @@ function Utilities({ unit, onAddReading }) {
     const [showModal, setShowModal] = useState(false); // Manage modal visibility
     const [modalType, setModalType] = useState(''); // 'water' or 'electricity'
 
-    // Update local state whenever unit prop changes
     useEffect(() => {
-        setEditedUnit(unit);
+        if (unit) {
+            setEditedUnit({
+                id: unit.id,
+                unitNo: unit.unitNo,
+                type: unit.type,
+                mode: unit.mode,
+                sizeValue: unit.sizeValue,
+                sizeUnit: unit.sizeunit,
+                petsAllowed: unit.petsAllowed,
+                tenants: unit.tenants,
+                propertyId: unit.propertyId,
+                waterLastReading: unit.waterLastReading,
+                waterCurrentReading: unit.waterCurrentReading,
+                electricityLastReading: unit.electricityLastReading,
+                electricityCurrentReading: unit.electricityCurrentReading,
+                issues: unit.issues,
+                image: unit.image
+            });
+        }
     }, [unit]);
 
-    const handleTempReadingChange = (field, value) => {
+    const handleReadingChange = (field, value) => {
         setTempReading((prev) => ({
             ...prev,
             [field]: value,
         }));
     };
 
-    const saveReading = (type) => {
+    const saveReading = async (type) => {
         const lastReading = parseFloat(tempReading.last);
         const currentReading = parseFloat(tempReading.current);
+
+        console.log("Step 1", lastReading);
+        console.log("Step 2", editedUnit);
 
         if (isNaN(lastReading) || isNaN(currentReading)) {
             alert('Please enter valid readings.');
@@ -44,9 +64,37 @@ function Utilities({ unit, onAddReading }) {
             ],
         };
 
+        console.log("Step 2", updatedUnit);
+
+        try {
+
+            // Send unit and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/units/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                unit: updatedUnit}),
+            });
+       
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error('Backend error:', errorMsg);
+              throw new Error('Failed to create unit');
+            }
+     
+            // Optionally: If you have a function that fetches units by IDs
+            fetchUnitDetails();
+       
+            setShowModal(false);
+          } catch (error) {
+            console.error('Error creating unit:', error);
+            alert(`Failed to save unit. Error: ${error.message}`);
+          }
+
         // Update the main unit and pass it to the onAddReading callback
         setEditedUnit(updatedUnit);
-        onAddReading(updatedUnit);
 
         // Reset modal state and close
         setTempReading({ last: '', current: '' });
@@ -65,7 +113,8 @@ function Utilities({ unit, onAddReading }) {
         setShowModal(true);
     };
 
-    const saveEditedReading = () => {
+    const saveEditedReading = async () => {
+        
         const lastReading = parseFloat(tempReading.last);
         const currentReading = parseFloat(tempReading.current);
 
@@ -80,14 +129,44 @@ function Utilities({ unit, onAddReading }) {
         updatedLastReadings[editingIndex] = { reading: lastReading, date: new Date() };
         updatedCurrentReadings[editingIndex] = { reading: currentReading, date: new Date() };
 
+        console.log("Step 1", updatedCurrentReadings);
+
         const updatedUnit = {
             ...editedUnit,
             [`${modalType}LastReading`]: updatedLastReadings,
             [`${modalType}CurrentReading`]: updatedCurrentReadings,
         };
 
+        console.log("Step 2", updatedUnit);
+
+        try {
+
+            // Send unit and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/units/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                unit: updatedUnit}),
+            });
+       
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error('Backend error:', errorMsg);
+              throw new Error('Failed to create unit');
+            }
+     
+            // Optionally: If you have a function that fetches units by IDs
+            fetchUnitDetails();
+       
+            setShowModal(false);
+          } catch (error) {
+            console.error('Error creating unit:', error);
+            alert(`Failed to save unit. Error: ${error.message}`);
+        }
+
         setEditedUnit(updatedUnit);
-        onAddReading(updatedUnit);
 
         setShowModal(false);
         setTempReading({ last: '', current: '' });
@@ -107,7 +186,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.last}
-                                onChange={(e) => handleTempReadingChange('last', e.target.value)}
+                                onChange={(e) => handleReadingChange('last', e.target.value)}
                             />
                         </label>
                         <label>
@@ -115,7 +194,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.current}
-                                onChange={(e) => handleTempReadingChange('current', e.target.value)}
+                                onChange={(e) => handleReadingChange('current', e.target.value)}
                             />
                         </label>
                     </form>
@@ -136,7 +215,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.last}
-                                onChange={(e) => handleTempReadingChange('last', e.target.value)}
+                                onChange={(e) => handleReadingChange('last', e.target.value)}
                             />
                         </label>
                         <label>
@@ -144,7 +223,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.current}
-                                onChange={(e) => handleTempReadingChange('current', e.target.value)}
+                                onChange={(e) => handleReadingChange('current', e.target.value)}
                             />
                         </label>
                     </form>
@@ -165,7 +244,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.last}
-                                onChange={(e) => handleTempReadingChange('last', e.target.value)}
+                                onChange={(e) => handleReadingChange('last', e.target.value)}
                             />
                         </label>
                         <label>
@@ -173,7 +252,7 @@ function Utilities({ unit, onAddReading }) {
                             <input
                                 type="number"
                                 value={tempReading.current}
-                                onChange={(e) => handleTempReadingChange('current', e.target.value)}
+                                onChange={(e) => handleReadingChange('current', e.target.value)}
                             />
                         </label>
                     </form>
@@ -203,9 +282,9 @@ function Utilities({ unit, onAddReading }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {editedUnit.waterLastReading.length > 0 ? (
-                            editedUnit.waterLastReading.map((item, index) => {
-                                const currentReadingItem = editedUnit.waterCurrentReading ? editedUnit.waterCurrentReading[index] : null;
+                        {unit?.waterLastReading?.length > 0 ? (
+                            unit.waterLastReading.map((item, index) => {
+                                const currentReadingItem = unit.waterCurrentReading ? unit.waterCurrentReading[index] : null;
                                 const readingDifference = currentReadingItem?.reading && item?.reading 
                                     ? currentReadingItem.reading - item.reading 
                                     : "N/A";
@@ -253,9 +332,9 @@ function Utilities({ unit, onAddReading }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {editedUnit.electricityLastReading.length > 0 ? (
-                            editedUnit.electricityLastReading.map((item, index) => {
-                                const currentReadingItem = editedUnit.electricityCurrentReading ? editedUnit.electricityCurrentReading[index] : null;
+                        {unit?.electricityLastReading?.length > 0 ? (
+                            unit.electricityLastReading.map((item, index) => {
+                                const currentReadingItem = unit.electricityCurrentReading ? unit.electricityCurrentReading[index] : null;
                                 const readingDifference = currentReadingItem?.reading && item?.reading 
                                     ? currentReadingItem.reading - item.reading 
                                     : "N/A";

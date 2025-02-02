@@ -1,6 +1,6 @@
 const express = require('express');
 const { EmailMessage } = require('../models'); // Import model
-const { authenticateToken } = require('../middleware/authMiddleware'); // OAuth middleware
+const authenticateToken = require('../middleware/authMiddleware'); // OAuth middleware
 const nodemailer = require('nodemailer'); // For sending emails
 const router = express.Router();
 

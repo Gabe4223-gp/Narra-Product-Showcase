@@ -2,10 +2,10 @@ import React, { useState} from 'react';
 import './IssueProfile.css';
 import DocumentViewer from './DocumentViewer';
 
-function IssueProfile({ issue, onBack, onMarkAsResolved }) {
+function IssueProfile({ issue, onBack, onMarkasResolved }) {
     const [selectedDoc, setSelectedDoc] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showModal, setShowModal] = useState(false); // Modal visibility state
-    const [isResolved, setIsResolved] = useState(issue.resolved); // Keep track of resolved status
 
     // Function to handle document click (opens document viewer)
     const handleViewDocument = (doc) => {
@@ -16,24 +16,47 @@ function IssueProfile({ issue, onBack, onMarkAsResolved }) {
         }
     };
 
+    //Back from Doc view
     const handleBack = () => {
         setSelectedDoc(null);
     };
 
-    const handleMarkResolved = () => {
-        setShowModal(true); // Show confirmation modal
-    };
-
     const handleConfirmResolved = () => {
-        // Update the resolved status and hide modal
-        setIsResolved(true);
+        onMarkasResolved(new Set([issue.id]))
         setShowModal(false);
-        onMarkAsResolved(issue.id); // Notify the parent component of the resolved change
+        onBack();
     };
 
-    const handleCancelModal = () => {
-        setShowModal(false); // Hide the modal without marking as resolved
-    };
+    const handleDeleteIssue = async () => {
+
+        const issueId = issue.id;
+   
+        try {
+            // Make a DELETE request to the backend with the propertyId
+            const response = await fetch(`http://localhost:5000/issues/delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ issueId }), // Send the propertyId in the request body
+            });
+   
+            if (!response.ok) {
+                console.error("Failed to delete issue:", response.statusText);
+                return;
+            }
+   
+            // Optionally handle the backend response
+            const data = await response.json();
+            console.log("Issue deleted successfully:", data);
+            
+            setShowDeleteModal(false);
+            // Call the onBack function to return to the previous screen
+            onBack();
+        } catch (error) {
+            console.error("Error deleting issue:", error);
+        }
+      };
 
     if (selectedDoc !== null) {
         return (
@@ -52,7 +75,7 @@ function IssueProfile({ issue, onBack, onMarkAsResolved }) {
                 <div className="issue-details">
                     <div className="issue-header">
                         <h5>Issue Details</h5>
-                        <h6>ID: {issue.id}</h6>
+                        <h6>ID: {issue.id.substring(0, 4)} </h6>
                     </div>
                     <div className="issue-row">
                         <div className="left-issue-details">
@@ -61,9 +84,9 @@ function IssueProfile({ issue, onBack, onMarkAsResolved }) {
                             <p>Type: {issue.type}</p>
                         </div>
                         <div className="right-issue-details">
-                            <p>Date Raised: {issue.dateRaised.toLocaleDateString()}</p>
-                            <p>Resolved: {isResolved ? "Yes" : "No"}</p>
-                            <p>Date Resolved: {issue.dateResolved ? issue.dateResolved.toLocaleDateString() : "NA"}</p>
+                            <p>Date Raised: {issue.dateRaised}</p>
+                            <p>Resolved: {issue.resolved ? "Yes" : "No"}</p>
+                            <p>Date Resolved: {issue.dateResolved ? issue.dateResolved : "NA"}</p>
                         </div>
                     </div>
                 </div>
@@ -108,10 +131,23 @@ function IssueProfile({ issue, onBack, onMarkAsResolved }) {
                     <div className="issue-header">
                         <h5>Actions</h5>
                     </div>
-                    <button>Delete Issue</button>
-                    <button onClick={handleMarkResolved}>Mark Issue as Resolved</button>
+                    <button onClick={() => setShowDeleteModal(true)}>Delete Issue</button>
+                    {!issue.resolved && 
+                    (<button onClick={() => setShowModal(true)}>Mark Issue as Resolved</button>)
+                    }
+                    
                 </div>
             </div>
+                
+            {showDeleteModal && (
+                <div className='modal'>
+                    <div>
+                        Are you sure you want to delete this tenant?
+                    </div>
+                    <button onClick={handleDeleteIssue}>Confirm</button>
+                    <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                </div>
+            )}
 
             {/* Confirmation Modal */}
             {showModal && (
@@ -120,7 +156,7 @@ function IssueProfile({ issue, onBack, onMarkAsResolved }) {
                         <h4>Confirm Resolution</h4>
                         <p>Are you sure you want to mark this issue as resolved?</p>
                         <button onClick={handleConfirmResolved}>Yes</button>
-                        <button onClick={handleCancelModal}>No</button>
+                        <button onClick={() => setShowModal(false)}>No</button>
                     </div>
                 </div>
             )}

@@ -1,30 +1,32 @@
 import React from "react";
 
+
 function DocumentViewer({ onBack, selectedDoc, forPreview }) {
     if (!selectedDoc) {
       return <div>No document selected</div>;
     }
-  
+ 
     // Extract fileType from selectedDoc (passed as a prop)
     const fileType = selectedDoc?.fileType || '';
-  
+ 
     // Check if the file is an image
     const isImageFile = ['image/jpeg', 'image/png', 'image/gif'].includes(fileType);
-  
+ 
     const handleSendForSigning = () => {
+
 
       if (forPreview === true) {
           // Add logic for sending lease for signing
         console.log('Sending lease for signing...');
       }
     };
-  
+ 
     return (
       <div className="document-container">
         <div>
           <button onClick={onBack}>Back</button>
         </div>
-  
+ 
         {/* Display the document based on its file type */}
         {selectedDoc?.fileUrl ? (
           isImageFile ? (
@@ -57,5 +59,8 @@ function DocumentViewer({ onBack, selectedDoc, forPreview }) {
       </div>
     );
   }
-  
+ 
   export default DocumentViewer;
+
+
+

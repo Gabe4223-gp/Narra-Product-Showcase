@@ -32,13 +32,13 @@ function Sidebar({ isCollapsed }) {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/tenant" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/tenants" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaUser className="sidebar-icon"/>
               {!isCollapsed && <span>Tenants</span>}
             </NavLink>
           </li>
           <li>
-            <NavLink to="/unit" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/units" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaUser className="sidebar-icon"/>
               {!isCollapsed && <span>Units</span>}
             </NavLink>

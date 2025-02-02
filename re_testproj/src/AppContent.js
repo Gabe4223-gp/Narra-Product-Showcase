@@ -6,8 +6,8 @@ import Header from './Header';
 import Homepage from './Homepage';
 import Billings from './Billings';
 import Applications from './Applications/Applications';
-import Tenant from './Tenant';
-import Unit from './Unit';
+import Tenants from './Tenants';
+import Units from './Units';
 import Issues from './Issues';
 import Settings from './Settings/Settings';
 import Login from './Login';
@@ -35,8 +35,8 @@ function AppContent() {
             <Route path="/homepage" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>}/>
             <Route path="/billing" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Billings /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Applications /></ProtectedRoute>} />
-            <Route path="/tenant" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tenant /></ProtectedRoute>} />
-            <Route path="/unit" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Unit /></ProtectedRoute>} />
+            <Route path="/tenants" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tenants /></ProtectedRoute>} />
+            <Route path="/units" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Units /></ProtectedRoute>} />
             <Route path="/issues" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Issues /></ProtectedRoute>} />
             <Route path="/back" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />

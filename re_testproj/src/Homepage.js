@@ -1,69 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
-
-class PropertyClass {
-  constructor(
-    id = Math.random(), 
-    companyName = "NA", 
-    propertyName = "NA", 
-    propertyAddress = "NA", 
-    image = "https://via.placeholder.com/150", 
-    owner = "NA", 
-    tenants = [], 
-    units = [], 
-    createdAt = new Date()) 
-    {
-    this.id = id;  
-    this.companyName = companyName;  
-    this.propertyName = propertyName;
-    this.propertyAddress = propertyAddress;
-    this.image = image;
-    this.owner = owner;
-    this.tenants = tenants;
-    this.units = units;
-    this.createdAt = createdAt;
-  }
-
-  // Method to remove a tenant by ID
-  removeTenant(tenantIndex) {
-    this.tenants.splice(tenantIndex, 1) 
-  }
-
-  addTenant(newTenant) {
-    this.tenants.push(newTenant); // Append the new tenant to the tenants array
-  }
-
-  // Method to get the total number of units
-  getUnitCount() {
-      return this.units.length;
-  }
-
-  // Method to get the total number of tenants
-  getTenantCount() {
-    return this.tenants.length;
-  }
-
-  getOccupancy() {
-    if (this.units.length === 0) {
-        return 0;  // Or return an appropriate message indicating no units available
-    }
-    return this.tenants.length / this.units.length;
-  }
-
-  // Method to get the property details
-  getPropertyDetails() {
-      return {
-          id: this.id,
-          name: this.name,
-          address: this.address,
-          owner: this.owner,
-          unitCount: this.getUnitCount(),
-          tenantCount: this.getTenantCount(),
-          createdAt: this.createdAt,
-      };
-  }
-}
+import { v4 as uuidv4 } from 'uuid';
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
@@ -72,6 +10,36 @@ function HomePage({ onLogout }) {
   const [uploadedImage, setUploadedImage] = useState(null);
   const defaultImage = "https://via.placeholder.com/150"; // Replace with your preferred default image URL
 
+
+  const fetchProperties = async () => {
+
+      try {
+
+        const response = await fetch('http://localhost:5000/properties', {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties');
+        }
+        const data = await response.json();
+ 
+        setProperties(data); // Set tenants fetched from the database
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        alert('Failed to load properties. Please try again.');
+      }
+    };
+   
+    // useEffect to initially fetch tenants
+    useEffect(() => {
+      fetchProperties(); // Fetch tenants when component mounts
+    }, []);
+
+
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -79,42 +47,70 @@ function HomePage({ onLogout }) {
     }
   };
 
-  const handleFormSubmit = (event) => {
-    event.preventDefault();
 
+  const handleFormSubmit = async (event) => {
+    
+    event.preventDefault();
+ 
     // Get input values
     const companyName = document.getElementById("company-name").value;
     const propertyName = document.getElementById("property-name").value;
     const propertyAddress = document.getElementById("property-address").value;
     const owner = document.getElementById("owner").value;
-
+ 
+    // Default image if no image uploaded
+    const defaultImage = "https://via.placeholder.com/150";
+    const propertyImage = uploadedImage || defaultImage;
+ 
     // Create a new property object
-    const newProperty = new PropertyClass(
-      Math.random(),
+    const newProperty = {
+      id: uuidv4(),
       companyName,
       propertyName,
-      propertyAddress,
-      uploadedImage || defaultImage,
+      address: propertyAddress,
+      image: propertyImage,
       owner,
-      [],
-      [],
-      new Date(),
-    )
-
-    // Add the new property to the state
-    setProperties([...properties, newProperty]);
-
-    // Hide the modal and reset the form
-    setIsModalVisible(false);
-    setUploadedImage(null); // Reset the image state
-    event.target.reset(); // Reset form fields
+      tenants: [],
+      units: [],
+    };
+    
+    try {
+      // Make a POST request to the backend
+      const response = await fetch("http://localhost:5000/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProperty),
+      });
+ 
+      if (!response.ok) {
+        throw new Error("Failed to create property. Please try again.");
+      }
+ 
+      const createdProperty = await response.json();
+ 
+      // Update the frontend state with the new property
+      setProperties((prevProperties) => [...prevProperties, createdProperty]);
+ 
+      // Hide the modal and reset the form
+      setIsModalVisible(false);
+      setUploadedImage(null); // Reset the image state
+      event.target.reset(); // Reset form fields
+    } catch (error) {
+      console.error("Error creating property:", error.message);
+      alert("There was an error creating the property. Please try again.");
+    }
   };
+
 
   const handleViewProperty = (index) => {
     setSelectedPropertyIndex(index); // Set the selected property index for the profile view
   };
 
+
   const handleBack = () => {
+    fetchProperties();
     setSelectedPropertyIndex(null); // Go back to the property list
   };
 
@@ -125,6 +121,7 @@ function HomePage({ onLogout }) {
       )
     );
   };
+
 
   if (selectedPropertyIndex !== null) {
     return (
@@ -137,6 +134,7 @@ function HomePage({ onLogout }) {
       />
     );
   }
+
 
   return (
     <div className="homepage">
@@ -163,6 +161,7 @@ function HomePage({ onLogout }) {
           Create new property
         </button>
       </div>
+
 
       {isModalVisible && (
         <div id="property-modal">
@@ -208,5 +207,6 @@ function HomePage({ onLogout }) {
     </div>
   );
 }
+
 
 export default HomePage;

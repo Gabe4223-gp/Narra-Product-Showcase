@@ -1,84 +1,263 @@
-import React, { useState, useTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Issues.css';
-import IssueProfile from "./IssueProfile"
-
-class IssueClass {
-    constructor({
-      id = Math.random(),
-      type = "", 
-      subject = "", 
-      description = "", 
-      unit = "", 
-      tenantRaised = "", 
-      resolved = false,
-      dateRaised = new Date(),
-      dateResolved = null, 
-      documents = []
-    } = {}) {
-      this.id = id;
-      this.type = type;
-      this.subject = subject;
-      this.description = description;
-      this.unit = unit;
-      this.tenantRaised = tenantRaised;
-      this.resolved = resolved;
-      this.dateRaised = dateRaised;
-      this.dateResolved = dateResolved;
-      this.documents = documents;
-    }
-}
+import IssueProfile from "./IssueProfile";
+import { v4 as uuidv4 } from 'uuid';
 
 function Issues () {
 
+    const [properties, setProperties] = useState([]); // Handle property list
     const [issues, setIssues] = useState([]);
     const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
     const [selectedIssue, setSelectedIssue] = useState(null);
     const [isAddingIssues, setIsAddingIssues] = useState(false);
     const [documents, setDocuments] = useState([]);
+    const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
+        // Check localStorage for previously selected property ID
+        const savedPropertyId = localStorage.getItem('selectedPropertyID');
+        return savedPropertyId ? savedPropertyId : null; // Return saved property ID or null
+    });
     const [newIssue, setNewIssue] = useState({
           id: null, 
-          type: "", 
-          subject: "", 
-          description: "", 
-          unit: "", 
-          tenantRaised: "", 
+          type: null, 
+          subject: null, 
+          description: null, 
+          unit: null, 
+          tenantRaised: null, 
           resolved: false,
           dateRaised: new Date(),
           dateResolved: null, 
           documents: [],
         });
 
+    const fetchProperties = async () => {
+
+        try {
+            const response = await fetch('http://localhost:5000/properties', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            });
+    
+            if (!response.ok) {
+            throw new Error('Failed to fetch properties');
+            }
+            const data = await response.json();
+
+            if (data.length > 0) {
+                setSelectedPropertyID(data[0].id); // Select the first property's ID
+                console.log("Selected First Property ID:", data[0].id);
+              } else {
+                  console.log("No properties found.");
+              }
+    
+            setProperties(data); // Set tenants fetched from the database
+    
+        } catch (error) {
+            console.error('Error fetching properties:', error);
+            alert('Failed to load properties. Please try again.');
+        }
+    };
+
+    const fetchIssues = async (unitIds) => {
+
+        if (unitIds.length === 0) {
+            console.log("No unit IDs provided, exiting fetch.");
+            setIssues([]);
+            return;  // Exit the function early if unitIds is empty
+        }
+    
+        try {
+     
+          const response = await fetch('http://localhost:5000/issues/byIds', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ unitIds }),
+          });
+     
+          if (!response.ok) {
+            throw new Error('Failed to fetch issues');
+          }
+     
+          const issuesData = await response.json();
+          setIssues(issuesData); 
+    
+        } catch (error) {
+          console.error('Error fetching issues:', error);
+          alert('Failed to load issues. Please try again.');
+        }
+    };
+    
+    const handlePropertyChange = (event) => {
+        const propertyId = event.target.value; // Get selected property's ID
+        setSelectedPropertyID(propertyId); // Update selectedPropertyID state
+
+        // Store the selected property ID in localStorage
+        localStorage.setItem('selectedPropertyID', propertyId);
+    };
+
+    useEffect(() => {
+        // Get the selected property ID from localStorage (if any)
+        const savedPropertyId = localStorage.getItem('selectedPropertyID');
+        
+        // If there's a saved property ID, set it as the default
+        if (savedPropertyId) {
+            setSelectedPropertyID(savedPropertyId);
+        }
+    }, []);
+
+    // This useEffect will log the updated value of selectedPropertyID
+    useEffect(() => {
+    }, [selectedPropertyID]); // Runs whenever selectedPropertyID changes
+
+    // Fetch properties only once or when the component mounts
+    useEffect(() => {
+        fetchProperties(); // Fetch properties when component mounts or properties change
+    }, []); // Empty dependency array ensures it only runs once
+
+    // Fetch issues when selectedPropertyID changes
+    useEffect(() => {
+    if (selectedPropertyID) {
+        const selectedProperty = properties.find(
+        (property) => property.id === selectedPropertyID
+        );
+
+        if (selectedProperty) {
+        fetchIssues(selectedProperty.units); // Fetch tenants based on the selected property’s tenants
+        }
+    }
+    }, [selectedPropertyID, properties]);
+
     const handleAddIssueChange = (field, value) => {
         setNewIssue({ ...newIssue, [field]: value });
-      };
+    };
+    
+    const saveNewIssue = async () => {
 
-    const saveNewIssue = () => {
-        // Generate a random ID with a maximum of 5 digits
-        const randomId = Math.floor(Math.random() * 100000);  // Random number between 0 and 99999
-
-        const issue = new IssueClass({
-            ...newIssue,  // Spread the newIssue object
-            id: randomId, // Assign the random ID
-            dateRaised: new Date(),
-            documents: documents
-        });
+        try {
+            // Generate UUID here directly to ensure it's set correctly
+            const issueWithUUID = {
+                ...newIssue,
+                id: uuidv4(), // Generate UUID for id
+            };
+        
+            // Send tenant and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/issues', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                issue: issueWithUUID, // Issue object
+                propertyId: selectedPropertyID, // Property ID
+                }),
+            });
+        
+            if (!response.ok) {
+                const errorMsg = await response.text();
+                console.error('Backend error:', errorMsg);
+                throw new Error('Failed to create issue');
+            }
+        
+            // Clear the form
+            setNewIssue({
+                id: null,
+                type: null,
+                subject: null,
+                description: null,
+                unit: null,
+                tenantRaised: null,
+                resolved: false,
+                dateRaised: new Date(),
+                dateResolved: null,
+                documents: [],
+            });
+         
+            const selectedProperty = properties.find(
+                (property) => property.id === selectedPropertyID);
+          
+            fetchIssues(selectedProperty.units); // Fetch issues based on the selected property’s issues
+                
+            setIsAddingIssues(false); // Close the add issue form
+            } catch (error) {
+            console.error('Error creating issue:', error);
+            alert(`Failed to save issue. Error: ${error.message}`);
+        }
 
         setDocuments([]);
 
-        setIssues([...issues, issue]); // Add the new issue to the state
-        setNewIssue({
-            id: null,
-            type: "",
-            subject: "",
-            description: "",
-            unit: "",
-            tenantRaised: "",
-            resolved: false,
-            dateRaised: new Date(),
-            dateResolved: null,
-            documents: [],
-        });
         setIsAddingIssues(false);
+    };
+
+    const markSelectedAsResolved = async (selectedIssueIds) => {
+
+        try {
+            const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
+            // Send tenant and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/issues/resolve', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                issueIds: issueIdsArray, // Issue object
+                }),
+            });
+        
+            if (!response.ok) {
+                const errorMsg = await response.text();
+                console.error('Backend error:', errorMsg);
+                throw new Error('Failed to mark issues as resolved');
+            }
+        
+            const selectedProperty = properties.find(
+                (property) => property.id === selectedPropertyID);
+          
+            fetchIssues(selectedProperty.units); // Fetch issues based on the selected property’s issues
+        
+        } catch (error) {
+            console.error('Error marking issues as resolved:', error);
+            alert(`Failed to mark issues as resolved. Error: ${error.message}`);
+        }
+    
+        setSelectedIssueIds(new Set()); //clear selected items
+
+    };
+
+    const markSelectedAsUnresolved = async () => {
+
+        try {
+            const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
+            // Send tenant and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/issues/unresolve', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                issueIds: issueIdsArray, // Issue object
+                }),
+            });
+        
+            if (!response.ok) {
+                const errorMsg = await response.text();
+                console.error('Backend error:', errorMsg);
+                throw new Error('Failed to mark issues as resolved');
+            }
+        
+            const selectedProperty = properties.find(
+                (property) => property.id === selectedPropertyID);
+          
+            fetchIssues(selectedProperty.units); // Fetch issues based on the selected property’s issues
+        
+        } catch (error) {
+            console.error('Error marking issues as resolved:', error);
+            alert(`Failed to mark issues as resolved. Error: ${error.message}`);
+        }
+    
+        setSelectedIssueIds(new Set()); //clear selected items
     };
     
     const handleViewIssue = (issue) => {
@@ -86,20 +265,14 @@ function Issues () {
     };
 
     const handleBackToList = () => {
+        const selectedProperty = properties.find(
+            (property) => property.id === selectedPropertyID
+          );
+          fetchProperties(selectedProperty.units);
         setSelectedIssue(null);
     };
 
-    const markSelectedAsResolved = () => {
-        setIssues((prevIssues) =>
-            prevIssues.map((issue) =>
-                selectedIssueIds.has(issue.id)
-                    ? { ...issue, resolved: true }
-                    : issue
-            )
-        );
-        setSelectedIssueIds(new Set()); // Optionally clear selected items
-    };
-
+    //Non-database
     const handleCheckboxChange = (issueId) => {
         const updatedSelectedIssueIds = new Set(selectedIssueIds);
         if (updatedSelectedIssueIds.has(issueId)) {
@@ -126,6 +299,7 @@ function Issues () {
         setSelectedIssueIds(resolvedIssueIds); // Select only the resolved issues
     };
 
+    //Upload file
     const handleFileUpload = (file) => {
 
         // Allowed file types
@@ -144,24 +318,16 @@ function Issues () {
         setDocuments((prevDocs) => [...prevDocs, newDocument]);
     };
 
+    //Remove file
     const handleRemoveFile = (index) => {
         setDocuments((prevDocs) => prevDocs.filter((_, i) => i !== index));
     };
 
+    //Cancel modal
     const handleCancelModal = () => {
         setIsAddingIssues(false);
         setDocuments([]);
 
-    };
-
-    const handleMarkAsResolved = (issueId) => {
-        setIssues((prevIssues) =>
-            prevIssues.map((issue) =>
-                issue.id === issueId
-                    ? { ...issue, resolved: true, dateResolved: new Date() }
-                    : issue
-            )
-        );
     };
 
     if (selectedIssue !== null) {
@@ -169,7 +335,7 @@ function Issues () {
           <IssueProfile
           issue={selectedIssue}
           onBack={handleBackToList}
-          onMarkAsResolved={handleMarkAsResolved}
+          onMarkasResolved={markSelectedAsResolved}
           />
         );
       }
@@ -177,7 +343,20 @@ function Issues () {
     return (
         <div>
             <div className='issue-list-top'>
-                    <button className='issue-list-switch-property'>View: </button> 
+                <select
+                    id="property-select"
+                    onChange={handlePropertyChange}
+                    value={selectedPropertyID || ""}
+                    >
+                    <option value="" disabled>
+                        Select a property
+                    </option>
+                    {properties.map((property) => (
+                        <option key={property.id} value={property.id}>
+                        {property.propertyName}
+                        </option>
+                    ))}
+                </select>    
             </div>
             <div className="unresolved-issues">
                 <div className="issue-list">
@@ -206,8 +385,8 @@ function Issues () {
                                     onChange={() => handleCheckboxChange(issue.id)}
                                 />
                                 </td>
-                                <td>{issue.id}</td>
-                                <td>{issue.dateRaised.toLocaleDateString()}</td>
+                                <td>{issue.id.substring(0, 4)}</td>
+                                <td>{issue.dateRaised}</td>
                                 <td>{issue.unit}</td>
                                 <td>{issue.tenantRaised}</td>
                                 <td>{issue.type}</td>
@@ -236,7 +415,7 @@ function Issues () {
                     </button>
                     <button onClick={handleSelectAllUnResolved}>Select All</button>
                     <button onClick={handleDeselectAll}>Unselect All</button>
-                    <button onClick={() => markSelectedAsResolved()}>Mark Selected as Resolved</button>
+                    <button onClick={() => markSelectedAsResolved(selectedIssueIds)}>Mark Selected as Resolved</button>
             </div>
         
             {isAddingIssues && (
@@ -364,8 +543,8 @@ function Issues () {
                                         onChange={() => handleCheckboxChange(issue.id)}
                                     />
                                     </td>
-                                    <td>{issue.id}</td>
-                                    <td>{issue.dateResolved ? issue.dateResolved.toLocaleDateString() : " "}</td>
+                                    <td>{issue.id.substring(0, 4)}</td>
+                                    <td>{issue.dateResolved ? issue.dateResolved : " "}</td>
                                     <td>{issue.unit}</td>
                                     <td>{issue.tenantRaised}</td>
                                     <td>{issue.type}</td>
@@ -391,6 +570,7 @@ function Issues () {
             <div className="actions">
                     <button onClick={handleSelectAllResvolved}>Select All</button>
                     <button onClick={handleDeselectAll}>Unselect All</button>
+                    <button onClick={() => markSelectedAsUnresolved()}>Mark as Unresolved</button>
             </div>
 
         </div>
