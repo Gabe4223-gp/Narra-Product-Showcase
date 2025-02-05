@@ -20,7 +20,7 @@ function Tenants() {
   const [newTenant, setNewTenant] = useState({
     id: null,
     name: null,
-    unit_id: null,
+    unit: null,
     phone: null,
     email: null,
     leaseStarted: null,
@@ -42,13 +42,13 @@ function Tenants() {
     primaryPaymentMethod: null,
   });
 
-
   //
   //Handle database changes
   //
   const fetchProperties = async () => {
-
+    
     try {
+
       const response = await fetch('http://localhost:5000/properties', {
         method: 'GET',
         headers: {
@@ -86,7 +86,8 @@ function Tenants() {
   const fetchTenants = async (tenantIds) => {
 
     if (tenantIds.length === 0) {
-      console.log("No unit IDs provided, exiting fetch.");
+      console.log("No tenant IDs provided, exiting fetch.");
+      setTenants([]);
       return;  // Exit the function early if unitIds is empty
     }
 
@@ -146,7 +147,6 @@ function Tenants() {
     fetchProperties(); // Fetch properties when component mounts or properties change
   }, []); // Empty dependency array ensures it only runs once
 
-
   // Fetch tenants when selectedPropertyID changes
   useEffect(() => {
     if (selectedPropertyID) {
@@ -154,6 +154,7 @@ function Tenants() {
         (property) => property.id === selectedPropertyID
       );
 
+      console.log("Step 1", selectedProperty);
 
       if (selectedProperty) {
         fetchTenants(selectedProperty.tenants || []); // Fetch tenants based on the selected property’s tenants
@@ -198,7 +199,7 @@ function Tenants() {
       setNewTenant({
         id: null,
         name: null,
-        unit_id: null,
+        unit: null,
         phone: null,
         email: null,
         leaseStarted: null,
@@ -223,7 +224,6 @@ function Tenants() {
 
      
       const responseData = await response.json(); // Get the response data
-
 
       // Optionally: If you have a function that fetches tenants by IDs
       fetchTenants(responseData.tenants);
@@ -250,62 +250,6 @@ function Tenants() {
     setSelectedTenant(null);
 
   };
- 
-  //
-  //Export Import stuff
-  //
-
-
-  const exportToExcel = async () => {
-
-    if (selectedTenantIds.size === 0) {
-      alert("Please select at least one tenant to export.");
-      return;
-    }
- 
-    try {
-      // Fetch tenants from the database based on selectedTenantIds
-      const response = await fetch("http://localhost:5000/tenants/export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: Array.from(selectedTenantIds) }), // Send selected IDs to the backend
-      });
- 
-      if (!response.ok) {
-        throw new Error("Failed to fetch tenant data for export.");
-      }
- 
-      const tenantsToExport = await response.json();
-
-
-      if (tenantsToExport.length > 0) {
-        // Prepare data to export
-        const tenantsData = tenantsToExport.map((tenant) => ({
-          "Name": tenant.name,
-          "Unit": tenant.unit_id,
-          "Phone": tenant.phone,
-          "Email": tenant.email,
-          "Nationality": tenant.nationality,
-          "Occupation": tenant.occupation,
-        }));
- 
-        // Create worksheet and workbook
-        const ws = XLSX.utils.json_to_sheet(tenantsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Tenants");
- 
-        // Export the workbook to a file
-        XLSX.writeFile(wb, "tenant_list.xlsx");
-      } else {
-        alert("No tenants found for the selected IDs.");
-      }
-    } catch (error) {
-      console.error("Error exporting tenants:", error);
-      alert("Failed to export tenants. Please try again.");
-    }
-  };
 
 
   const importFromExcel = async (event) => {
@@ -323,7 +267,7 @@ function Tenants() {
         const importedTenants = jsonData.map((tenant) => ({
           id: uuidv4(),
           name: tenant.Name,
-          unit_id: tenant.Unit,
+          unit: tenant.Unit,
           phone: tenant.Phone,
           email: tenant.Email,
           nationality: tenant.Nationality,
@@ -406,11 +350,12 @@ function Tenants() {
 
 
   if (selectedTenant !== null) {
-    console.log("How", selectedTenant);
+    {console.log("Property Id", selectedPropertyID)}
     return (
       <TenantProfile
         tenantId={selectedTenant.id}
         onBack={handleBackToList}
+        propertyId={selectedPropertyID}
       />
     );
   }
@@ -461,7 +406,7 @@ function Tenants() {
                     />
                   </td>
                   <td>{tenant.name}</td>
-                  <td>{tenant.unit_id}</td>
+                  <td>{tenant.unit}</td>
                   <td>{tenant.email}</td>
                   <td>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
                   <td>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
@@ -473,12 +418,14 @@ function Tenants() {
               ))
             ) : (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
+                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
                   No tenants added yet.
                 </td>
               </tr>
             )}
           </tbody>
+
+          
         </table>
       </div>
 
@@ -487,102 +434,99 @@ function Tenants() {
         <button className="addTenant" onClick={() => setIsAddingTenant(true)}>
           Add Tenant
         </button>
-        <button onClick={exportToExcel} className="exportTenants">Export Selected</button>
-        <div>
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={importFromExcel}
-            style={{ display: "none" }}
-            id="file-upload"
-          />
-          <button
-            onClick={() => document.getElementById("file-upload").click()}
-            className="importTenants"
-          >
-            Import From Excel
-          </button>
-         
-          <button onClick={handleSelectAll}>Select All</button>
-       
-          <button onClick={handleDeselectAll}>Unselect All</button>
-     
-        </div>
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          onChange={importFromExcel}
+          style={{ display: "none" }}
+          id="file-upload"
+        />
+        <button
+          onClick={() => document.getElementById("file-upload").click()}
+          className="importTenants"
+        >
+          Import From Excel
+        </button>
+        <button onClick={handleSelectAll}>Select All</button>
+        <button onClick={handleDeselectAll}>Unselect All</button>
       </div>
 
 
       {isAddingTenant && (
-        <div className="modal">
-          <h3>Add New Tenant</h3>
-          <form>
-            <label>
-              Name:
-              <input
-                type="text"
-                value={newTenant.name}
-                onChange={(e) => handleAddTenantChange("name", e.target.value)}
-              />
-            </label>
-            <label>
-              Unit Number:
-              <input
-                type="text"
-                value={newTenant.unit_id}
-                onChange={(e) => handleAddTenantChange("unit_id", e.target.value)}
-              />
-            </label>
-            <label>
-              Phone Number:
-              <input
-                type="text"
-                value={newTenant.phone}
-                onChange={(e) => handleAddTenantChange("phone", e.target.value)}
-              />
-            </label>
-            <label>
-              Email:
-              <input
-                type="email"
-                value={newTenant.email}
-                onChange={(e) => handleAddTenantChange("email", e.target.value)}
-              />
-            </label>
-            <label>
-              Nationality:
-              <input
-                type="text"
-                value={newTenant.nationality}
-                onChange={(e) =>
-                  handleAddTenantChange("nationality", e.target.value)
-                }
-              />
-            </label>
-            <label>
-              Occupation:
-              <input
-                type="text"
-                value={newTenant.occupation}
-                onChange={(e) =>
-                  handleAddTenantChange("occupation", e.target.value)
-                }
-              />
-            </label>
-            <label>
-              Move-In Date:
-              <input
-                type="date"
-                value={newTenant.moveinDate}
-                onChange={(e) =>
-                  handleAddTenantChange("moveinDate", e.target.value)
-                }
-              />
-            </label>
-          </form>
-          <div>
-            <button onClick={saveNewTenant}>Save</button>
-            <button onClick={() => setIsAddingTenant(false)}>Cancel</button>
+        <div className='overlay'>
+          <div className="modal">
+            <h3>Add New Tenant</h3>
+            <form>
+              <label>
+                Name:
+                <input
+                  type="text"
+                  value={newTenant.name}
+                  onChange={(e) => handleAddTenantChange("name", e.target.value)}
+                />
+              </label>
+              <label>
+                Unit Number:
+                <input
+                  type="text"
+                  value={newTenant.unit}
+                  onChange={(e) => handleAddTenantChange("unit", e.target.value)}
+                />
+              </label>
+              <label>
+                Phone Number:
+                <input
+                  type="text"
+                  value={newTenant.phone}
+                  onChange={(e) => handleAddTenantChange("phone", e.target.value)}
+                />
+              </label>
+              <label>
+                Email:
+                <input
+                  type="email"
+                  value={newTenant.email}
+                  onChange={(e) => handleAddTenantChange("email", e.target.value)}
+                />
+              </label>
+              <label>
+                Nationality:
+                <input
+                  type="text"
+                  value={newTenant.nationality}
+                  onChange={(e) =>
+                    handleAddTenantChange("nationality", e.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Occupation:
+                <input
+                  type="text"
+                  value={newTenant.occupation}
+                  onChange={(e) =>
+                    handleAddTenantChange("occupation", e.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Move-In Date:
+                <input
+                  type="date"
+                  value={newTenant.moveinDate}
+                  onChange={(e) =>
+                    handleAddTenantChange("moveinDate", e.target.value)
+                  }
+                />
+              </label>
+            </form>
+            <div>
+              <button onClick={saveNewTenant}>Save</button>
+              <button onClick={() => setIsAddingTenant(false)}>Cancel</button>
+            </div>
           </div>
         </div>
+        
       )}
     </div>
   );

@@ -14,7 +14,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      unit_id: {
+      unit: {
         type: Sequelize.STRING,
         onDelete: 'SET NULL', // Optional: Set unitId to null if the unit is deleted
         allowNull: true,

@@ -72,7 +72,7 @@ function PaymentHistory({ BaseURL }) {
 
   return (
     <div className="payment-history">
-      <h2>Billing Activity</h2>
+      <h5>Billing Activity</h5>
       {error && <div className="error-message">{error}</div>}
       <InfiniteScroll
         dataLength={paymentHistory.length}

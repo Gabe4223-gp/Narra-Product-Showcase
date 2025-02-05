@@ -11,7 +11,9 @@ import {
   FaComments,
   FaClipboardList,
   FaUser,
-  FaMoneyBill
+  FaMoneyBill,
+  FaBuilding,
+  FaWrench
 } from 'react-icons/fa'; // Import icons from react-icons
 
 function Sidebar({ isCollapsed }) {
@@ -26,12 +28,6 @@ function Sidebar({ isCollapsed }) {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/applications" className={({ isActive }) => isActive ? 'active' : ''}>
-              <AiOutlineForm className="sidebar-icon" />
-              {!isCollapsed && <span>Applications</span>}
-            </NavLink>
-          </li>
-          <li>
             <NavLink to="/tenants" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaUser className="sidebar-icon"/>
               {!isCollapsed && <span>Tenants</span>}
@@ -39,13 +35,13 @@ function Sidebar({ isCollapsed }) {
           </li>
           <li>
             <NavLink to="/units" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaUser className="sidebar-icon"/>
+              <FaBuilding className="sidebar-icon"/>
               {!isCollapsed && <span>Units</span>}
             </NavLink>
           </li>
           <li>
             <NavLink to="/issues" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FaComments className="sidebar-icon" />
+              <FaWrench className="sidebar-icon" />
               {!isCollapsed && <span>Issues</span>}
             </NavLink>
           </li>

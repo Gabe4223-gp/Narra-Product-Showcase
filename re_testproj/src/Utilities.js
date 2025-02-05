@@ -178,96 +178,106 @@ function Utilities({ unit, fetchUnitDetails }) {
 
             {/* Modal for Editing Readings */}
             {showModal && (
-                <div className="modal">
-                    <h3>Edit {modalType.charAt(0).toUpperCase() + modalType.slice(1)} Reading</h3>
-                    <form>
-                        <label>
-                            Last Reading
-                            <input
-                                type="number"
-                                value={tempReading.last}
-                                onChange={(e) => handleReadingChange('last', e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Current Reading
-                            <input
-                                type="number"
-                                value={tempReading.current}
-                                onChange={(e) => handleReadingChange('current', e.target.value)}
-                            />
-                        </label>
-                    </form>
-                    <div>
-                        <button type="button" onClick={saveEditedReading}>Save</button>
-                        <button onClick={() => setShowModal(false)}>Cancel</button>
+                <div className='overlay'>
+                    <div className="modal">
+                        <h3>Edit {modalType.charAt(0).toUpperCase() + modalType.slice(1)} Reading</h3>
+                        <form>
+                            <label>
+                                Last Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.last}
+                                    onChange={(e) => handleReadingChange('last', e.target.value)}
+                                />
+                            </label>
+                            <label>
+                                Current Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.current}
+                                    onChange={(e) => handleReadingChange('current', e.target.value)}
+                                />
+                            </label>
+                        </form>
+                        <div>
+                            <button type="button" onClick={saveEditedReading}>Save</button>
+                            <button onClick={() => setShowModal(false)}>Cancel</button>
+                        </div>
                     </div>
                 </div>
+                
             )}
 
             {/* Water Reading Modal */}
             {showWaterReadingModal && (
-                <div className="modal">
-                    <h3>Add Water Reading</h3>
-                    <form>
-                        <label>
-                            Last Reading
-                            <input
-                                type="number"
-                                value={tempReading.last}
-                                onChange={(e) => handleReadingChange('last', e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Current Reading
-                            <input
-                                type="number"
-                                value={tempReading.current}
-                                onChange={(e) => handleReadingChange('current', e.target.value)}
-                            />
-                        </label>
-                    </form>
-                    <div>
-                        <button type="button" onClick={() => saveReading('water')}>Save</button>
-                        <button onClick={() => setShowWaterReadingModal(false)}>Cancel</button>
+                <div className='overlay'>
+                    <div className="modal">
+                        <h3>Add Water Reading</h3>
+                        <form>
+                            <label>
+                                Last Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.last}
+                                    onChange={(e) => handleReadingChange('last', e.target.value)}
+                                />
+                            </label>
+                            <label>
+                                Current Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.current}
+                                    onChange={(e) => handleReadingChange('current', e.target.value)}
+                                />
+                            </label>
+                        </form>
+                        <div>
+                            <button type="button" onClick={() => saveReading('water')}>Save</button>
+                            <button onClick={() => setShowWaterReadingModal(false)}>Cancel</button>
+                        </div>
                     </div>
+
                 </div>
+                
             )}
 
             {/* Electricity Reading Modal */}
             {showElectricityReadingModal && (
-                <div className="modal">
-                    <h3>Add Electricity Reading</h3>
-                    <form>
-                        <label>
-                            Last Reading
-                            <input
-                                type="number"
-                                value={tempReading.last}
-                                onChange={(e) => handleReadingChange('last', e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Current Reading
-                            <input
-                                type="number"
-                                value={tempReading.current}
-                                onChange={(e) => handleReadingChange('current', e.target.value)}
-                            />
-                        </label>
-                    </form>
-                    <div>
-                        <button type="button" onClick={() => saveReading('electricity')}>Save</button>
-                        <button onClick={() => setShowElectricityReadingModal(false)}>Cancel</button>
+                <div className='overlay'>
+                    <div className="modal">
+                        <h3>Add Electricity Reading</h3>
+                        <form>
+                            <label>
+                                Last Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.last}
+                                    onChange={(e) => handleReadingChange('last', e.target.value)}
+                                />
+                            </label>
+                            <label>
+                                Current Reading
+                                <input
+                                    type="number"
+                                    value={tempReading.current}
+                                    onChange={(e) => handleReadingChange('current', e.target.value)}
+                                />
+                            </label>
+                        </form>
+                        <div>
+                            <button type="button" onClick={() => saveReading('electricity')}>Save</button>
+                            <button onClick={() => setShowElectricityReadingModal(false)}>Cancel</button>
+                        </div>
                     </div>
                 </div>
+                
             )}
 
            {/* Water Readings */}
             <div className="reading-table">
                 <div className="reading-header">
-                    <h3>Water Readings</h3>
-                    <button onClick={() => setShowWaterReadingModal(true)}>Add</button>
+                    <h5>Water Readings</h5>
+                    <button className="reading-button" onClick={() => setShowWaterReadingModal(true)}>Add</button>
                 </div>
                 
                 <table>
@@ -316,8 +326,8 @@ function Utilities({ unit, fetchUnitDetails }) {
             {/* Electricity Readings */}
             <div className="reading-table">
                 <div className="reading-header">
-                    <h3>Electricity Readings</h3>
-                    <button onClick={() => setShowElectricityReadingModal(true)}>Add</button>
+                    <h5>Electricity Readings</h5>
+                    <button className="reading-button" onClick={() => setShowElectricityReadingModal(true)}>Add</button>
                 </div>
                 
                 <table>

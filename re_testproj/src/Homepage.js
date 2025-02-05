@@ -8,7 +8,6 @@ function HomePage({ onLogout }) {
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedPropertyIndex, setSelectedPropertyIndex] = useState(null); // Track selected property index
   const [uploadedImage, setUploadedImage] = useState(null);
-  const defaultImage = "https://via.placeholder.com/150"; // Replace with your preferred default image URL
 
 
   const fetchProperties = async () => {
@@ -59,7 +58,7 @@ function HomePage({ onLogout }) {
     const owner = document.getElementById("owner").value;
  
     // Default image if no image uploaded
-    const defaultImage = "https://via.placeholder.com/150";
+    const defaultImage = "https://img.icons8.com/ios-filled/100/000000/building.png";
     const propertyImage = uploadedImage || defaultImage;
  
     // Create a new property object

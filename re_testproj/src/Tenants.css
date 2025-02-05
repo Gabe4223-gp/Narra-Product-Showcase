@@ -101,13 +101,60 @@
 }
 
 .tenant-container h3 {
-    font-size: 13px;
+    font-size: 15px;
     color: #333;
-    margin-bottom: 13px;    
-    margin-top: auto;
-    margin-left: 1%;
+    margin-top: 0;
 }
 
 .addTenant button {
     margin-top: 50%;
 }
+
+.actions {
+    padding: 1%;
+    display: flex;
+    gap: 5px;
+}
+
+.tenant-list table {
+width: 100%;
+border-collapse: collapse;
+}
+
+.tenant-list thead {
+position: sticky;
+top: 0;
+background: white; /* Keep headers visible */
+z-index: 10;
+}
+
+.tenant-list th,
+.tenant-list td {
+padding: 10px;
+border-bottom: 1px solid #ddd;
+text-align: left;
+}
+
+.tenant-list tbody {
+display: block;
+max-height: 400px; /* Ensure tbody is scrollable */
+overflow-y: auto;
+width: 100%;
+}
+
+.tenant-list tr {
+display: table;
+width: 100%;
+table-layout: fixed;
+}
+
+select#property-select {
+    margin-bottom: 3%;
+}
+
+.tenant-list-top {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+

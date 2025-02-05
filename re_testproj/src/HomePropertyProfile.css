@@ -29,14 +29,17 @@
   margin: 0; /* Remove margins for better alignment */
 }
 
+.property-image-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 
 .leases-header {
-  display: flex; /* Use flexbox for alignment */
-  align-items: center; /* Vertically align items */
-  justify-content: space-between; /* Space out the name and button */
-  border-bottom: 2px solid #ddd; /* Add a line below the property name */
-  margin-bottom: 10px; /* Add some space below the header */
-  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 
@@ -81,7 +84,7 @@
 
 
 .property-image {
-  width: 40%; /* Image takes up 40% of the card width */
+  width: 50%; /* Image takes up 40% of the card width */
   height: auto; /* Maintain the aspect ratio */
   margin-right: 10%; /* Space between the image and the property details */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the image */
@@ -276,4 +279,9 @@
 .modal button:last-of-type {
   background-color: #f0f0f0;
   color: #333;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: row;
 }

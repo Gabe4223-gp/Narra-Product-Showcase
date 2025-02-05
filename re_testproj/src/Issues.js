@@ -360,7 +360,7 @@ function Issues () {
             </div>
             <div className="unresolved-issues">
                 <div className="issue-list">
-                <h3>Unresolved Issues</h3>
+                <h5>Unresolved Issues</h5>
                 <table>     
                     <thead>
                     <tr>
@@ -419,106 +419,109 @@ function Issues () {
             </div>
         
             {isAddingIssues && (
-            <div className="modal">
-                <h3>Add New Issue</h3>
-                <form>
-                <label>
-                    Unit
-                    <input
-                    type="number"
-                    value={newIssue.unit}
-                    onChange={(e) => handleAddIssueChange("unit", e.target.value)}
-                    />
-                </label>
-                <label>
-                    Tenant
-                    <input
-                    type="text"
-                    value={newIssue.tenantRaised}
-                    onChange={(e) => handleAddIssueChange("tenantRaised", e.target.value)}
-                    />
-                </label>
-                <label>
-                    Type:
-                    <select
-                        value={newIssue.type}
-                        onChange={(e) => handleAddIssueChange("type", e.target.value)}
-                        required
-                    >
-                        <option value="">Select Type</option>
-                        <option value="need repair">Need Repair</option>
-                        <option value="complaint">Complaint</option>
-                        <option value="violation">Violation</option>
-                        <option value="other">Other</option>
-                    </select>
-                </label>
-                <label>
-                    Subject:
-                    <input
-                    type="text"
-                    value={newIssue.subject}
-                    required
-                    onChange={(e) => handleAddIssueChange("subject", e.target.value)}
-                    />
-                </label>
-                <label>
-                Description:
-                <textarea
-                    value={newIssue.description}
-                    onChange={(e) =>
-                        handleAddIssueChange("description", e.target.value)
-                    }
-                    rows="4"
-                    cols="50"
-                    placeholder="Enter description..."
-                    />
-                </label>
+                <div className='overlay'>
+                     <div className="modal">
+                        <h3>Add New Issue</h3>
+                        <form>
+                        <label>
+                            Unit
+                            <input
+                            type="number"
+                            value={newIssue.unit}
+                            onChange={(e) => handleAddIssueChange("unit", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Tenant
+                            <input
+                            type="text"
+                            value={newIssue.tenantRaised}
+                            onChange={(e) => handleAddIssueChange("tenantRaised", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Type:
+                            <select
+                                value={newIssue.type}
+                                onChange={(e) => handleAddIssueChange("type", e.target.value)}
+                                required
+                            >
+                                <option value="">Select Type</option>
+                                <option value="need repair">Need Repair</option>
+                                <option value="complaint">Complaint</option>
+                                <option value="violation">Violation</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </label>
+                        <label>
+                            Subject:
+                            <input
+                            type="text"
+                            value={newIssue.subject}
+                            required
+                            onChange={(e) => handleAddIssueChange("subject", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                        Description:
+                        <textarea
+                            value={newIssue.description}
+                            onChange={(e) =>
+                                handleAddIssueChange("description", e.target.value)
+                            }
+                            rows="4"
+                            cols="50"
+                            placeholder="Enter description..."
+                            />
+                        </label>
 
-                <div>
-                    <label>
-                        Relevant Documents:
-                        <input
-                            type="file"
-                            onChange={(e) => {
-                                if (e.target.files[0]) {
-                                    handleFileUpload(e.target.files[0]);
-                                }
-                            }}
-                        />
-                    </label>
-                    <div>
-                        {documents.map((doc, index) => (
-                            <div key={index} style={{ marginTop: "10px" }}>
-                                <span>Document {index + 1}</span> {/* Corrected template literal */}
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemoveFile(index)}
-                                    style={{
-                                        marginLeft: "10px",
-                                        color: "red",
-                                        cursor: "pointer",
-                                        background: "none",
-                                        border: "none",
+                        <div>
+                            <label>
+                                Relevant Documents:
+                                <input
+                                    type="file"
+                                    onChange={(e) => {
+                                        if (e.target.files[0]) {
+                                            handleFileUpload(e.target.files[0]);
+                                        }
                                     }}
-                                >
-                                    Remove
-                                </button>
+                                />
+                            </label>
+                            <div>
+                                {documents.map((doc, index) => (
+                                    <div key={index} style={{ marginTop: "10px" }}>
+                                        <span>Document {index + 1}</span> {/* Corrected template literal */}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveFile(index)}
+                                            style={{
+                                                marginLeft: "10px",
+                                                color: "red",
+                                                cursor: "pointer",
+                                                background: "none",
+                                                border: "none",
+                                            }}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        </div>
+                    
+                        </form>
+                        <div>
+                        <button onClick={saveNewIssue}>Save</button>
+                        <button onClick={handleCancelModal}>Cancel</button>
+                        </div>
                     </div>
                 </div>
-            
-                </form>
-                <div>
-                <button onClick={saveNewIssue}>Save</button>
-                <button onClick={handleCancelModal}>Cancel</button>
-                </div>
-            </div>
+           
             )}
 
             <div className="resolved-issues">
                 <div className="issue-list">
-                    <h3>Resolved Issues</h3>
+                    <h5>Resolved Issues</h5>
                     <table>     
                         <thead>
                             <tr>

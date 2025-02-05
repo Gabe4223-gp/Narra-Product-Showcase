@@ -60,6 +60,8 @@ function UnitProfile ({unitId, onBack}) {
    
           const data = await response.json();
           setUnitDetails(data.unit);
+          console.log("Step 999", data.unit);
+
           setTenants(data.tenants);
 
 
@@ -74,7 +76,7 @@ function UnitProfile ({unitId, onBack}) {
     }, []);
 
     //Edit unit
-    const handleEditUnitChange = (field, value) => {  
+    const handleEditUnitChange = (field, value) => { 
         if (field === 'petsAllowed') {
             setEditedUnit({ ...editedUnit, [field]: value.target.checked });
           } else {
@@ -114,8 +116,6 @@ function UnitProfile ({unitId, onBack}) {
     };
 
     const handleDeleteUnit = async () => {
-
-        const unitId = unitDetails.id;
    
         try {
             // Make a DELETE request to the backend with the propertyId
@@ -144,8 +144,8 @@ function UnitProfile ({unitId, onBack}) {
         }
       };
 
-    const handleViewProfile = (tenantId) => {
-        setSelectedTenant(tenantId);
+    const handleViewProfile = (tenant) => {
+        setSelectedTenant(tenant);
       };
 
     const handleBack = () => {
@@ -154,10 +154,12 @@ function UnitProfile ({unitId, onBack}) {
     };
 
     if (selectedTenant !== null) {
-    <TenantProfile
-    onBack={handleBack}
-    tenantId={selectedTenant.id}
-    />
+        return (
+            <TenantProfile
+                tenantId={selectedTenant.id}
+                onBack={handleBack}
+            />
+        );
     }
 
     return (
@@ -168,9 +170,10 @@ function UnitProfile ({unitId, onBack}) {
                 <div className="unit-details">
                         <div className='unit-header'>
                             <h5>Unit Details</h5>
-                            <button onClick={() => setshowEditUnitDetails(true)}>Edit</button>
+                            <button className='unit-edit-button' onClick={() => setshowEditUnitDetails(true)}>Edit</button>
                         </div>
                         <div className="unit-row">
+                            {console.log("Step 0", editedUnit.sizeUnit)}
                             <div className="left-unit-details">
                                 <p>No.:  {editedUnit.unitNo}</p>
                                 <p>Type:  {editedUnit.type}</p>
@@ -182,13 +185,9 @@ function UnitProfile ({unitId, onBack}) {
                                 <p>
                                     Occupants: 
                                     {tenants?.length > 0 ? (
-                                        <ul>
-                                            {tenants.map((tenant, index) => (
-                                                <li key={index}>{tenant.name}</li>
-                                            ))}
-                                        </ul>
+                                        <span> {tenants.length}</span>
                                     ) : (
-                                        <span> No occupants</span>
+                                        <span> NA</span>
                                     )}
                                 </p>
                             </div>
@@ -197,14 +196,16 @@ function UnitProfile ({unitId, onBack}) {
                 </div>
 
                 <div className='unit-tenants'>
-                    <h5>Tenant History</h5>
+                    <h5>Tenants</h5>
                     <div className='tenant-history'>
                         <table>
                             <thead>
                                 <tr> 
                                     <th>Name</th>
-                                    <th>Move-in Date</th>
-                                    <th>Move-out Date</th>
+                                    <th>Phone</th>
+                                    <th>Lease Start Date</th>
+                                    <th>Lease End Date</th>
+                                    <th>Billing Deadline</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -213,16 +214,18 @@ function UnitProfile ({unitId, onBack}) {
                                     tenants.map((tenant, index) => (
                                     <tr key={index}>
                                         <td>{tenant.name}</td>
-                                        <td>{tenant.moveinDate}</td>
-                                        <td>{tenant.moveoutDate}</td>
+                                        <td>{tenant.phone}</td>
+                                        <td>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
+                                        <td>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
+                                        <td>{tenant.billingDeadline}</td>
                                         <td>
-                                            <button onClick={() => handleViewProfile(tenant.id)}>View</button>
+                                            <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>
                                         </td>
                                     </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" style={{ textAlign: "center", padding: "20px" }}>
+                                        <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
                                             No tenant history
                                         </td>
                                     </tr>
@@ -249,75 +252,84 @@ function UnitProfile ({unitId, onBack}) {
             </div>
 
             <div className="unit-actions">
-                <h5>Actions</h5>
+                <div className='action-header'>
+                    <h5>Actions</h5>
+                </div>
+                
                 <button onClick={() => setShowDeleteModal(true)}>Delete Unit</button>
             </div>
 
             {showDeleteModal && (
-                <div className='modal'>
-                    <div>
-                        Are you sure you want to delete this tenant?
+                <div className='overlay'>
+                    <div className='modal'>
+                        <div>
+                            Are you sure you want to delete this tenant?
+                        </div>
+                        <button onClick={handleDeleteUnit}>Confirm</button>
+                        <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
                     </div>
-                    <button onClick={handleDeleteUnit}>Confirm</button>
-                    <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+
                 </div>
+                
             )}
 
             {showEditUnitDetails && (
-                
-                <div className="modal">
-                    <h3>Edit Unit</h3>
-                    <form>
-                    <label>
-                        No.:
-                        <input
-                        type="number"
-                        value={editedUnit.unitNo || ''}
-                        onChange={(e) => handleEditUnitChange("unitNo", e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Type:
-                        <input
-                        type="text"
-                        value={editedUnit.type || ''}
-                        onChange={(e) => handleEditUnitChange("type", e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Mode:
-                        <input
-                        type="text"
-                        value={editedUnit.mode || ''}
-                        onChange={(e) => handleEditUnitChange("mode", e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Size
-                        <input
-                        type="number"
-                        value={editedUnit.sizeValue || ''}
-                        onChange={(e) => handleEditUnitChange("sizeValue", e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Pets Allowed
-                        <input
-                            type="checkbox"
-                            checked={editedUnit?.petsAllowed}
-                            onChange={(e) =>
-                            handleEditUnitChange("petsAllowed", e)
-                            }
-                        />
-                    </label>
-                    </form>
-                    <div>
-                    <button onClick={saveEditUnit}>Save</button>
-                    <button onClick={() => setshowEditUnitDetails(false)}>Cancel</button>
+                <div className='overlay'> 
+                    <div className="modal">
+                        <h3>Edit Unit</h3>
+                        <form>
+                        <label>
+                            No.:
+                            <input
+                            type="number"
+                            value={editedUnit.unitNo || ''}
+                            onChange={(e) => handleEditUnitChange("unitNo", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Type:
+                            <input
+                            type="text"
+                            value={editedUnit.type || ''}
+                            onChange={(e) => handleEditUnitChange("type", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Mode:
+                            <input
+                            type="text"
+                            value={editedUnit.mode || ''}
+                            onChange={(e) => handleEditUnitChange("mode", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Size
+                            <input
+                            type="number"
+                            value={editedUnit.sizeValue || ''}
+                            onChange={(e) => handleEditUnitChange("sizeValue", e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Pets Allowed
+                            <input
+                                type="checkbox"
+                                checked={editedUnit?.petsAllowed}
+                                onChange={(e) =>
+                                handleEditUnitChange("petsAllowed", e)
+                                }
+                            />
+                        </label>
+                        </form>
+                        <div>
+                        <button onClick={saveEditUnit}>Save</button>
+                        <button onClick={() => setshowEditUnitDetails(false)}>Cancel</button>
+                        </div>
                     </div>
                 </div>
+                
     
-            )};
+            )}
         </div>
     );
 

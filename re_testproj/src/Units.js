@@ -261,38 +261,6 @@ function Units() {
     fetchProperties(selectedProperty.units);
     setSelectedUnit(null);
   };
-  
-  //Export
-  const exportToExcel = () => {
-    // Filter to export based on selectedUnitIds
-    const unitsToExport = units.filter((unit) =>
-      selectedUnitIds.has(unit.id) // Assuming each has a unique 'id'
-    );
-
-    if (unitsToExport?.length > 0) {
-      // Prepare data to export
-      const unitsData = unitsToExport.map((unit) => ({
-        UnitNo: unit.unitNo,
-        Type: unit.type,
-        Mode: unit.mode,
-        Size: unit.sizeValue,
-        SizeUnit: unit.sizeUnit,
-        PetsAllowed: unit.petsAllowed ? "Yes" : "No",
-      }));
-    
-      // Create worksheet and workbook
-      const ws = XLSX.utils.json_to_sheet(unitsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Units");
-    
-      // Export the workbook to a file
-      XLSX.writeFile(wb, "unit_list.xlsx");
-    }
-
-    else {
-      alert("Please select a unit");
-    }
-  };
 
   //Import
   const importFromExcel = async (event) => {
@@ -450,9 +418,7 @@ function Units() {
                   <td>{unit.petsAllowed ? "Yes" : "No"}</td>
                   <td>
                   {unit.tenants && unit.tenants?.length > 0 
-                    ? unit.tenants.join(', ').length > 50 
-                      ? `${unit.tenants.join(', ').slice(0, 50)}...` 
-                      : unit.tenants.join(', ') 
+                    ? unit.tenants.length
                     : 'No tenants'}
                   </td>
                   <td>
@@ -462,7 +428,7 @@ function Units() {
               ))
             ) : (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
+                <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
                   No units added yet.
                 </td>
               </tr>
@@ -472,100 +438,104 @@ function Units() {
       </div>
 
       {showSizeUnitModal && (
-        <div className='modal'>
-          <form>
-            <label>
-                Size unit:
-                <input
-                  type="text"
-                  onChange={(e) => handleSizeUnitChange(e.target.value)}
-                />
-            </label>
-          </form>
-          <button onClick={saveSizeUnitChange}>Save</button>
-          <button onClick={() => setshowSizeUnitModal(false)}>Cancel</button>
+        <div className='overlay'>
+          <div className='modal'>
+            <form>
+              <label>
+                  Size unit:
+                  <input
+                    type="text"
+                    onChange={(e) => handleSizeUnitChange(e.target.value)}
+                  />
+              </label>
+            </form>
+            <button onClick={saveSizeUnitChange}>Save</button>
+            <button onClick={() => setshowSizeUnitModal(false)}>Cancel</button>
+          </div>
         </div>
+        
       )}
 
       <div className="actions">
         <button className="addUnit" onClick={() => setIsAddingUnits(true)}>
           Add Unit
         </button>
-        <button onClick={exportToExcel} className="exportUnits">Export Selected</button>
-        <div>
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={importFromExcel}
-            style={{ display: "none" }}
-            id="file-upload"
-          />
-          <button
-            onClick={() => document.getElementById("file-upload").click()}
-            className="importUnits"
-          >
-            Import From Excel
-          </button>
-          
-          <button onClick={handleSelectAll}>Select All</button>
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          onChange={importFromExcel}
+          style={{ display: "none" }}
+          id="file-upload"
+        />
+        <button
+          onClick={() => document.getElementById("file-upload").click()}
+          className="importUnits"
+        >
+          Import From Excel
+        </button>
         
-          <button onClick={handleDeselectAll}>Unselect All</button>
+        <button onClick={handleSelectAll}>Select All</button>
       
-        </div>
+        <button onClick={handleDeselectAll}>Unselect All</button>
+      
+        
       </div>
 
       {isAddingUnits && (
-        <div className="modal">
-          <h3>Add New Unit</h3>
-          <form>
-            <label>
-              No:
-              <input
-                type="number"
-                value={newUnit.unitNo}
-                onChange={(e) => handleAddUnitChange("unitNo", e.target.value)}
-              />
-            </label>
-            <label>
-              Type:
-              <input
-                type="text"
-                value={newUnit.type}
-                onChange={(e) => handleAddUnitChange("type", e.target.value)}
-              />
-            </label>
-            <label>
-              Mode:
-              <input
-                type="text"
-                value={newUnit.mode}
-                onChange={(e) => handleAddUnitChange("mode", e.target.value)}
-              />
-            </label>
-            <label>
-              Size:
-              <input
-                type="number"
-                value={newUnit.sizeValue}
-                onChange={(e) => handleAddUnitChange("sizeValue", e.target.value)}
-              />
-            </label>
-            <label>
-              Pets Allowed:
-              <input
-                type="checkbox"
-                checked={newUnit.petsAllowed}
-                onChange={(e) =>
-                  handleAddUnitChange("petsAllowed", e)
-                }
-              />
-            </label>
-          </form>
-          <div>
-            <button onClick={saveNewUnit}>Save</button>
-            <button onClick={() => setIsAddingUnits(false)}>Cancel</button>
-          </div>
+        <div className='overlay'>
+          <div className="modal">
+              <h3>Add New Unit</h3>
+              <form>
+                <label>
+                  No:
+                  <input
+                    type="number"
+                    value={newUnit.unitNo}
+                    onChange={(e) => handleAddUnitChange("unitNo", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Type:
+                  <input
+                    type="text"
+                    value={newUnit.type}
+                    onChange={(e) => handleAddUnitChange("type", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Mode:
+                  <input
+                    type="text"
+                    value={newUnit.mode}
+                    onChange={(e) => handleAddUnitChange("mode", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Size:
+                  <input
+                    type="number"
+                    value={newUnit.sizeValue}
+                    onChange={(e) => handleAddUnitChange("sizeValue", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Pets Allowed:
+                  <input
+                    type="checkbox"
+                    checked={newUnit.petsAllowed}
+                    onChange={(e) =>
+                      handleAddUnitChange("petsAllowed", e)
+                    }
+                  />
+                </label>
+              </form>
+              <div>
+                <button onClick={saveNewUnit}>Save</button>
+                <button onClick={() => setIsAddingUnits(false)}>Cancel</button>
+              </div>
+            </div>
         </div>
+        
       )}
     </div>
   );

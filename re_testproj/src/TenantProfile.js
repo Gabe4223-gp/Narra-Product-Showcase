@@ -9,8 +9,8 @@ import { useAuth0 } from '@auth0/auth0-react';
   
 
 
-function TenantProfile({tenantId, onBack}) {
-    const defaultImage = "https://via.placeholder.com/150";
+function TenantProfile({tenantId, onBack, propertyId}) {
+    const defaultImage = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
     const [tenantDetails, setTenantDetails] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditTenantDetails, setshowEditTenantDetails] = useState(false);
@@ -133,7 +133,9 @@ function TenantProfile({tenantId, onBack}) {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                tenant: editedTenant}),
+                tenant: editedTenant,
+                propertyId: propertyId,
+               }),
             });
        
             if (!response.ok) {
@@ -194,51 +196,6 @@ function TenantProfile({tenantId, onBack}) {
         setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
     };
 
-
-    //Mark as moved out
-    const handleMarkasMovedOut = async () => {
-
-
-        const moveOutDate = new Date();
-        const formattedMoveOutDate = `${moveOutDate.getFullYear()}-${String(moveOutDate.getMonth() + 1).padStart(2, '0')}-${String(moveOutDate.getDate()).padStart(2, '0')} ${String(moveOutDate.getHours()).padStart(2, '0')}:${String(moveOutDate.getMinutes()).padStart(2, '0')}:${String(moveOutDate.getSeconds()).padStart(2, '0')}`;
-
-
-        // Create a copy of the editedTenant and update moveoutDate
-        const updatedTenant = {
-            ...editedTenant,
-            moveoutDate: formattedMoveOutDate, // Convert to ISO string if needed
-        };
-   
-        try {
-            // Send updatedTenant to the backend
-            const response = await fetch('http://localhost:5000/tenants/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    tenant: updatedTenant, // Sending updated tenant object
-                }),
-            });
-   
-            if (!response.ok) {
-                const errorMsg = await response.text();
-                console.error('Backend error:', errorMsg);
-            }
-   
-            // Optionally: Fetch updated tenant details after the update
-            fetchTenantDetails();
-   
-            // Hide the edit form if update is successful
-            setshowEditTenantDetails(false);
-   
-        } catch (error) {
-            console.error('Error updating tenant:', error);
-            alert(`Failed to save tenant. Error: ${error.message}`);
-        }
-    };
-
-
     const handleSetForPreview = () => {
         setForPreview(true);
     }
@@ -280,7 +237,7 @@ function TenantProfile({tenantId, onBack}) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ tenantId }), // Send the propertyId in the request body
+                body: JSON.stringify({ tenantId, propertyId}), // Send the propertyId in the request body
             });
    
             if (!response.ok) {
@@ -325,12 +282,12 @@ function TenantProfile({tenantId, onBack}) {
                 <div className="tenant-personal-details">
                     <div className='tenant-header'style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} >
                         <h5>Personal Details</h5>
-                        <button onClick={() => setshowEditTenantDetails(true)}>Edit</button>
+                        <button className='edit-button' onClick={() => setshowEditTenantDetails(true)}>Edit</button>
                     </div>
                     <div className="tenant-row">
                         <div className="left-tenant-details">
                             <p>Name:  {tenantDetails?.name ?? ""}</p>
-                            <p>Unit Number:  {tenantDetails?.unit_id ?? ""}</p>
+                            <p>Unit Number:  {tenantDetails?.unit ?? ""}</p>
                             <p>Email:  {tenantDetails?.email ?? ""}</p>
                             <p>Phone number:  {tenantDetails?.phone ?? ""}</p>
                             <p>Nationality:  {tenantDetails?.nationality ?? ""}</p>
@@ -362,46 +319,47 @@ function TenantProfile({tenantId, onBack}) {
 
 
             <div className='tenant-mid-section'>
-             
+        
+                <PaymentHistory />
+               
+                <div></div>
+        
+            </div>
+
+
+            <div className="tenant-bottom-section">
                 <Lease
                 tenantDetails={tenantDetails}
                 onUploadLeaseDoc={handleUploadLeaseDoc}
                 onloadLeaseDoc={handleLoadLeaseDoc}
                 onSetForPreview={handleSetForPreview}
                 />
-           
-
-
-                <div className="tenant-billing-activity">
-                    <PaymentHistory />
+                <div className='tenant-actions'>
+                    <h5>Actions</h5>
+                    <div className='action-button'>
+                        <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
+                        <button onClick={() => setShowDeleteModal(true)}>Delete Tenant</button>
+                    </div>
+                    
                 </div>
-                <div className="tenant-billing-account">
-                    <PaymentMethods />
-                </div>
-            </div>
-
-
-            <div className="tenant-actions">
-                <h5>Actions</h5>
-                <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
-                <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
-                <button onClick={() => setShowDeleteModal(true)}>Delete Tenant</button>
             </div>  
 
 
             {showDeleteModal && (
-                <div className='modal'>
-                    <div>
-                        Are you sure you want to delete this tenant?
+                <div className='overlay'>
+                    <div className='modal'>
+                        <div>
+                            Are you sure you want to delete this tenant?
+                        </div>
+                        <button onClick={handleDeleteTenant}>Confirm</button>
+                        <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
                     </div>
-                    <button onClick={handleDeleteTenant}>Confirm</button>
-                    <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
                 </div>
             )}
 
 
             {showEditTenantDetails && (
-                   
+                <div className='overlay'>
                     <div className="edit-tenant-modal">
                         <h3>Edit Tenant</h3>
                         <form>
@@ -463,6 +421,9 @@ function TenantProfile({tenantId, onBack}) {
                         <button onClick={() => setshowEditTenantDetails(false)}>Cancel</button>
                         </div>
                     </div>
+
+                </div>
+                    
      
                 )};
         </div>

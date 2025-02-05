@@ -14,9 +14,7 @@
 /* Modal Form Styling */
 .lease-input-modal-overlay .modal-container {
     background-color: #fff;
-    width: 40%;  
-    height: 60%;
-    max-width: 100%;
+    width: 40%;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);

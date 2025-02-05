@@ -131,34 +131,40 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
                     <div className="issue-header">
                         <h5>Actions</h5>
                     </div>
-                    <button onClick={() => setShowDeleteModal(true)}>Delete Issue</button>
-                    {!issue.resolved && 
-                    (<button onClick={() => setShowModal(true)}>Mark Issue as Resolved</button>)
-                    }
+                    <div className='edit-buttons'>
+                        <button onClick={() => setShowDeleteModal(true)}>Delete Issue</button>
+                        {!issue.resolved && 
+                        (<button onClick={() => setShowModal(true)}>Mark Issue as Resolved</button>)
+                        }
+                    </div>
                     
                 </div>
             </div>
                 
             {showDeleteModal && (
-                <div className='modal'>
-                    <div>
-                        Are you sure you want to delete this tenant?
+                <div className='overlay'>
+                    <div className='modal'>
+                        <div>
+                            Are you sure you want to delete this tenant?
+                        </div>
+                        <button onClick={handleDeleteIssue}>Confirm</button>
+                        <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
                     </div>
-                    <button onClick={handleDeleteIssue}>Confirm</button>
-                    <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
                 </div>
+                
             )}
 
             {/* Confirmation Modal */}
             {showModal && (
-                <div className="modal">
-                    <div className="modal-content">
+                <div className='overlay'>
+                    <div className="modal">
                         <h4>Confirm Resolution</h4>
                         <p>Are you sure you want to mark this issue as resolved?</p>
                         <button onClick={handleConfirmResolved}>Yes</button>
                         <button onClick={() => setShowModal(false)}>No</button>
                     </div>
                 </div>
+                
             )}
         </div>
     );

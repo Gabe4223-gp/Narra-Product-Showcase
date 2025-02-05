@@ -158,39 +158,32 @@ function HomePropertyProfile({ property, onBack }) {
     fetchTenantLeaseDocs();
   }, []);
 
-
-  //Upload image
+  // Handle upload image
   const handleImageChange = async (event) => {
- 
     const file = event.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-        const formData = new FormData();
-        formData.append("image", file);
-        formData.append("propertyId", property.id);
-
-
-        try {
-            const response = await fetch('http://localhost:5000/properties/image', {
-                method: 'POST',
-                body: formData, // Use FormData to send the file
-            });
-
-
-            if (response.ok) {
-                console.log('Image uploaded successfully!');
-            } else {
-                console.error('Failed to upload image:', await response.json());
-            }
-
-
-            fetchPropertyDetails();
-
-
-        } catch (error) {
-            console.error('Error uploading image:', error);
-        }
-    } else {
-        alert("Please upload a valid image file.");
+    if (!file || !file.type.startsWith("image/")) {
+      alert("Please upload a valid image file.");
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("propertyId", property.id);
+  
+    try {
+      const response = await fetch('http://localhost:5000/properties/image', {
+        method: 'POST',
+        body: formData, // FormData handles `multipart/form-data` automatically
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+  
+      console.log('Image uploaded successfully!');
+      await fetchPropertyDetails(); // Ensure this function is awaited if asynchronous
+    } catch (error) {
+      console.error('Error uploading image:', error);
     }
   };
 
@@ -270,21 +263,20 @@ function HomePropertyProfile({ property, onBack }) {
             </div>
           ) : (
               <div className="property-content">
-                {/* Image inside the card, on the left */}
-                <img
-                  src={editedProperty?.image}
-                  alt={editedProperty?.propertyName ?? ""}
-                  className="property-image"
-                />
-                <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="tenant-image-upload"
-                    />
-
-
-                {/* Property details inside the card, on the right */}
+                <div className='property-image-header'>
+                  <img
+                    src={editedProperty?.image}
+                    alt={editedProperty?.propertyName ?? ""}
+                    className="property-image"
+                  />
+                  <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="tenant-image-upload"
+                      />
+                </div>
+          
                 <div className="property-data">
                   <p>Company: {editedProperty?.companyName ?? ""}</p>
                   <p>Address: {editedProperty?.propertyAddress ?? ""}</p>
@@ -365,11 +357,16 @@ function HomePropertyProfile({ property, onBack }) {
 
 
       {showDeleteModal && (
-        <div className="modal">
-          Are you sure you want to delete this property?
-          <button onClick={handleDeleteProperty}>Confirm</button>
-          <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+        <div className='overlay'>
+          <div className="modal">
+            Are you sure you want to delete this property?
+            <div className="action-buttons">
+              <button onClick={handleDeleteProperty}>Confirm</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+            </div>
+          </div>
         </div>
+        
       )}
 
 
