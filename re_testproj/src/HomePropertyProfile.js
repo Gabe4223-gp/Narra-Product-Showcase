@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import './HomePropertyProfile.css';
-import { Link } from 'react-router-dom';
-import { useAuth0 } from '@auth0/auth0-react';
+import DocumentViewer from './DocumentViewer.js';
 
 function HomePropertyProfile({ property, onBack }) {
   const [showEditProperty, setShowEditProperty] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tenants, setTenants] = useState([]);
   const [unitCount, setUnitCount] = useState(0);
+  const [selectedDoc, setSelectedDoc] = useState(null);
   const [tenantCount, setTenantCount] = useState(0);
   const [editedProperty, setEditedProperty] = useState({
     ...property,
@@ -107,6 +107,7 @@ function HomePropertyProfile({ property, onBack }) {
 
 
   const fetchTenantLeaseDocs = async () => {
+    console.log("function works", editedProperty.tenants);
 
     try {
       if (!editedProperty.tenants || editedProperty.tenants.length === 0) {
@@ -133,19 +134,8 @@ function HomePropertyProfile({ property, onBack }) {
  
       const data = await response.json();
 
+      setTenants(data.tenants);
 
-      console.log("ajkshdf", data);
-
-
-      setTenants(data);
-
-
-      if (data.tenants && data.tenants.length > 0) {
-        console.log("Tenants with expiring leases:", data.tenants);
-        alert(`Found ${data.tenants.length} tenants with expiring leases.`);
-      } else {
-        alert("No tenants with expiring leases found.");
-      }
     } catch (error) {
       console.error("Error fetching tenant lease documents:", error);
       alert(`Error fetching tenant lease documents: ${error.message}`);
@@ -157,36 +147,6 @@ function HomePropertyProfile({ property, onBack }) {
   useEffect(() => {
     fetchTenantLeaseDocs();
   }, []);
-
-  // Handle upload image
-  const handleImageChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file || !file.type.startsWith("image/")) {
-      alert("Please upload a valid image file.");
-      return;
-    }
-  
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("propertyId", property.id);
-  
-    try {
-      const response = await fetch('http://localhost:5000/properties/image', {
-        method: 'POST',
-        body: formData, // FormData handles `multipart/form-data` automatically
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-  
-      console.log('Image uploaded successfully!');
-      await fetchPropertyDetails(); // Ensure this function is awaited if asynchronous
-    } catch (error) {
-      console.error('Error uploading image:', error);
-    }
-  };
-
 
   const handleDeleteProperty = async () => {
 
@@ -221,6 +181,55 @@ function HomePropertyProfile({ property, onBack }) {
     }
   };
 
+  const handleViewCurrentLease = async (tenantId, fileName) => {
+        
+    try {
+      // Use query parameters instead of body
+      const response = await fetch(`http://localhost:5000/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error(`Retrieval failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+      console.log("Here's the doc", data);
+      console.log("Here's the cleanedBased", cleanedBase64);
+
+      const loadedDoc = {
+          fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+          fileName: fileName,  
+          fileType: data.fileType,
+      };
+
+      console.log("Here's the loadedDoc", loadedDoc);
+      
+      setSelectedDoc(loadedDoc);
+
+    } catch (error) {
+        console.error("Error retrieving lease:", error);
+    }
+  };
+
+  const handleBack = async () => {
+    setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
+  };
+
+  if (selectedDoc !== null) {
+    return (
+        <DocumentViewer
+        onBack={handleBack}
+        selectedDoc={selectedDoc}
+        forPreview={false}
+        />
+    )
+  }
 
   return (
     <div>
@@ -254,7 +263,7 @@ function HomePropertyProfile({ property, onBack }) {
               <input
                 type="text"
                 name="propertyAddress"
-                value={editedProperty?.propertyAddress ?? ""}
+                value={editedProperty?.address ?? ""}
                 onChange={handleInputChange}
                 placeholder="Property Address"
               />
@@ -263,23 +272,10 @@ function HomePropertyProfile({ property, onBack }) {
             </div>
           ) : (
               <div className="property-content">
-                <div className='property-image-header'>
-                  <img
-                    src={editedProperty?.image}
-                    alt={editedProperty?.propertyName ?? ""}
-                    className="property-image"
-                  />
-                  <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="tenant-image-upload"
-                      />
-                </div>
           
                 <div className="property-data">
                   <p>Company: {editedProperty?.companyName ?? ""}</p>
-                  <p>Address: {editedProperty?.propertyAddress ?? ""}</p>
+                  <p>Address: {editedProperty?.address ?? ""}</p>
                   <p>Tenant Count: {tenantCount}</p>
                   <p>Unit Count: {unitCount}</p>
                   <p>Occupancy: {editedProperty?.tenantCount && property?.unitCount
@@ -307,25 +303,27 @@ function HomePropertyProfile({ property, onBack }) {
               </tr>
             </thead>
             <tbody>
-            {tenants && tenants.length > 0 ? (
+            {console.log("tenants", tenants)}
+            {tenants && tenants?.length > 0 ? (
               tenants.map((tenant, index) => {
-                const currentLeaseDoc = tenant.leaseDocs.find((doc) => doc.isCurrent); // Find the current lease document
-                const daysRemaining = Math.ceil(
-                  (new Date(tenant.leaseExpiry) - new Date()) / (1000 * 60 * 60 * 24)
-                );
+                const currentLeaseDoc = tenant.leaseDocs?.[tenant.leaseDocs.length - 1]; // Find the current lease document name
+                const leaseExpiryDate = tenant.leaseExpiry ? new Date(tenant.leaseExpiry) : null;
+                const daysRemaining = leaseExpiryDate
+                  ? Math.ceil((leaseExpiryDate - new Date()) / (1000 * 60 * 60 * 24))
+                  : "N/A";
 
 
                 return (
                   <tr key={tenant.id || index}>
                     <td>{tenant.name}</td>
                     <td>{tenant.unit}</td>
-                    <td>{new Date(tenant.leaseExpiry).toLocaleDateString()}</td>
+                    <td>{leaseExpiryDate ? leaseExpiryDate.toLocaleDateString() : "N/A"}</td>
                     <td>{daysRemaining}</td>
                     <td>
                       {currentLeaseDoc ? (
-                        <a href={currentLeaseDoc.url} target="_blank" rel="noopener noreferrer">
-                          View Document
-                        </a>
+                        <button onClick={() => handleViewCurrentLease(tenant.id, currentLeaseDoc)}>
+                          View
+                        </button>
                       ) : (
                         "No current lease document"
                       )}
@@ -336,7 +334,6 @@ function HomePropertyProfile({ property, onBack }) {
             ) : (
               <tr>
                 <td colSpan="5" style={{ textAlign: "center" }}>
-                  No leases ending in less than 2 months.
                 </td>
               </tr>
             )}

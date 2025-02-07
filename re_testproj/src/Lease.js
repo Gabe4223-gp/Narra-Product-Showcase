@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "./Lease.css";
 import { v4 as uuidv4 } from 'uuid';
+import DocumentViewer from "./DocumentViewer";
 
 
 
-function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPreview}) {
+function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview}) {
     const [sentForSigning, setSentForSigning] = useState(false);
     const [signed, setSigned] = useState(false);
     const [requestCancel, setRequestCancel] = useState(false);
@@ -18,7 +19,6 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
 
 
     //Lease upload
-
 
     const handleLeaseUpload = (event, forPreview) => {
         const files = event.target.files;
@@ -39,8 +39,8 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
             const reader = new FileReader();
             reader.onload = () => {
                 const newDoc = {
-                    fileID: uuidv4(),
-                    fileUrl: reader.result,
+                    fileName: uuidv4(),
+                    fileContent: reader.result,
                     dateUploaded: new Date().toISOString(),
                     fileType: file.type,
                 };
@@ -57,25 +57,39 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
         }
     };
 
+    const handleConfirmLeaseDoc = async () => {
 
-    const handleConfirmLeaseDoc = () => {
-        console.log("selected doc", selectedDoc);
-   
-        const updatedDocs = [selectedDoc];
+        try {
+           
+            const response = await fetch('http://localhost:5000/tenants/upload-lease', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fileName: selectedDoc.fileName,
+                    fileType: selectedDoc.fileType,
+                    fileContent: selectedDoc.fileContent,
+                    tenantId: tenantDetails.id,
+                    leaseStartDate: leaseStartDate,
+                    leaseEndDate: leaseEndDate,
+                }),
+            });
 
+            console.log("Selected doc:", selectedDoc);
+    
+            const data = await response.json();
+            if (response.ok) {
+                console.log("Lease uploaded successfully:", data.url);
+                setSentForSigning(true); // Only set after successful upload
+            } else {
+                console.error("Upload failed:", data.message);
+            }
+        } catch (error) {
+            console.error("Error uploading lease:", error);
+        }
 
-        // Log the updated docs here if needed
-        console.log("Updated docs within setLeaseDocs:", updatedDocs);
-
-
-        // Call onUploadLeaseDoc with the updated docs
-        onUploadLeaseDoc(updatedDocs, leaseEndDate, leaseStartDate);
-
-
-        setSentForSigning(true);
-
-
-        // No need to log leaseDocs here because it won't be updated immediately
+        onFetchTenant();
         setSelectedDoc(null);
         setshowRenewLease(false);
     };
@@ -83,18 +97,53 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
 
     // Function to handle document click (opens document viewer)
     const handleViewDocument = (doc) => {
-        if (doc.fileUrl && allowedTypes.includes(doc.fileType)) {
-            setSelectedDoc(doc);
+        if (doc.fileContent && allowedTypes.includes(doc.fileType)) {
             onloadLeaseDoc(doc); // Pass directly the clicked document
         } else {
             alert("Either no Lease has been uploaded or the file type is not a PDF or image");
         }
     };
 
+    const handleViewCurrentLease = async (tenantId, fileName) => {
+        
+        try {
+            // Use query parameters instead of body
+            const response = await fetch(`http://localhost:5000/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Retrieval failed: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            
+            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            console.log("Here's the doc", data);
+            console.log("Here's the cleanedBased", cleanedBase64);
+
+            const loadedDoc = {
+                fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+                fileName: fileName,  
+                fileType: data.fileType,
+            };
+
+            console.log("Here's the loadedDoc", loadedDoc);
+  
+            onloadLeaseDoc(loadedDoc);
+    
+        } catch (error) {
+            console.error("Error retrieving lease:", error);
+        }
+    };
+
 
     return (
         <div className="tenant-lease-decision">
-            {console.log("alsk", tenantDetails)}
+
             <h5>Lease Decision</h5>
 
 
@@ -111,12 +160,18 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
                 <p>Tenant requested not to renew lease</p>
             )}
            
-
-
             {tenantDetails?.leaseDocs && tenantDetails.leaseDocs.length > 0 ? (
-                <div>
-                    <button onClick={() => handleViewDocument(tenantDetails?.leaseDocs[0] ?? null)} className='tenant-lease-view'>
-                        View Leases
+                <div className="lease-actions">
+                    <button 
+                        onClick={() => {
+                            const lastLeaseDoc = tenantDetails?.leaseDocs?.length 
+                                ? tenantDetails.leaseDocs[tenantDetails.leaseDocs.length - 1] 
+                                : null;
+                            handleViewCurrentLease(tenantDetails.id, lastLeaseDoc);
+                        }} 
+                        className='tenant-lease-view'
+                    >
+                        View Lease
                     </button>
                     <button onClick={() => setshowRenewLease(true)} className="tenant-renew-lease">
                         Renew Current Lease
@@ -159,11 +214,14 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
                         <div className="modal-actions">
                             {selectedDoc ? (
                                 <>
-                                <button type="button" onClick={() => handleViewDocument(selectedDoc)}>
+                                <button onClick={() => handleViewDocument(selectedDoc)}>
                                 Preview Lease
                                 </button>
-                                <button className="cancel" onClick={handleConfirmLeaseDoc}>
+                                <button onClick={handleConfirmLeaseDoc}>
                                 Confirm
+                                </button>
+                                <button onClick={() => setshowRenewLease(false)}>
+                                    Cancel
                                 </button>
                                 </>
                             ) : (
@@ -177,7 +235,7 @@ function Lease ({tenantDetails, onUploadLeaseDoc, onloadLeaseDoc, onSetForPrevie
                                         onChange={(e) => handleLeaseUpload(e, true)}
                                         style={{ display: "none" }} // Hide the input
                                     />
-                                    <button className="cancel" onClick={() => setshowRenewLease(false)}>
+                                    <button onClick={() => setshowRenewLease(false)}>
                                     Cancel
                                     </button>
                                 </>

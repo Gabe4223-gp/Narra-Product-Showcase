@@ -189,6 +189,21 @@ margin-right: 10px;
 background-color: #45a049;
 }
 
+.govid-button {
+    background: none;
+    color: #333;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    padding: 0px;
+
+}
+
+.govid-button:hover {
+    color: blue;    
+}
+
 
 /* Modal for Document Viewer */
 .document-viewer-modal {

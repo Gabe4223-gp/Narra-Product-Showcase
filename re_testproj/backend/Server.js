@@ -252,6 +252,11 @@ const Tenant = sequelize.define('Tenant', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  govid: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true,
+    defaultValue: [],
+  },
 }, {
   tableName: 'Tenants', // Specify the table name (Tenants in this case)
   timestamps: true, // Automatically includes createdAt and updatedAt fields
@@ -352,10 +357,6 @@ const Issue = sequelize.define('Issue', {
     allowNull: true,
   },
   unit: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  tenantRaised: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -531,10 +532,10 @@ app.post('/issues', async (req, res) => {
     // Step 2: Insert the issue into the Issues table
     const issueQuery = `
       INSERT INTO "Issues" (
-        id, type, subject, description, unit, "tenantRaised", resolved, 
+        id, type, subject, description, unit, resolved, 
         "dateRaised", "dateResolved", documents
       ) VALUES (
-        :id, :type, :subject, :description, :unit, :tenantRaised, :resolved, 
+        :id, :type, :subject, :description, :unit, :resolved, 
         :dateRaised, :dateResolved, ARRAY[:documents]::TEXT[]
       )
       RETURNING *;
@@ -547,7 +548,6 @@ app.post('/issues', async (req, res) => {
         subject: issue.subject,
         description: issue.description,
         unit: issue.unit,
-        tenantRaised: issue.tenantRaised,
         resolved: issue.resolved || false, // Default to false if not provided
         dateRaised: issue.dateRaised || new Date(), // Default to current date if not provided
         dateResolved: issue.dateResolved || null, // Default to null if not provided
@@ -1313,36 +1313,6 @@ app.get("/properties/:id", async (req, res) => {
   }
 });
 
-//Property image//
-app.post('/properties/image', upload.single('image'), async (req, res) => {
-  const propertyId = req.body.propertyId; // Extract property ID
-  const imageBuffer = req.file.buffer; // Access the uploaded file as a buffer
-
-  if (!propertyId) {
-    return res.status(400).json({ error: 'Property ID is required.' });
-  }
-
-  try {
-    // Convert image buffer to a Base64-encoded string
-    const imageUrl = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-
-    // Update the database using Sequelize ORM
-    const [updated] = await Property.update(
-      { image: imageUrl },
-      { where: { id: propertyId } }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ error: 'Property not found or image upload failed.' });
-    }
-
-    res.status(200).json({ message: 'Property image updated successfully!' });
-  } catch (error) {
-    console.error('Error updating property:', error);
-    res.status(500).json({ error: 'Failed to update property.' });
-  }
-});
-
 //Edit a property//
 app.post('/properties/update', async (req, res) => {
   const { property } = req.body;
@@ -1441,15 +1411,24 @@ app.post("/properties/expiring-leases", async (req, res) => {
     // Wait for all queries to complete
     const tenants = await Promise.all(tenantsPromises);
 
-
-    console.log("lkasdhflakhs", tenants);
-
-
     // Filter tenants where leaseExpiry is within the next 2 months (if needed)
-    const tenantsWithExpiringLeases = tenants.filter(tenant => tenant && tenant.leaseExpiry);
-
+    const tenantsWithExpiringLeases = tenants.filter(tenant => {
+      if (!tenant || !tenant.leaseExpiry) return false;
+  
+      const leaseExpiryDate = new Date(tenant.leaseExpiry);
+      const currentDate = new Date();
+      const twoMonthsLater = new Date();
+      twoMonthsLater.setMonth(currentDate.getMonth() + 2);
+  
+      return leaseExpiryDate >= currentDate && leaseExpiryDate <= twoMonthsLater;
+    });
 
     console.log("Tenants with expiring leases:", tenantsWithExpiringLeases);
+
+    res.json({
+      tenants: tenantsWithExpiringLeases,
+      });
+
   } catch (error) {
     console.error("Error fetching tenants with expiring leases:", error);
     res.status(500).json({ error: "Failed to fetch expiring leases." });
@@ -1590,10 +1569,8 @@ app.post('/tenants', async (req, res) => {
 
 
   try {
-    // Format leaseDoc if it's an array
-    const formattedLeaseDoc = tenant.leaseDoc && tenant.leaseDoc.length > 0
-      ? `{${tenant.leaseDoc.join(",")}}`
-      : "{}";
+    // Format array
+    const formattedArray = "{}";
 
 
     // Save the new tenant to the "Tenants" table
@@ -1603,20 +1580,21 @@ app.post('/tenants', async (req, res) => {
         "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", nationality,
         occupation, image, "eWalletName", "eWalletReferenceNo", "bankName",
         "bankReferenceNo", "creditCardName", "creditCardNo", "creditCardDate",
-        "primaryPaymentMethod"
+        "primaryPaymentMethod", govid
       ) VALUES (
         :id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry,
         :leaseDoc, :moveinDate, :moveoutDate, :billingDeadline, :nationality,
         :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName,
         :bankReferenceNo, :creditCardName, :creditCardNo, :creditCardDate,
-        :primaryPaymentMethod
+        :primaryPaymentMethod, :govid
       )
       RETURNING id;
     `;
     const [newTenant] = await sequelize.query(query, {
       replacements: {
         ...tenant,
-        leaseDoc: formattedLeaseDoc,
+        leaseDoc: formattedArray,
+        govid: formattedArray,
       },
       type: sequelize.QueryTypes.INSERT,
    
@@ -1663,6 +1641,50 @@ app.post('/tenants', async (req, res) => {
   }
 });
 
+// View Current Lease
+app.get('/tenants/get-lease', async (req, res) => {
+  console.log("Function works");
+
+  const { tenantId, fileName } = req.query; // Use `req.query` instead of `req.params`
+
+  if (!tenantId || !fileName) {
+    return res.status(400).json({ message: "Missing tenantId or fileName." });
+  }
+
+  console.log("Retrieving document for tenant:", tenantId);
+  console.log("File Name:", fileName);
+  console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
+
+  const params = {
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: fileName, // Ensure this is the correct path to the file in S3
+  };
+
+  try {
+    // Get the document from AWS S3
+    const data = await s3.getObject(params).promise();
+    
+    console.log("Document Retrieved Successfully");
+
+    // Detect content type (Optional: Ensure correct file format)
+    const contentType = data.ContentType || 'application/octet-stream';
+
+    const base64Content = data.Body.toString('base64');
+
+    // Send the document content as a file
+    // Send the document content as JSON
+    res.json({
+      fileType: contentType,   // MIME type of the file
+      fileContent: base64Content,  // Base64 encoded file content
+    });
+
+  } catch (error) {
+    console.error('Error retrieving document:', error);
+    res.status(500).json({ message: 'Error retrieving document.' });
+  }
+});
+
+
 //Fetch tenant for TenantProfile//
 app.get("/tenants/:id", async (req, res) => {
   try {
@@ -1707,20 +1729,8 @@ app.get("/tenants/:id", async (req, res) => {
 app.post('/tenants/update', async (req, res) => {
   const { tenant, propertyId } = req.body;
 
-
-  console.log("ooooo", tenant);
-
-
+  console.log("Here is the tenant", tenant);
   try {
-    
-    // Format leaseDocs if it's an array of objects
-    const formattedLeaseDoc = tenant.leaseDocs && tenant.leaseDocs.length > 0
-    ? `{${tenant.leaseDocs.map(doc => JSON.stringify(doc).replace(/"/g, '\\"')).join(",")}}`
-    : "{}";
-
-
-    console.log("Here's the formated doc", formattedLeaseDoc);
-
 
     // Update the tenant in the "Tenants" table
     const query = `
@@ -1730,9 +1740,6 @@ app.post('/tenants/update', async (req, res) => {
         unit = :unit,
         phone = :phone,
         email = :email,
-        "leaseStarted" = :leaseStarted,
-        "leaseExpiry" = :leaseExpiry,
-        "leaseDocs" = :leaseDocs,
         "moveinDate" = :moveinDate,
         "moveoutDate" = :moveoutDate,
         "billingDeadline" = :billingDeadline,
@@ -1759,9 +1766,6 @@ app.post('/tenants/update', async (req, res) => {
         unit: tenant.unit || null,
         phone: tenant.phone || null,
         email: tenant.email || null,
-        leaseStarted: tenant.leaseStarted || null,
-        leaseExpiry: tenant.leaseExpiry || null,
-        leaseDocs: formattedLeaseDoc,
         moveinDate: tenant.moveinDate || null,
         moveoutDate: tenant.moveoutDate || null,
         billingDeadline: tenant.billingDeadline || null,
@@ -2013,6 +2017,57 @@ app.delete('/tenants/delete', async (req, res) => {
   } catch (error) {
     console.error("Error deleting tenant and updating properties:", error);
     res.status(500).json({ error: "Failed to delete tenant and update properties." });
+  }
+});
+
+//Lease upload
+app.post('/tenants/upload-lease', async (req, res) => {
+  console.log("the function works");
+  const { fileName, fileType, fileContent, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
+  
+  console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
+
+  const params = {
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: fileName,
+    Body: Buffer.from(fileContent, 'base64'),
+    ContentType: fileType,
+  };
+
+  try {
+    const data = await s3.upload(params).promise();
+    const fileUrl = data.Location;
+
+    console.log("FileUrl", fileUrl)
+
+    // Store document reference in the database
+    const updateQuery = `
+      UPDATE "Tenants"
+      SET
+        "leaseDocs" = array_append("leaseDocs", :fileId),
+        "leaseStarted" = :leaseStartDate,
+        "leaseExpiry" = :leaseEndDate
+      WHERE id = :tenantId
+      RETURNING *;
+    `;
+
+    const result = await sequelize.query(updateQuery, {
+      replacements: { 
+        fileId: fileName, 
+        tenantId: tenantId, 
+        leaseStartDate: leaseStartDate, 
+        leaseEndDate: leaseEndDate,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    console.log(result[0][0].leaseDocs);
+
+    res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result[0][0]?.leaseDocs})
+
+  } catch (error) {
+    console.error('Error uploading invoice:', error);
+    res.status(500).json({ message: 'Error uploading invoice.' });
   }
 });
 
@@ -2329,27 +2384,6 @@ app.post('/api/send-bill', async (req, res) => {
 
 
 //I DON'T REMEMBER EXACTLY WHAT THESE ARE FOR, BUT THEY ARE IN THE BILLING.JS OR PAYMENT METHOD
-
-//Endpoint for uploading invoice if necessary
-app.post('/api/upload-invoice', checkJwt, async (req, res) => {
-  const { fileName, fileType, fileContent} = req.body; //Adjust based on frontend implementation
-
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
-    ACL: 'public-read',
-  };
-
-  try {
-    const data = await s3.upload(params).promise();
-    res.json({ url: data.Location });
-  } catch (error) {
-    console.error('Error uploading invoice:', error);
-    res.status(500).json({ message: 'Error uploading invoice.' });
-  }
-});
 
 // Endpoint to enqueue invoice generation
 app.post('/api/generate-invoice', checkJwt, async (req, res) => {

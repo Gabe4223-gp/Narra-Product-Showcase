@@ -40,6 +40,7 @@ function Tenants() {
     creditCardNo: null,
     creditCardDate: null,
     primaryPaymentMethod: null,
+    govid: [],
   });
 
   //
@@ -219,6 +220,7 @@ function Tenants() {
         creditCardNo: null,
         creditCardDate: null,
         primaryPaymentMethod: null,
+        govid: [],
       });
 
 

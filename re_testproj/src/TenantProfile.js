@@ -25,7 +25,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             setEditedTenant({
                 id: tenantDetails.id,
                 name: tenantDetails.name,
-                unit_id: tenantDetails.unit_id,
+                unit: tenantDetails.unit,
                 phone: tenantDetails.phone,
                 email: tenantDetails.email,
                 leaseStarted: tenantDetails.leaseStarted,
@@ -87,26 +87,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         fetchTenantDetails();
     }, []);
 
-
-    const handleUploadLeaseDoc = (leaseDocs, leaseEndDate, leaseStartDate) => {
-
-
-        // Update the editedTenant state
-        setEditedTenant((prevState) => {
-            const updatedState = {
-                ...prevState,
-                //leaseDocs: leaseDocs, // Add leaseDocs to the tenantDetails state, the fileUrl is too long and overloads the database//
-                leaseExpiry: leaseEndDate ? new Date(leaseEndDate).toISOString().split("T")[0] : null, // Format leaseEndDate
-                leaseStarted: leaseStartDate ? new Date(leaseStartDate).toISOString().split("T")[0] : null, // Format leaseStartDate
-            };
-       
-            return updatedState;
-        });
-
-        setUploadLeaseDoc(leaseDocs);
-    };
-
-
+    //when handleUploadLeaseDoc happens, saveEditTenant() is invoked
     useEffect(() => {
         if (uploadLeaseDoc) {
             saveEditTenant();
@@ -154,44 +135,6 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           }
     };
 
-
-    //Upload image
-    const handleImageChange = async (event) => {
-
-        const file = event.target.files[0];
-        if (file && file.type.startsWith("image/")) {
-            const formData = new FormData();
-            formData.append("image", file);
-            formData.append("tenantId", tenantDetails.id);
-   
-            try {
-                const response = await fetch('http://localhost:5000/tenants/image', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                      },
-                    body: formData, // Use FormData to send the file
-                });
-   
-                if (response.ok) {
-                    console.log('Image uploaded successfully!');
-                } else {
-                    console.error('Failed to upload image:', await response.json());
-                }
-
-
-                fetchTenantDetails();
-
-
-            } catch (error) {
-                console.error('Error uploading image:', error);
-            }
-        } else {
-            alert("Please upload a valid image file.");
-        }
-    };
-
-
     const handleBack = async () => {
         setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
     };
@@ -222,9 +165,10 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     };
 
     const handleLoadLeaseDoc = (doc) => {
+        console.log("Passed doc", doc);
         setSelectedDoc(doc);
+        console.log("Selected Doc1", selectedDoc);
     }
-
 
     const handleDeleteTenant = async () => {
 
@@ -258,11 +202,14 @@ function TenantProfile({tenantId, onBack, propertyId}) {
       };
    
     if (selectedDoc !== null) {
-        <DocumentViewer
-        onBack={handleBack}
-        selectedDoc={selectedDoc}
-        forPreview={forPreview}
-        />
+        console.log("SelectedDoc2", selectedDoc);
+        return (
+            <DocumentViewer
+            onBack={handleBack}
+            selectedDoc={selectedDoc}
+            forPreview={forPreview}
+            />
+        )
       }
 
 
@@ -270,15 +217,6 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         <div className="tenant-profile">
             <button onClick={onBack}>Back</button>
             <div className="tenant-top-section">
-                <div className="tenant-image-container">
-                    <img src={tenantDetails?.image ?? null} alt="Tenant" className="tenant-image" />
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="tenant-image-upload"
-                    />
-                </div>
                 <div className="tenant-personal-details">
                     <div className='tenant-header'style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} >
                         <h5>Personal Details</h5>
@@ -297,6 +235,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                             <p>Lease Started:  {tenantDetails?.leaseStarted ?? ""}</p>
                             <p>Lease Expiry:  {tenantDetails?.leaseExpiry ?? ""}</p>
                             <p>Move In Date: {tenantDetails?.moveinDate ?? ""}</p>
+                            <button className='govid-button'>View Government ID</button>
                         </div>
                     </div>
 
@@ -330,7 +269,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             <div className="tenant-bottom-section">
                 <Lease
                 tenantDetails={tenantDetails}
-                onUploadLeaseDoc={handleUploadLeaseDoc}
+                onFetchTenant={fetchTenantDetails}
                 onloadLeaseDoc={handleLoadLeaseDoc}
                 onSetForPreview={handleSetForPreview}
                 />
@@ -375,7 +314,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                             Unit Number:
                             <input
                             type="text"
-                            value={editedTenant.unit_id}
+                            value={editedTenant.unit}
                             onChange={(e) => handleEditTenantChange("unit", e.target.value)}
                             />
                         </label>

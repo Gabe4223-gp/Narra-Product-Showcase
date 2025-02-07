@@ -151,7 +151,7 @@ function HomePage({ onLogout }) {
                 {property.propertyName}
               </button>
               <p>Company: {property.companyName}</p>
-              <p>Address: {property.propertyAddress}</p>
+              <p>Address: {property.address}</p>
               <p>Owner: {property.owner}</p>
             </div>
           ))

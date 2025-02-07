@@ -22,7 +22,6 @@ function Issues () {
           subject: null, 
           description: null, 
           unit: null, 
-          tenantRaised: null, 
           resolved: false,
           dateRaised: new Date(),
           dateResolved: null, 
@@ -168,7 +167,6 @@ function Issues () {
                 subject: null,
                 description: null,
                 unit: null,
-                tenantRaised: null,
                 resolved: false,
                 dateRaised: new Date(),
                 dateResolved: null,
@@ -368,7 +366,6 @@ function Issues () {
                         <th>ID</th>
                         <th>Date Raised</th>
                         <th>Unit</th>
-                        <th>Tenant Raised</th>
                         <th>Type</th>
                         <th>Subject</th>
                         <th>Actions</th>
@@ -388,7 +385,6 @@ function Issues () {
                                 <td>{issue.id.substring(0, 4)}</td>
                                 <td>{issue.dateRaised}</td>
                                 <td>{issue.unit}</td>
-                                <td>{issue.tenantRaised}</td>
                                 <td>{issue.type}</td>
                                 <td>{issue.subject}</td>
                                 <td>
@@ -429,14 +425,6 @@ function Issues () {
                             type="number"
                             value={newIssue.unit}
                             onChange={(e) => handleAddIssueChange("unit", e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Tenant
-                            <input
-                            type="text"
-                            value={newIssue.tenantRaised}
-                            onChange={(e) => handleAddIssueChange("tenantRaised", e.target.value)}
                             />
                         </label>
                         <label>
@@ -529,7 +517,6 @@ function Issues () {
                                 <th>ID</th>
                                 <th>Date Resolved</th>
                                 <th>Unit</th>
-                                <th>Tenant Raised</th>
                                 <th>Type</th>
                                 <th>Subject</th>
                                 <th>Actions</th>
@@ -549,7 +536,6 @@ function Issues () {
                                     <td>{issue.id.substring(0, 4)}</td>
                                     <td>{issue.dateResolved ? issue.dateResolved : " "}</td>
                                     <td>{issue.unit}</td>
-                                    <td>{issue.tenantRaised}</td>
                                     <td>{issue.type}</td>
                                     <td>{issue.subject}</td>
                                     <td>

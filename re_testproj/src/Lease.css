@@ -120,25 +120,23 @@
 }
 
 .lease-input-modal-overlay .modal-actions button {
-    background-color: #007bff;
-    color: white;
+    background: none;
+    color: #333;
     border: none;
-    padding: 12px 24px;
-    font-size: 16px;
-    border-radius: 4px;
+    font-size: 12px;
     cursor: pointer;
+    transition: color 0.3s ease;
 }
 
 .lease-input-modal-overlay .modal-actions button:hover {
-    background-color: #0056b3;
+    color: #0056b3;
 }
 
-.lease-input-modal-overlay .modal-actions button.cancel {
-    background-color: #6c757d;
-}
-
-.lease-input-modal-overlay .modal-actions button.cancel:hover {
-    background-color: #5a6268;
+.lease-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 5%;
+    padding-top: 2%;
 }
 
 /* Total Fees Display */
