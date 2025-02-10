@@ -8,6 +8,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 function Tenants() {
   const defaultImage = "https://via.placeholder.com/150";
   const [tenants, setTenants] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isAddingTenant, setIsAddingTenant] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
@@ -318,6 +319,41 @@ function Tenants() {
     }
   };
 
+  const handleDeleteTenants = async () => {
+
+    if (selectedTenantIds.size === 0) {
+      console.error("No tenants selected for deletion.");
+      return;
+    
+    }
+    try {
+        // Make a DELETE request to the backend with the propertyId
+        const response = await fetch(`http://localhost:5000/tenants/delete-all`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tenantIds: Array.from(selectedTenantIds), propertyId: selectedPropertyID}), // Send the propertyId in the request body
+        });
+
+        if (!response.ok) {
+            console.error("Failed to delete tenant:", response.statusText);
+            return;
+        }
+
+        // Optionally handle the backend response
+        const data = await response.json();
+        console.log("Tenant deleted successfully:", data);
+
+        fetchTenants(data.updatedTenantIds);
+        
+        setShowDeleteModal(false);
+
+    } catch (error) {
+        console.error("Error deleting tenant:", error);
+    }
+  };
+
 
   //
   //Non data base stuff
@@ -386,34 +422,34 @@ function Tenants() {
         <table>
           <thead>
             <tr>
-              <th> </th>
-              <th>Name</th>
-              <th>Unit Number</th>
-              <th>Email</th>
-              <th>Lease Started</th>
-              <th>Lease Expiry</th>
-              <th>Billing Deadline</th>
-              <th>Actions</th>
+              <th style={{ width: "5%" }}> </th>
+              <th style={{ width: "15%" }}>Name</th>
+              <th style={{ width: "10%" }}>Unit Number</th>
+              <th style={{ width: "20%" }}>Email</th>
+              <th style={{ width: "15%" }}>Lease Started</th>
+              <th style={{ width: "15%" }}>Lease Expiry</th>
+              <th style={{ width: "10%" }}>Billing Deadline</th>
+              <th style={{ width: "10%" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {tenants.length > 0 ? (
               tenants.map((tenant, index) => (
                 <tr key={index}>
-                  <td>
+                  <td style={{ width: "5%" }}>
                     <input
                       type="checkbox"
                       checked={selectedTenantIds.has(tenant.id)}
                       onChange={() => handleCheckboxChange(tenant.id)}
                     />
                   </td>
-                  <td>{tenant.name}</td>
-                  <td>{tenant.unit}</td>
-                  <td>{tenant.email}</td>
-                  <td>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
-                  <td>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
-                  <td>{tenant.billingDeadline}</td>
-                  <td>
+                  <td style={{ width: "15%" }}>{tenant.name}</td>
+                  <td style={{ width: "10%" }}>{tenant.unit}</td>
+                  <td style={{ width: "20%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tenant.email}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
+                  <td style={{ width: "10%" }}>{tenant.billingDeadline}</td>
+                  <td style={{ width: "10%" }}>
                     <button onClick={() => handleViewProfile(tenant)}>View</button>
                   </td>
                 </tr>
@@ -451,6 +487,7 @@ function Tenants() {
         </button>
         <button onClick={handleSelectAll}>Select All</button>
         <button onClick={handleDeselectAll}>Unselect All</button>
+        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
       </div>
 
 
@@ -529,6 +566,18 @@ function Tenants() {
           </div>
         </div>
         
+      )}
+
+      {showDeleteModal && (
+        <div className='overlay'>
+          <div className='modal'>
+              <div>
+                  Are you sure you want to delete these tenants?
+              </div>
+              <button onClick={handleDeleteTenants}>Confirm</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+          </div>
+        </div>
       )}
     </div>
   );

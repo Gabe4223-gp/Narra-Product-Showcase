@@ -11,6 +11,7 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
     const [requestCancel, setRequestCancel] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [showRenewLease, setshowRenewLease] = useState(false);
+    const [previewLease, setPreviewLease] = useState(null);
    
     //Lease Generation const
     const [leaseStartDate, setLeaseStartDate] = useState('');
@@ -92,16 +93,6 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
         onFetchTenant();
         setSelectedDoc(null);
         setshowRenewLease(false);
-    };
-
-
-    // Function to handle document click (opens document viewer)
-    const handleViewDocument = (doc) => {
-        if (doc.fileContent && allowedTypes.includes(doc.fileType)) {
-            onloadLeaseDoc(doc); // Pass directly the clicked document
-        } else {
-            alert("Either no Lease has been uploaded or the file type is not a PDF or image");
-        }
     };
 
     const handleViewCurrentLease = async (tenantId, fileName) => {
@@ -187,6 +178,46 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                 </div>  
             )}
 
+            {previewLease && (
+                <div className='preview-lease-overlay'>
+                    <div className='preview-lease-modal'>
+                        {previewLease?.fileContent ? (
+                            (previewLease?.fileType === 'image/png' || 
+                                previewLease?.fileType === 'image/jpeg' || 
+                                previewLease?.fileType === 'image/jpg') ? (
+                                <img
+                                    id="imageViewer"
+                                    src={previewLease?.fileContent}
+                                    alt="Selected"
+                                    style={{
+                                        width: "100%",
+                                        height: "auto",
+                                        border: "1px solid #ccc",
+                                    }}
+                                />
+                            ) : previewLease?.fileType === 'application/pdf' ? (
+                                <iframe
+                                    id="pdfViewer"
+                                    src={previewLease?.fileContent}
+                                    style={{
+                                        width: "100%",
+                                        height: "600px",
+                                        border: "1px solid #ccc",
+                                    }}
+                                ></iframe>
+                            ) : (
+                                <p>Unsupported file type</p>
+                            )
+                        ) : (
+                            <p>No document selected</p>
+                        )}
+                        <div>
+                            <button onClick={() => setPreviewLease(null)}>Back</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {showRenewLease && (
                 <div className="lease-input-modal-overlay">
@@ -214,7 +245,7 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                         <div className="modal-actions">
                             {selectedDoc ? (
                                 <>
-                                <button onClick={() => handleViewDocument(selectedDoc)}>
+                                <button onClick={() => setPreviewLease(selectedDoc)}>
                                 Preview Lease
                                 </button>
                                 <button onClick={handleConfirmLeaseDoc}>

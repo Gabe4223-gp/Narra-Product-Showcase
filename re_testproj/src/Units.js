@@ -8,6 +8,7 @@ function Units() {
   const [properties, setProperties] = useState([]); // Handle property list
   const [units, setUnits] = useState([]);
   const [isAddingUnits, setIsAddingUnits] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState(new Set());
   const [showSizeUnitModal, setshowSizeUnitModal] = useState(false);
@@ -330,6 +331,41 @@ function Units() {
     }
   };
 
+  const handleDeleteUnits = async () => {
+
+    if (selectedUnitIds.size === 0) {
+      console.error("No units selected for deletion.");
+      return;
+    
+    }
+    try {
+        // Make a DELETE request to the backend with the propertyId
+        const response = await fetch(`http://localhost:5000/units/delete-all`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ unitIds: Array.from(selectedUnitIds), propertyId: selectedPropertyID}), // Send the propertyId in the request body
+        });
+
+        if (!response.ok) {
+            console.error("Failed to delete unit:", response.statusText);
+            return;
+        }
+
+        // Optionally handle the backend response
+        const data = await response.json();
+        console.log("Unit deleted successfully:", data);
+
+        fetchUnits(data.updatedUnitIds);
+        
+        setShowDeleteModal(false);
+
+    } catch (error) {
+        console.error("Error deleting unit:", error);
+    }
+  };
+
   //Non-database stuff//
 
   const handleCheckboxChange = (unitId) => {
@@ -477,6 +513,8 @@ function Units() {
         <button onClick={handleSelectAll}>Select All</button>
       
         <button onClick={handleDeselectAll}>Unselect All</button>
+
+        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
       
         
       </div>
@@ -536,6 +574,18 @@ function Units() {
             </div>
         </div>
         
+      )}
+
+      {showDeleteModal && (
+        <div className='overlay'>
+          <div className='modal'>
+              <div>
+                  Are you sure you want to delete these tenants?
+              </div>
+              <button onClick={handleDeleteUnits}>Confirm</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+          </div>
+        </div>
       )}
     </div>
   );

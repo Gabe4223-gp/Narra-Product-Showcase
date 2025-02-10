@@ -8,13 +8,42 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
     const [showModal, setShowModal] = useState(false); // Modal visibility state
 
     // Function to handle document click (opens document viewer)
-    const handleViewDocument = (doc) => {
-        if (doc.fileUrl) {
-            setSelectedDoc(doc);
-        } else {
-            alert("Invalid file type. Only PDFs and images are allowed.");
+    const handleViewDocument = async (issueId, fileName) => {
+        
+        try {
+            // Use query parameters instead of body
+            const response = await fetch(`http://localhost:5000/issues/get-doc?issueId=${issueId}&fileName=${fileName}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Retrieval failed: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            
+            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            console.log("Here's the doc", data);
+            console.log("Here's the cleanedBased", cleanedBase64);
+
+            const loadedDoc = {
+                fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+                fileName: fileName,  
+                fileType: data.fileType,
+            };
+
+            console.log("Here's the loadedDoc", loadedDoc);
+  
+            setSelectedDoc(loadedDoc);
+    
+        } catch (error) {
+            console.error("Error retrieving lease:", error);
         }
     };
+
 
     //Back from Doc view
     const handleBack = () => {
@@ -107,14 +136,14 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
                     <div className="issue-header">
                         <h5>Relevant Documents:</h5>
                     </div>
-                    <div className="issue-row">
+                    <div className="issue-doc-row">
                         {issue.documents && issue.documents.length > 0 ? (
                             issue.documents.map((doc, index) => (
                                 <div key={index} className="document-item" style={{ cursor: "pointer" }}>
                                     <a
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        onClick={() => handleViewDocument(doc)}
+                                        onClick={() => handleViewDocument(issue.id, doc)}
                                         style={{ textDecoration: "underline", color: "blue" }}
                                     >
                                         {`Document ${index + 1}`}

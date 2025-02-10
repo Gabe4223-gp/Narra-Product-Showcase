@@ -5,6 +5,7 @@ import PaymentHistory from './PaymentHistory.js';
 import "./TenantProfile.css";
 import DocumentViewer from './DocumentViewer.js';
 import Lease from './Lease.js';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth0 } from '@auth0/auth0-react';
   
 
@@ -18,6 +19,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
     const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
+    const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
 
     useEffect(() => {
@@ -45,6 +47,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                 creditCardNo: tenantDetails.creditCardNo,
                 creditCardDate: tenantDetails.creditCardDate,
                 primaryPaymentMethod: tenantDetails.primaryPaymentMethod,
+                govid: tenantDetails.govid,
             });
         }
     }, [tenantDetails]);
@@ -143,32 +146,103 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         setForPreview(true);
     }
 
-    // Function to handle Government ID view
-    const handleViewDocument = (doc) => {
+    const handleLoadLeaseDoc = (doc) => {
+        setSelectedDoc(doc);
+    }
 
-
-        setForPreview(false);
-
-
-        const allowedTypes = [
-            'application/pdf',        // PDF
-            'image/jpeg',             // JPEG image
-            'image/png',              // PNG image
-        ];
-   
-        // Check if the file has a valid MIME type
-        if (doc.fileUrl && allowedTypes.includes(doc.fileType)) {
-            setSelectedDoc(doc);
-        } else {
-            alert("Invalid file type. Only PDFs and images are allowed.");
+    const handleUploadGovernmentId = (event) => {
+        const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
+        const files = event.target.files;
+    
+        if (files.length > 1) {
+            alert("Please upload only one file.");
+            return;
+        }
+    
+        const file = files[0];
+    
+        if (file) {
+            if (!allowedTypes.includes(file.type)) {
+                alert("Invalid file type. Please upload a PDF or image.");
+                return;
+            }
+    
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const newDoc = {
+                    fileName: uuidv4(),
+                    fileContent: reader.result, // Base64 encoded
+                    dateUploaded: new Date().toISOString(),
+                    fileType: file.type,
+                };
+    
+                try {
+                    const response = await fetch('http://localhost:5000/tenants/upload-govid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fileName: newDoc.fileName,
+                            fileType: newDoc.fileType,
+                            fileContent: newDoc.fileContent,
+                            tenantId: tenantDetails.id,
+                        }),
+                    });
+    
+                    const data = await response.json();
+    
+                    if (response.ok) {
+                        console.log("Government ID uploaded successfully:", data.url);
+                        fetchTenantDetails();
+                        setViewGovernmentID(newDoc); // Update selected doc after successful upload
+                    } else {
+                        console.error("Upload failed:", data.message);
+                    }
+                } catch (error) {
+                    console.error("Error uploading government ID:", error);
+                }
+            };
+    
+            reader.readAsDataURL(file); // This triggers the onload handler
         }
     };
 
-    const handleLoadLeaseDoc = (doc) => {
-        console.log("Passed doc", doc);
-        setSelectedDoc(doc);
-        console.log("Selected Doc1", selectedDoc);
-    }
+    const handleViewGovernmentID = async (tenantId, fileName) => {
+        
+        try {
+            // Use query parameters instead of body
+            const response = await fetch(`http://localhost:5000/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Retrieval failed: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            
+            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            console.log("Here's the doc", data);
+            console.log("Here's the cleanedBased", cleanedBase64);
+
+            const loadedDoc = {
+                fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+                fileName: fileName,  
+                fileType: data.fileType,
+            };
+
+            console.log("Here's the loadedDoc", loadedDoc);
+  
+            setViewGovernmentID(loadedDoc);
+    
+        } catch (error) {
+            console.error("Error retrieving lease:", error);
+        }
+    };
 
     const handleDeleteTenant = async () => {
 
@@ -199,7 +273,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         } catch (error) {
             console.error("Error deleting tenant:", error);
         }
-      };
+    };
    
     if (selectedDoc !== null) {
         console.log("SelectedDoc2", selectedDoc);
@@ -211,7 +285,6 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             />
         )
       }
-
 
     return (
         <div className="tenant-profile">
@@ -235,7 +308,22 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                             <p>Lease Started:  {tenantDetails?.leaseStarted ?? ""}</p>
                             <p>Lease Expiry:  {tenantDetails?.leaseExpiry ?? ""}</p>
                             <p>Move In Date: {tenantDetails?.moveinDate ?? ""}</p>
-                            <button className='govid-button'>View Government ID</button>
+                            {tenantDetails?.govid?.length > 0 ? (
+                                <button className='govid-button' onClick={() => handleViewGovernmentID(tenantDetails.id, tenantDetails.govid[0])}>View Document</button>
+                            ) : (
+                                <div>
+                                    <label htmlFor="govid-upload" className="govid-button" style={{ cursor: "pointer" }}>
+                                        Upload Government ID
+                                    </label>
+                                    <input
+                                        id="govid-upload"
+                                        type="file"
+                                        onChange={(e) => handleUploadGovernmentId(e)}
+                                        style={{ display: "none" }} // Hide the input
+                                        accept="image/png, image/jpeg, application/pdf" // Restrict file types
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -282,7 +370,56 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                     
                 </div>
             </div>  
-
+            
+            {viewGovernmentID && (
+                <div className='overlay'>
+                    <div className='govid-modal'>
+                        {viewGovernmentID?.fileContent ? (
+                            (viewGovernmentID?.fileType === 'image/png' || 
+                                viewGovernmentID?.fileType === 'image/jpeg' || 
+                                viewGovernmentID?.fileType === 'image/jpg') ? (
+                                <img
+                                    id="imageViewer"
+                                    src={viewGovernmentID?.fileContent}
+                                    alt="Selected"
+                                    style={{
+                                        width: "100%",
+                                        height: "auto",
+                                        border: "1px solid #ccc",
+                                    }}
+                                />
+                            ) : viewGovernmentID?.fileType === 'application/pdf' ? (
+                                <iframe
+                                    id="pdfViewer"
+                                    src={viewGovernmentID?.fileContent}
+                                    style={{
+                                        width: "100%",
+                                        height: "600px",
+                                        border: "1px solid #ccc",
+                                    }}
+                                ></iframe>
+                            ) : (
+                                <p>Unsupported file type</p>
+                            )
+                        ) : (
+                            <p>No document selected</p>
+                        )}
+                        <div className='govid-action-buttons'>
+                            <button className="govid-button" onClick={() => setViewGovernmentID(null)}>Back</button>
+                            <label htmlFor="govid-upload" className="govid-button" style={{ cursor: "pointer" }}>
+                                Upload Government ID
+                            </label>
+                            <input
+                                id="govid-upload"
+                                type="file"
+                                onChange={(e) => handleUploadGovernmentId(e)}
+                                style={{ display: "none" }} // Hide the input
+                                accept="image/png, image/jpeg, application/pdf" // Restrict file types
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showDeleteModal && (
                 <div className='overlay'>
