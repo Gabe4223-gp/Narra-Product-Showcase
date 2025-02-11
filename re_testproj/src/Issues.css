@@ -104,7 +104,8 @@
     margin-bottom: 10px; /* Add space between rows */
 }
 
-.issue-container h3 {
+
+.issue-list h5 {
     font-size: 13px;
     color: #333;
     margin-bottom: 13px;    
@@ -115,3 +116,52 @@
 .addIssue button {
     margin-top: 50%;
 }
+
+.actions {
+    padding: 1%;
+    display: flex;
+    gap: 5px;
+}
+
+.issue-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.issue-list thead {
+position: sticky;
+top: 0;
+background: white; /* Keep headers visible */
+z-index: 10;
+}
+
+.issue-list th,
+.issue-list td {
+padding: 10px;
+border-bottom: 1px solid #ddd;
+text-align: left;
+}
+
+.issue-list tbody {
+display: block;
+max-height: 300px; /* Ensure tbody is scrollable */
+overflow-y: auto;
+width: 100%;
+}
+
+.issue-list tr {
+display: table;
+width: 100%;
+table-layout: fixed;
+}
+
+select#property-select {
+    margin-bottom: 3%;
+}
+
+.issue-list-top {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+    

@@ -101,13 +101,59 @@
 }
 
 .unit-container h3 {
-    font-size: 13px;
+    font-size: 15px;
     color: #333;
-    margin-bottom: 13px;    
-    margin-top: auto;
-    margin-left: 1%;
+    margin-top: 0;
 }
 
 .addUnit button {
     margin-top: 50%;
+}
+
+.actions {
+    padding: 1%;
+    display: flex;
+    gap: 5px;
+}
+
+.unit-list table {
+width: 100%;
+border-collapse: collapse;
+}
+
+.unit-list thead {
+position: sticky;
+top: 0;
+background: white; /* Keep headers visible */
+z-index: 10;
+}
+
+.unit-list th,
+.unit-list td {
+padding: 10px;
+border-bottom: 1px solid #ddd;
+text-align: left;
+}
+
+.unit-list tbody {
+display: block;
+max-height: 400px; /* Ensure tbody is scrollable */
+overflow-y: auto;
+width: 100%;
+}
+
+.unit-list tr {
+display: table;
+width: 100%;
+table-layout: fixed;
+}
+
+select#property-select {
+    margin-bottom: 3%;
+}
+
+.unit-list-top {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }

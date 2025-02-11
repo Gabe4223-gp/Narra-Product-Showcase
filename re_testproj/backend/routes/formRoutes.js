@@ -3,6 +3,7 @@ const { Form } = require('../models');
 const router = express.Router();
 const multer = require('multer');
 const fs = require('fs');
+//const { verifyToken, validateDoc } = require('../middleware/auth');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 

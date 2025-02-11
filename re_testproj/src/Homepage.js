@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
 import axios from 'axios';
@@ -65,13 +65,43 @@ class PropertyClass {
       };
   }
 }
+import { v4 as uuidv4 } from 'uuid';
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedPropertyIndex, setSelectedPropertyIndex] = useState(null); // Track selected property index
   const [uploadedImage, setUploadedImage] = useState(null);
-  const defaultImage = "https://via.placeholder.com/150"; // Replace with your preferred default image URL
+
+
+  const fetchProperties = async () => {
+
+      try {
+
+        const response = await fetch('http://localhost:5000/properties', {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties');
+        }
+        const data = await response.json();
+ 
+        setProperties(data); // Set tenants fetched from the database
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        alert('Failed to load properties. Please try again.');
+      }
+    };
+   
+    // useEffect to initially fetch tenants
+    useEffect(() => {
+      fetchProperties(); // Fetch tenants when component mounts
+    }, []);
+
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -88,53 +118,60 @@ function HomePage({ onLogout }) {
     const propertyName = document.getElementById("property-name").value;
     const propertyAddress = document.getElementById("property-address").value;
     const owner = document.getElementById("owner").value;
-  
-    // Optionally, upload image and get URL from state
-    const imageUrl = uploadedImage || defaultImage;
-  
+ 
+    // Default image if no image uploaded
+    const defaultImage = "https://img.icons8.com/ios-filled/100/000000/building.png";
+    const propertyImage = uploadedImage || defaultImage;
+ 
+    // Create a new property object
+    const newProperty = {
+      id: uuidv4(),
+      companyName,
+      propertyName,
+      address: propertyAddress,
+      image: propertyImage,
+      owner,
+      tenants: [],
+      units: [],
+    };
+    
     try {
-      // Make the API call to create the property
-      const response = await axios.post("/api/properties", {
-        propertyName,
-        companyName,
-        propertyAddress,
-        owner,
-        image: imageUrl,
+      // Make a POST request to the backend
+      const response = await fetch("http://localhost:5000/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProperty),
       });
-
-      // Map the returned backend property object to your frontend PropertyClass:
-      const backendProperty = response.data.property;
-      const newProperty = new PropertyClass(
-        backendProperty.id,
-        backendProperty.companyName,
-        backendProperty.name,         // propertyName is stored in 'name'
-        backendProperty.address,      // propertyAddress is stored in 'address'
-        backendProperty.image,
-        backendProperty.owner,
-        [], // tenants
-        [], // units
-        new Date(backendProperty.createdAt)
-      );
-  
-      // You might want to update local state based on the response.
-      // For instance, add the new property to your list:
-      setProperties([...properties, newProperty]);
-  
+ 
+      if (!response.ok) {
+        throw new Error("Failed to create property. Please try again.");
+      }
+ 
+      const createdProperty = await response.json();
+ 
+      // Update the frontend state with the new property
+      setProperties((prevProperties) => [...prevProperties, createdProperty]);
+ 
       // Hide the modal and reset the form
       setIsModalVisible(false);
-      setUploadedImage(null);
-      event.target.reset();
+      setUploadedImage(null); // Reset the image state
+      event.target.reset(); // Reset form fields
     } catch (error) {
-      console.error("Error saving property:", error);
-      alert("Error saving property. Please try again.");
+      console.error("Error creating property:", error.message);
+      alert("There was an error creating the property. Please try again.");
     }
   };
+
 
   const handleViewProperty = (index) => {
     setSelectedPropertyIndex(index); // Set the selected property index for the profile view
   };
 
+
   const handleBack = () => {
+    fetchProperties();
     setSelectedPropertyIndex(null); // Go back to the property list
   };
 
@@ -145,6 +182,7 @@ function HomePage({ onLogout }) {
       )
     );
   };
+
 
   if (selectedPropertyIndex !== null) {
     return (
@@ -157,6 +195,7 @@ function HomePage({ onLogout }) {
       />
     );
   }
+
 
   return (
     <div className="homepage">
@@ -174,7 +213,7 @@ function HomePage({ onLogout }) {
                 {property.propertyName}
               </button>
               <p>Company: {property.companyName}</p>
-              <p>Address: {property.propertyAddress}</p>
+              <p>Address: {property.address}</p>
               <p>Owner: {property.owner}</p>
             </div>
           ))
@@ -183,6 +222,7 @@ function HomePage({ onLogout }) {
           Create new property
         </button>
       </div>
+
 
       {isModalVisible && (
         <div id="property-modal">
@@ -228,5 +268,6 @@ function HomePage({ onLogout }) {
     </div>
   );
 }
+
 
 export default HomePage;

@@ -9,7 +9,9 @@
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  max-width: 20%;
 }
+
 
 .profile-header {
   display: flex; /* Use flexbox for alignment */
@@ -20,6 +22,7 @@
   padding-bottom: 10px;
 }
 
+
 .property-name {
   font-size: 16px; /* Adjusted for better visibility */
   font-weight: bold;
@@ -27,14 +30,19 @@
   margin: 0; /* Remove margins for better alignment */
 }
 
-.leases-header {
-  display: flex; /* Use flexbox for alignment */
-  align-items: center; /* Vertically align items */
-  justify-content: space-between; /* Space out the name and button */
-  border-bottom: 2px solid #ddd; /* Add a line below the property name */
-  margin-bottom: 10px; /* Add some space below the header */
-  padding-bottom: 10px;
+.property-image-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
+
+
+.leases-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 
 .invoices-header {
   display: flex; /* Use flexbox for alignment */
@@ -45,12 +53,14 @@
   padding-bottom: 10px;
 }
 
+
 .leases-title {
   font-size: 15px; /* Adjusted for better visibility */
   font-weight: bold;
   color: #333;
   margin: 0; /* Remove margins for better alignment */
 }
+
 
 .edit-button {
   background: none; /* Transparent background */
@@ -61,9 +71,11 @@
   transition: color 0.3s ease; /* Smooth transition for hover effect */
 }
 
+
 .edit-button:hover {
   color: #054ad2; /* Darker blue on hover */
 }
+
 
 .property-content {
   display: flex;
@@ -71,12 +83,14 @@
   width: 100%;
 }
 
+
 .property-image {
-  width: 40%; /* Image takes up 40% of the card width */
+  width: 50%; /* Image takes up 40% of the card width */
   height: auto; /* Maintain the aspect ratio */
   margin-right: 10%; /* Space between the image and the property details */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the image */
 }
+
 
 .property-data {
   width: 60%; /* Property details take up the remaining 60% */
@@ -84,11 +98,13 @@
   flex-direction: column; /* Stack the property details vertically */
 }
 
+
 .property-profile-card p {
   margin: 8px 0; /* Margin between paragraphs */
   font-size: 14px;
   color: #555;
 }
+
 
 .top-container {
   display: flex; /* Use flexbox for layout */
@@ -97,10 +113,12 @@
   margin-bottom: 20px; /* Space below the row */
 }
 
+
 .edit-controls {
   display: flex;
   flex-direction: column;
 }
+
 
 .edit-controls input {
   margin: 10px 0;
@@ -110,6 +128,7 @@
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
 
 .edit-controls button {
   padding: 0;
@@ -124,11 +143,13 @@
   margin-left: 80%;
 }
 
+
 .edit-controls button:hover {
   color: #0066ff; /* Blue color on hover */
 }
 
-.invoices-dashboard {
+
+.leases-dashboard {
   background-color: #ffffff;
   padding: 20px;
   border: 1px solid #ddd;
@@ -142,6 +163,7 @@
   flex: 1;
 }
 
+
 .back-button {
   padding: 0;
   background: none;
@@ -152,4 +174,115 @@
   transition: color 0.3s ease; /* Smooth transition for color */
   font-size: 12px;
   margin-bottom: 2%;
+}
+
+
+.leases-dashboard table {
+  width: 100%;
+  border-collapse: separate; /* Ensure rows have space between them */
+  border-spacing: 0 10px; /* Add space between rows */
+}
+
+
+.leases-dashboard tr {
+  background-color: white; /* Set the background for the "box" */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
+  border-radius: 8px; /* Round corners */
+  overflow: hidden; /* Ensure corners are rounded properly */
+}
+
+
+.leases-dashboard td {
+  padding: 10px 15px; /* Add padding for a spacious look */
+  font-size: 11px;
+}
+
+
+.leases-dashboard th {
+  text-align: left; /* Align headers to the left */
+  padding: 10px 15px;
+  background-color: #f5f5f5; /* Light gray background for headers */
+  border-bottom: 2px solid #ddd; /* Add bottom border for separation */
+  font-size: 12px;
+}
+
+
+.leases-dashboard tr:not(:last-child) {
+  margin-bottom: 10px; /* Add space between rows */
+}
+
+
+.leases-dashboard h3 {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 13px;    
+  margin-top: auto;
+  margin-left: 1%;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  padding: 3%;
+  width: 20%;
+  z-index: 1000;
+}
+
+.modal h3 {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 13px;    
+  margin-top: auto;
+}
+
+.modal form label {
+  display: flex;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.modal form input,
+.modal form select {
+  padding: 3%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 10%;
+  max-height: 10px;
+  max-width: 80%;
+}
+
+.modal form input[type="checkbox"] {
+  width: auto;
+  transform: scale(1.5);
+  margin-top: 2%;
+}
+
+.modal button {
+  padding: 10px 20px;
+  font-size: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal button:first-of-type {
+  background-color: #007bff;
+  color: white;
+  margin-right: 10px;
+  margin-top: 5%;
+}
+
+.modal button:last-of-type {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: row;
 }

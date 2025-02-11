@@ -6,9 +6,8 @@ import Header from './Header';
 import Homepage from './Homepage';
 import Billings from './Billings';
 import Applications from './Applications/Applications';
-// For landlord, you already have these:
-import Tenant from './Tenant';
-import Unit from './Unit';
+import Tenants from './Tenants';
+import Units from './Units';
 import Issues from './Issues';
 import Settings from './Settings/Settings';
 import Login from './Login';
@@ -68,8 +67,8 @@ function AppContent() {
               <Route path="homepage" element={<Homepage />} />
               <Route path="billing" element={<Billings />} />
               <Route path="applications" element={<Applications />} />
-              <Route path="tenant" element={<Tenant />} />
-              <Route path="unit" element={<Unit />} />
+              <Route path="tenant" element={<Tenants />} />
+              <Route path="unit" element={<Units />} />
               <Route path="issues" element={<Issues />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="homepage" replace />} />

@@ -5,197 +5,144 @@ import PaymentHistory from './PaymentHistory.js';
 import "./TenantProfile.css";
 import DocumentViewer from './DocumentViewer.js';
 import Lease from './Lease.js';
+import { v4 as uuidv4 } from 'uuid';
+import { useAuth0 } from '@auth0/auth0-react';
+  
 
-class AuthorizedOccupant {
-    constructor(name = "", email = "", phone = "", governmentID = null) {
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
-        this.governmentID = governmentID;
-    }
-}
 
-function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLeaseDocs, onEditTenantDetails}) {
-
-    // Generate a temporary tenant id if one is not provided
-    const generateTenantId = () => Math.floor(Math.random() * 1000000);
-
-    // Initialize editedTenant with a generated id if tenant.id is null/undefined
-    const initialTenant = tenant.id ? tenant : { ...tenant, id: generateTenantId() };
-    
-    const [editedTenant, setEditedTenant] = useState(initialTenant);
-    const [image, setImage] = useState(tenant.image);
-    const [showEditTenantDetails, setShowEditTenantDetails] = useState(false);
-    const [showAuthorizedModal, setShowAuthorizedModal] = useState(false);
-    const [newAuthorizedOccupant, setNewAuthorizedOccupant] = useState(new AuthorizedOccupant());
-    const [showAddOccupantInputs, setShowAddOccupantInputs] = useState(false);
-    const [authorizedOccupants, setAuthorizedOccupants] = useState(tenant.authorizedOccupants || []);
+function TenantProfile({tenantId, onBack, propertyId}) {
+    const defaultImage = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+    const [tenantDetails, setTenantDetails] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showEditTenantDetails, setshowEditTenantDetails] = useState(false);
+    const [editedTenant, setEditedTenant] = useState(null);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
+    const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
+    const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
   
     console.log("Tenant prop:", tenant);
     console.log("Edited tenant:", editedTenant);
 
-    // If the tenant prop changes, update editedTenant, generating an id if needed
     useEffect(() => {
-    if (!tenant.id) {
-      setEditedTenant({ ...tenant, id: generateTenantId() });
-    } else {
-      setEditedTenant(tenant);
-    }
-    }, [tenant]);
+        if (tenantDetails) {
+            setEditedTenant({
+                id: tenantDetails.id,
+                name: tenantDetails.name,
+                unit: tenantDetails.unit,
+                phone: tenantDetails.phone,
+                email: tenantDetails.email,
+                leaseStarted: tenantDetails.leaseStarted,
+                leaseExpiry: tenantDetails.leaseExpiry,
+                leaseDocs: tenantDetails.leaseDocs,
+                moveinDate: tenantDetails.moveinDate,
+                moveoutDate: tenantDetails.moveoutDate,
+                billingDeadline: tenantDetails.billingDeadline,
+                nationality: tenantDetails.nationality,
+                occupation: tenantDetails.occupation,
+                image: tenantDetails.image ?? defaultImage,
+                eWalletName: tenantDetails.eWalletName,
+                eWalletReferenceNo: tenantDetails.bankReferenceNo,
+                bankName: tenantDetails.bankName,
+                bankReferenceNo: tenantDetails.bankReferenceNo,
+                creditCardName: tenantDetails.creditCardName,
+                creditCardNo: tenantDetails.creditCardNo,
+                creditCardDate: tenantDetails.creditCardDate,
+                primaryPaymentMethod: tenantDetails.primaryPaymentMethod,
+                govid: tenantDetails.govid,
+            });
+        }
+    }, [tenantDetails]);
 
-    const saveEditTenant = () => {
-        if (
-            editedTenant.name &&
-            editedTenant.email &&
-            editedTenant.phone &&
-            editedTenant.occupation &&
-            editedTenant.nationality &&
-            editedTenant.moveinDate &&
-            editedTenant.moveoutDate
-        ) {
-            // Call the callback to update the parent component (Tenant.js)
-            onEditTenantDetails(editedTenant);
-            setShowEditTenantDetails(false);
-        } else {
-            alert("Please fill in all fields.");
+
+    const fetchTenantDetails = async () => {
+
+        try {
+          setTenantDetails(null); // Reset tenant details
+   
+          if (!tenantId) {
+            console.error("Please enter a tenant ID.");
+            return;
+          }
+   
+          // Make a request to the backend
+          const response = await fetch(`http://localhost:5000/tenants/${tenantId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+   
+          if (!response.ok) {
+            console.error("Failed to fetch tenant details");
+          }
+   
+          const data = await response.json();
+          setTenantDetails(data);
+
+
+        } catch (error) {
+          console.error("Error fetching tenant details:", error);
         }
     };
 
-    // Example handler for editing tenant details
-    const handleEditTenantChange = (field, value) => {
-        setEditedTenant((prevTenant) => ({
-          ...prevTenant,
-          [field]: value,
-        }));
+
+    // UseEffect to fetch tenant details right when the page loads
+    useEffect(() => {
+        fetchTenantDetails();
+    }, []);
+
+    //when handleUploadLeaseDoc happens, saveEditTenant() is invoked
+    useEffect(() => {
+        if (uploadLeaseDoc) {
+            saveEditTenant();
+        }
+    }, [uploadLeaseDoc]);
+
+
+    //Edit tenant
+    const handleEditTenantChange = (field, value) => {  
+        setEditedTenant({ ...editedTenant, [field]: value });
     };
 
-    // File validation utility
-    const handleEmptyField = (value) => 
-        (typeof value === "string" && value.trim() === "") || value == null ? "NA" : value;
+    const saveEditTenant = async () => {
 
-    const handleImageChange = (event) => {
-        const file = event.target.files[0];
-        if (file && file.type.startsWith("image/")) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setImage(reader.result);
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert("Please upload a valid image file.");
-        }
-    };
+        try {
+           
+            console.log("asjldf", editedTenant);
 
-    // Function to handle document click (opens document viewer)
-    const handleViewDocument = (doc) => {
 
-        const allowedTypes = [
-            'application/pdf',        // PDF
-            'image/jpeg',             // JPEG image
-            'image/png',              // PNG image
-        ];
-    
-        // Check if the file has a valid MIME type
-        if (doc.fileUrl && allowedTypes.includes(doc.fileType)) {
-            setSelectedDoc(doc);
-        } else {
-            alert("Invalid file type. Only PDFs and images are allowed.");
-        }
+            // Send tenant and selectedPropertyID to the backend
+            const response = await fetch('http://localhost:5000/tenants/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tenant: editedTenant,
+                propertyId: propertyId,
+               }),
+            });
+       
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error('Backend error:', errorMsg);
+              throw new Error('Failed to create tenant');
+            }
+     
+            // Optionally: If you have a function that fetches tenants by IDs
+            fetchTenantDetails();
+       
+            setshowEditTenantDetails(false);
+          } catch (error) {
+            console.error('Error creating tenant:', error);
+            alert(`Failed to save tenant. Error: ${error.message}`);
+          }
     };
 
     const handleBack = async () => {
         setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
-    };
-
-    const handleInputChange = (field, value) => {
-        setNewAuthorizedOccupant({ ...newAuthorizedOccupant, [field]: value });
-    };
-
-    const handleFileChange = (file) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-        if (file && allowedTypes.includes(file.type)) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const updateGovernmentID = {
-                    fileUrl: reader.result,
-                    dateUploaded: new Date().toISOString(),
-                    fileType: file.type,
-                };
-
-                setNewAuthorizedOccupant((prev) => ({
-                    ...prev,
-                    governmentID: updateGovernmentID, 
-                }));
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert('Invalid file type. Please upload an image or PDF.');
-        }
-    };
-
-    const handleAddAuthorizedOccupant = () => {
-        if (
-            newAuthorizedOccupant.name &&
-            newAuthorizedOccupant.email &&
-            newAuthorizedOccupant.phone &&
-            newAuthorizedOccupant.governmentID
-        ) {
-            const updatedAuthorizedOccupants = [
-                ...authorizedOccupants,
-                newAuthorizedOccupant,
-            ];
-            setAuthorizedOccupants(updatedAuthorizedOccupants);
-
-            // Call the callback to update the parent component (Tenant.js)
-            onUpdateAuthorizedOccupants(updatedAuthorizedOccupants);
-
-            // Reset the form and close inputs
-            setNewAuthorizedOccupant({ name: "", email: "", phone: "", governmentID: null });
-            setShowAddOccupantInputs(false);
-        } else {
-            alert("Please fill in all fields.");
-        }
-    };
-
-    const handleRemoveAuthorizedOccupant = (index) => {
-        const updatedAuthorizedOccupants = authorizedOccupants.filter((_, i) => i !== index);
-        setAuthorizedOccupants(updatedAuthorizedOccupants);
-
-        // Call the callback to update the parent component (Tenant.js)
-        onUpdateAuthorizedOccupants(updatedAuthorizedOccupants);
-    };
-
-    const renderAuthorizedOccupant = (occupant, index) => (
-        <tr key={index}>
-            <td>{occupant.name}</td>
-            <td>{occupant.email}</td>
-            <td>{occupant.phone}</td>
-            <td>
-                {occupant.governmentID ? (
-                    <a href="#" onClick={() => handleViewDocument(occupant.governmentID)}>
-                        View ID
-                    </a>
-                ) : (
-                    "Not Uploaded"
-                )}
-            </td>
-            <td>
-                <button onClick={() => handleRemoveAuthorizedOccupant(index)}>Remove</button>
-            </td>
-        </tr>
-    );
-
-    const handleMarkasMovedOut = () => {
-        setEditedTenant((prevTenant) => ({
-            ...prevTenant,
-            moveoutDate: new Date(),
-        }));
-
-        // Call the callback to update the parent component (Tenant.js)
-        onEditTenantDetails(editedTenant);
     };
 
     const handleSetForPreview = () => {
@@ -205,248 +152,407 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
     const handleLoadLeaseDoc = (doc) => {
         setSelectedDoc(doc);
     }
+
+    const handleUploadGovernmentId = (event) => {
+        const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
+        const files = event.target.files;
     
+        if (files.length > 1) {
+            alert("Please upload only one file.");
+            return;
+        }
+    
+        const file = files[0];
+    
+        if (file) {
+            if (!allowedTypes.includes(file.type)) {
+                alert("Invalid file type. Please upload a PDF or image.");
+                return;
+            }
+    
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const newDoc = {
+                    fileName: uuidv4(),
+                    fileContent: reader.result, // Base64 encoded
+                    dateUploaded: new Date().toISOString(),
+                    fileType: file.type,
+                };
+    
+                try {
+                    const response = await fetch('http://localhost:5000/tenants/upload-govid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fileName: newDoc.fileName,
+                            fileType: newDoc.fileType,
+                            fileContent: newDoc.fileContent,
+                            tenantId: tenantDetails.id,
+                        }),
+                    });
+    
+                    const data = await response.json();
+    
+                    if (response.ok) {
+                        console.log("Government ID uploaded successfully:", data.url);
+                        fetchTenantDetails();
+                        setViewGovernmentID(newDoc); // Update selected doc after successful upload
+                    } else {
+                        console.error("Upload failed:", data.message);
+                    }
+                } catch (error) {
+                    console.error("Error uploading government ID:", error);
+                }
+            };
+    
+            reader.readAsDataURL(file); // This triggers the onload handler
+        }
+    };
+
+    const handleViewGovernmentID = async (tenantId, fileName) => {
+        
+        try {
+            // Use query parameters instead of body
+            const response = await fetch(`http://localhost:5000/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Retrieval failed: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            
+            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            console.log("Here's the doc", data);
+            console.log("Here's the cleanedBased", cleanedBase64);
+
+            const loadedDoc = {
+                fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+                fileName: fileName,  
+                fileType: data.fileType,
+            };
+
+            console.log("Here's the loadedDoc", loadedDoc);
+  
+            setViewGovernmentID(loadedDoc);
+    
+        } catch (error) {
+            console.error("Error retrieving lease:", error);
+        }
+    };
+
+    const handleDeleteTenant = async () => {
+
+        const tenantId = tenantDetails.id;
+   
+        try {
+            // Make a DELETE request to the backend with the propertyId
+            const response = await fetch(`http://localhost:5000/tenants/delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tenantId, propertyId}), // Send the propertyId in the request body
+            });
+   
+            if (!response.ok) {
+                console.error("Failed to delete tenant:", response.statusText);
+                return;
+            }
+   
+            // Optionally handle the backend response
+            const data = await response.json();
+            console.log("Tenant deleted successfully:", data);
+            
+            setShowDeleteModal(false);
+            // Call the onBack function to return to the previous screen
+            onBack();
+        } catch (error) {
+            console.error("Error deleting tenant:", error);
+        }
+    };
+   
     if (selectedDoc !== null) {
+        console.log("SelectedDoc2", selectedDoc);
         return (
-          <DocumentViewer
+            <DocumentViewer
             onBack={handleBack}
             selectedDoc={selectedDoc}
             forPreview={forPreview}
-            tenant={tenant}
-          />
-        );
+            />
+        )
       }
 
-    return (
+      return (
         <div className="tenant-profile">
-            <button onClick={onBack}>Back</button>
-            <div className="tenant-top-section">
-                <div className="tenant-image-container">
-                    <img src={image} alt="Tenant" className="tenant-image" />
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="tenant-image-upload"
-                    />
+          <button onClick={onBack}>Back</button>
+      
+          <div className="tenant-top-section">
+            <div className="tenant-personal-details">
+              <div
+                className="tenant-header"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <h5>Personal Details</h5>
+                <button
+                  className="edit-button"
+                  onClick={() => setShowEditTenantDetails(true)}
+                >
+                  Edit
+                </button>
+              </div>
+      
+              <div className="tenant-row">
+                <div className="left-tenant-details">
+                  <p>Name: {tenantDetails?.name ?? ""}</p>
+                  <p>Unit Number: {tenantDetails?.unit ?? ""}</p>
+                  <p>Email: {tenantDetails?.email ?? ""}</p>
+                  <p>Phone number: {tenantDetails?.phone ?? ""}</p>
+                  <p>Nationality: {tenantDetails?.nationality ?? ""}</p>
                 </div>
-                <div className="tenant-personal-details">
-                    <div className='tenant-header'style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} >
-                        <h5>Personal Details</h5>
-                        <button onClick={() => setShowEditTenantDetails(true)}>Edit</button>
-                    </div>
-                    <div className="tenant-row">
-                        <div className="left-tenant-details">
-                            <p>Name:  {editedTenant.name}</p>
-                            <p>Unit Number:  {editedTenant.unit}</p>
-                            <p>Email:  {editedTenant.email}</p>
-                            <p>Phone number:  {editedTenant.phone}</p>
-                            <p>Nationality:  {editedTenant.nationality}</p>
-                        </div>
-                        <div className="right-tenant-details">
-                            <p>Occupation:  {editedTenant.occupation}</p>
-                            <p>Lease Started:  {editedTenant.leaseStarted ? editedTenant.leaseStarted : ""}</p>
-                            <p>Lease Expiry:  {editedTenant.leaseExpiry ? editedTenant.leaseExpiry : ""}</p>
-                            <p>Move In Date: {editedTenant.moveinDate}</p>
-                            <button
-                                className="authorized-occupants"
-                                onClick={() => setShowAuthorizedModal(true)}
-                            >
-                                View Authorized Occupants
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-                <div className="tenant-billing-details">
-                    <h5>Billing Details</h5>
-                    <div className='billing-details-row'>
-                        <div className='left-billing-details'>
-                            <p>eWallet Name:  {handleEmptyField(tenant.eWalletName)}</p>
-                            <p>Bank Name:  {handleEmptyField(tenant.bankName)}</p>
-                            <p>Credit Card Name:  {handleEmptyField(tenant.creditcardName)}</p>
-                        </div>
-                        <div className='right-billing-details'>
-                            <p>Primary Payment Method: {handleEmptyField(tenant.primaryPaymentMethod)}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className='tenant-mid-section'>
-              
-                <Lease
-                tenant={tenant}
-                onUpdateLeaseDocs={onUpdateLeaseDocs}
-                onloadLeaseDoc={handleLoadLeaseDoc}
-                onSetForPreview={handleSetForPreview}
-                />
-            
-
-                <div className="tenant-billing-activity">
-                    <PaymentHistory />
-                </div>
-                <div className="tenant-billing-account">
-                    <ManagePaymentMethods />
-                </div>
-            </div>
-
-            <div className="tenant-actions">
-                <h5>Actions</h5>
-                <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
-                <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
-                <button>Delete Tenant</button>
-            </div>
-            {showSendBillPopup && (
-                <SendBillPopup onClose={() => setShowSendBillPopup(false)}
-                tenantId={editedTenant.id}
-                />
-            )}
-
-            {showEditTenantDetails && (
-                    
-                    <div className="edit-tenant-modal">
-                        <h3>Edit Tenant</h3>
-                        <form>
-                        <label>
-                            Name:
-                            <input
-                            type="text"
-                            value={editedTenant.name || ''}
-                            onChange={(e) => handleEditTenantChange("name", e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Unit Number:
-                            <input
-                            type="text"
-                            value={editedTenant.unit || ''}
-                            onChange={(e) => handleEditTenantChange("unit", e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Phone Number:
-                            <input
-                            type="text"
-                            value={editedTenant.phone || ''}
-                            onChange={(e) => handleEditTenantChange("phone", e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Email:
-                            <input
-                            type="email"
-                            value={editedTenant.email || ''}
-                            onChange={(e) => handleEditTenantChange("email", e.target.value)}
-                            />
-                        </label>
-                        <label>
-                            Nationality:
-                            <input
-                            type="text"
-                            value={editedTenant.nationality || ''}
-                            onChange={(e) =>
-                                handleEditTenantChange("nationality", e.target.value)
-                            }
-                            />
-                        </label>
-                        <label>
-                            Occupation:
-                            <input
-                            type="text"
-                            value={editedTenant.occupation || ''}
-                            onChange={(e) =>
-                                handleEditTenantChange("occupation", e.target.value)
-                            }
-                            />
-                        </label>
-                        </form>
-                        <div>
-                        <button onClick={saveEditTenant}>Save</button>
-                        <button onClick={() => setShowEditTenantDetails(false)}>Cancel</button>
-                        </div>
-                    </div>
-     
-                )};
-
-            {showAuthorizedModal && (
-                <div className="authorized-modal-overlay">
-                    <div className="authorized-modal-box">
-                    <h5>Authorized Occupants</h5>
-                    <button onClick={() => setShowAuthorizedModal(false)} className="close-btn">Close</button>
-                    <div className="authorized-occupants-container">
-                        <table className="authorized-occupants-table">
-                        <thead>
-                            <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Government ID</th>
-                            <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {authorizedOccupants.length === 0 ? (
-                            <tr>
-                                <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
-                                No authorized occupants
-                                </td>
-                            </tr>
-                            ) : (
-                            authorizedOccupants.map(renderAuthorizedOccupant)
-                            )}
-                            {showAddOccupantInputs && (
-                            <tr>
-                                <td>
-                                <input
-                                    type="text"
-                                    placeholder="Name"
-                                    value={newAuthorizedOccupant.name}
-                                    onChange={(e) => handleInputChange("name", e.target.value)}
-                                />
-                                </td>
-                                <td>
-                                <input
-                                    type="email"
-                                    placeholder="Email"
-                                    value={newAuthorizedOccupant.email}
-                                    onChange={(e) => handleInputChange("email", e.target.value)}
-                                />
-                                </td>
-                                <td>
-                                <input
-                                    type="text"
-                                    placeholder="Phone"
-                                    value={newAuthorizedOccupant.phone}
-                                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                                />
-                                </td>
-                                <td>
-                                <input
-                                    type="file"
-                                    accept="image/*,application/pdf"
-                                    onChange={(e) => handleFileChange(e.target.files[0])}
-                                />
-                                </td>
-                            </tr>
-                            )}
-                        </tbody>
-                        </table>
-                    </div>
+      
+                <div className="right-tenant-details">
+                  <p>Occupation: {tenantDetails?.occupation ?? ""}</p>
+                  <p>Lease Started: {tenantDetails?.leaseStarted ?? ""}</p>
+                  <p>Lease Expiry: {tenantDetails?.leaseExpiry ?? ""}</p>
+                  <p>Move In Date: {tenantDetails?.moveinDate ?? ""}</p>
+                  {tenantDetails?.govid?.length > 0 ? (
                     <button
-                        onClick={() => setShowAddOccupantInputs(!showAddOccupantInputs)}
-                        className="add-btn"
+                      className="govid-button"
+                      onClick={() =>
+                        handleViewGovernmentID(tenantDetails.id, tenantDetails.govid[0])
+                      }
                     >
-                        {showAddOccupantInputs ? "Cancel" : "Add"}
+                      View Document
                     </button>
-                    {showAddOccupantInputs && (
-                        <button onClick={handleAddAuthorizedOccupant} className="save-btn">Save</button>
-                    )}
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor="govid-upload"
+                        className="govid-button"
+                        style={{ cursor: "pointer" }}
+                      >
+                        Upload Government ID
+                      </label>
+                      <input
+                        id="govid-upload"
+                        type="file"
+                        onChange={(e) => handleUploadGovernmentId(e)}
+                        style={{ display: "none" }} // Hide the input
+                        accept="image/png, image/jpeg, application/pdf" // Restrict file types
+                      />
                     </div>
+                  )}
                 </div>
-                )};
+              </div>
+            </div>
+      
+            <div className="tenant-billing-details">
+              <h5>Billing Details</h5>
+              <div className="billing-details-row">
+                <div className="left-billing-details">
+                  <p>eWallet Name: {tenantDetails?.eWalletName ?? ""}</p>
+                  <p>Bank Name: {tenantDetails?.bankName ?? ""}</p>
+                  <p>Credit Card Name: {tenantDetails?.creditcardName ?? ""}</p>
+                </div>
+                <div className="right-billing-details">
+                  <p>
+                    Primary Payment Method: {tenantDetails?.primaryPaymentMethod ?? ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+      
+          <div className="tenant-mid-section">
+            <PaymentHistory />
+            <div></div>
+          </div>
+      
+          <div className="tenant-bottom-section">
+            <Lease
+              tenantDetails={tenantDetails}
+              onFetchTenant={fetchTenantDetails}
+              onloadLeaseDoc={handleLoadLeaseDoc}
+              onSetForPreview={handleSetForPreview}
+            />
+            <div className="tenant-actions">
+              <h5>Actions</h5>
+              <div className="action-button">
+                <button onClick={() => setShowSendBillPopup(true)}>
+                  Create Bill
+                </button>
+                <button onClick={() => setShowDeleteModal(true)}>
+                  Delete Tenant
+                </button>
+              </div>
+            </div>
+          </div>
+      
+          {viewGovernmentID && (
+            <div className="overlay">
+              <div className="govid-modal">
+                {viewGovernmentID?.fileContent ? (
+                  viewGovernmentID?.fileType === 'image/png' ||
+                  viewGovernmentID?.fileType === 'image/jpeg' ||
+                  viewGovernmentID?.fileType === 'image/jpg' ? (
+                    <img
+                      id="imageViewer"
+                      src={viewGovernmentID?.fileContent}
+                      alt="Selected"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        border: "1px solid #ccc",
+                      }}
+                    />
+                  ) : viewGovernmentID?.fileType === 'application/pdf' ? (
+                    <iframe
+                      id="pdfViewer"
+                      src={viewGovernmentID?.fileContent}
+                      style={{
+                        width: "100%",
+                        height: "600px",
+                        border: "1px solid #ccc",
+                      }}
+                    ></iframe>
+                  ) : (
+                    <p>Unsupported file type</p>
+                  )
+                ) : (
+                  <p>No document selected</p>
+                )}
+                <div className="govid-action-buttons">
+                  <button
+                    className="govid-button"
+                    onClick={() => setViewGovernmentID(null)}
+                  >
+                    Back
+                  </button>
+                  <label
+                    htmlFor="govid-upload"
+                    className="govid-button"
+                    style={{ cursor: "pointer" }}
+                  >
+                    Upload Government ID
+                  </label>
+                  <input
+                    id="govid-upload"
+                    type="file"
+                    onChange={(e) => handleUploadGovernmentId(e)}
+                    style={{ display: "none" }} // Hide the input
+                    accept="image/png, image/jpeg, application/pdf" // Restrict file types
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+      
+          <div className="tenant-billing-account">
+            <ManagePaymentMethods />
+          </div>
+      
+          <div className="tenant-actions">
+            <h5>Actions</h5>
+            <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
+            <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
+            <button>Delete Tenant</button>
+          </div>
+      
+          {showSendBillPopup && (
+            <SendBillPopup
+              onClose={() => setShowSendBillPopup(false)}
+              tenantId={editedTenant.id}
+            />
+          )}
+      
+          {showDeleteModal && (
+            <div className="overlay">
+              <div className="modal">
+                <div>Are you sure you want to delete this tenant?</div>
+                <button onClick={handleDeleteTenant}>Confirm</button>
+                <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+      
+          {showEditTenantDetails && (
+            <div className="overlay">
+              <div className="edit-tenant-modal">
+                <h3>Edit Tenant</h3>
+                <form>
+                  <label>
+                    Name:
+                    <input
+                      type="text"
+                      value={editedTenant.name}
+                      onChange={(e) => handleEditTenantChange("name", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Unit Number:
+                    <input
+                      type="text"
+                      value={editedTenant.unit}
+                      onChange={(e) => handleEditTenantChange("unit", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Phone Number:
+                    <input
+                      type="text"
+                      value={editedTenant.phone}
+                      onChange={(e) => handleEditTenantChange("phone", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Email:
+                    <input
+                      type="email"
+                      value={editedTenant.email}
+                      onChange={(e) => handleEditTenantChange("email", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Nationality:
+                    <input
+                      type="text"
+                      value={editedTenant.nationality}
+                      onChange={(e) => handleEditTenantChange("nationality", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Occupation:
+                    <input
+                      type="text"
+                      value={editedTenant.occupation}
+                      onChange={(e) => handleEditTenantChange("occupation", e.target.value)}
+                    />
+                  </label>
+                </form>
+                <div>
+                  <button onClick={saveEditTenant}>Save</button>
+                  <button onClick={() => setShowEditTenantDetails(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-    );
+      );      
 }
+
 
 export default TenantProfile;

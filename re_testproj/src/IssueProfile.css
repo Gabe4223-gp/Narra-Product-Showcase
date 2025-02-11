@@ -47,7 +47,14 @@
     align-items: flex-start;
     width: 100%;
     margin-top: 10px;
-    gap: 20%;
+}
+
+.issue-doc-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin-top: 10px;
 }
 
 .left-issue-details,
@@ -61,14 +68,34 @@
 }
 
 .issue-details h5,
-.issue-details h6 {
-    font-size: 14px;
+.issue-details h6,
+.issue-documents h5,
+.issue-actions h5 {
+    font-size: 13px;
     font-weight: bold;
     margin-bottom: 15px;
-    padding-bottom: 5px;
+    padding-bottom: -2px;
     text-align: left;
     margin-top: 0%;
+    margin-bottom: 2%;
 
+}
+
+.issue-description h5 {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding-bottom: -2px;
+    text-align: left;
+    margin-top: 0%;
+    margin-bottom: 1%;
+}
+
+.edit-buttons {
+    padding-top: 5%;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
 }
 
 .issue-header {
