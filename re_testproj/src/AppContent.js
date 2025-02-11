@@ -40,6 +40,7 @@ function AppContent() {
             <Route path="/issues" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Issues /></ProtectedRoute>} />
             <Route path="/back" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Homepage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />
+            <Route path="/document-viewer" element={<ProtectedRoute isAuthenticated={isAuthenticated}><DocumentViewer /></ProtectedRoute>} />
           </Route>
         )}
         {/* Redirect Unknown Routes */}
