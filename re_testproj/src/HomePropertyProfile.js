@@ -1,6 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import './HomePropertyProfile.css';
+import OutstandingInvoice from './LandlordHompage/OutstandingInvoice';
+import { Link } from 'react-router-dom';
+import { FaChartBar, FaUsers, FaCog } from 'react-icons/fa';
 import DocumentViewer from './DocumentViewer.js';
 
 function HomePropertyProfile({ property, onBack }) {
@@ -344,9 +347,7 @@ function HomePropertyProfile({ property, onBack }) {
       </div>
       {/*Monthly invoices*/}
       <div className='invoices-dashboard'>
-        <div className='invoices-header'>
-          <h3 className="invoices-title">Invoices for September</h3>
-        </div>
+        <OutstandingInvoice propertyId={editableProperty.id} />
       </div>
       <div className='actions'>
         <button className='delete' onClick={() => setShowDeleteModal(true)}>Delete Property</button>

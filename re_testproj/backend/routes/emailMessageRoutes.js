@@ -1,11 +1,7 @@
 const express = require('express');
 const { EmailMessage } = require('../models'); // Import model
-const authenticateToken = require('../middleware/authMiddleware'); // OAuth middleware
 const nodemailer = require('nodemailer'); // For sending emails
 const router = express.Router();
-
-// Middleware to protect all routes
-router.use(authenticateToken);
 
 // Fetch email messages with pagination
 router.get('/', async (req, res) => {

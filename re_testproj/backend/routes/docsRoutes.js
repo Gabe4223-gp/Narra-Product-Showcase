@@ -1,6 +1,5 @@
 const express = require('express');
 const { Doc } = require('../models');
-//const { verifyToken, validateDoc } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');

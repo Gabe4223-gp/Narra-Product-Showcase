@@ -1,0 +1,117 @@
+/* src/TenantSettings.css */
+
+/* Container */
+.settings-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+/* Section Headers */
+h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+h4 {
+    font-size: 18px;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+/* Fields */
+.fields {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.fields label {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.fields input {
+    flex: 2;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Billing Options */
+.billing-options {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.billing-options span {
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: #007bff;
+    border: 1px solid transparent;
+}
+
+.billing-options span.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.billing-options span:hover {
+    background-color: #e0f3ff;
+}
+
+/* Buttons */
+.edit-btn,
+.link-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.edit-btn:hover,
+.link-btn:hover {
+    background-color: #0056b3;
+}
+
+.link-btn {
+    background: none;
+    color: #007bff;
+    text-decoration: underline;
+    border: none;
+    padding: 0;
+}
+
+.link-btn:hover {
+    color: #0056b3;
+}
+
+/* Danger Button */
+.link-btn.danger {
+    color: #dc3545;
+}
+
+.link-btn.danger:hover {
+    color: #b52b27;
+}
+
+/* Help Section */
+.settings-container a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.settings-container a:hover {
+    text-decoration: underline;
+}
