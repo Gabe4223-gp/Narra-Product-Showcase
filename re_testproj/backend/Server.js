@@ -80,6 +80,11 @@ app.use((err, req, res, next) => {
   next();
 });
 
+const limit = '50mb';
+app.use(express.json({ limit })); 
+app.use(express.urlencoded({ limit, extended: true }));
+console.log("Limit is", limit);
+
 // Serve static files (invoices) from the 'invoices' directory
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/uploads', express.static('uploads'));
