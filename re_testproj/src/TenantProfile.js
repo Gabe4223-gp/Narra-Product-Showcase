@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react';
-import PaymentMethods from './PaymentMethods.js';
+import ManagePaymentMethods from './TenantView/ManagePaymentMethods';
 import SendBillPopup from './SendBillPopup.js';
 import PaymentHistory from './PaymentHistory.js';
 import "./TenantProfile.css";
@@ -16,32 +16,16 @@ class AuthorizedOccupant {
 }
 
 function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLeaseDocs, onEditTenantDetails}) {
+
+    // Generate a temporary tenant id if one is not provided
+    const generateTenantId = () => Math.floor(Math.random() * 1000000);
+
+    // Initialize editedTenant with a generated id if tenant.id is null/undefined
+    const initialTenant = tenant.id ? tenant : { ...tenant, id: generateTenantId() };
     
+    const [editedTenant, setEditedTenant] = useState(initialTenant);
     const [image, setImage] = useState(tenant.image);
-    const [showEditTenantDetails, setshowEditTenantDetails] = useState(false);
-    const [editedTenant, setEditedTenant] = useState({
-        id: tenant.id,
-        name: tenant.Name,
-        unit: tenant.Unit,
-        phone: tenant.Phone,
-        email: tenant.Email,
-        leaseStarted: tenant.LeaseStarted,
-        leaseExpiry: tenant.LeaseExpiry,
-        moveinDate: tenant.moveinDate,
-        moveoutDate: tenant.moveoutDate,
-        billingDeadline: tenant.BillingDeadline,
-        nationality: tenant.Nationality,
-        occupation: tenant.Occupation,
-        authorizedOccupants: tenant.AuthorizedOccupants,
-        eWalletName: tenant.EWalletName,
-        eWalletReferenceNo: tenant.EWalletReferenceNo,
-        bankName: tenant.BankName,
-        bankReferenceNo: tenant.BankReferenceNo,
-        creditcardName: tenant.CreditCardName,
-        creditcardNo: tenant.CreditCardNo,
-        creditcardDate: tenant.CreditCardDate,
-        primaryPaymentMethod: tenant.primaryPaymentMethod
-    });
+    const [showEditTenantDetails, setShowEditTenantDetails] = useState(false);
     const [showAuthorizedModal, setShowAuthorizedModal] = useState(false);
     const [newAuthorizedOccupant, setNewAuthorizedOccupant] = useState(new AuthorizedOccupant());
     const [showAddOccupantInputs, setShowAddOccupantInputs] = useState(false);
@@ -49,20 +33,18 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
+  
+    console.log("Tenant prop:", tenant);
+    console.log("Edited tenant:", editedTenant);
 
-    //Edit tenant
-    const handleEditTenantChange = (field, value) => {
-        
-        setEditedTenant((prevTenant) => ({
-            ...prevTenant,
-            [field]: value,
-        }));
-    };
-
-    // Set editable tenant whenever the prop changes
+    // If the tenant prop changes, update editedTenant, generating an id if needed
     useEffect(() => {
-        setEditedTenant(tenant);
-    }, [tenant]); // Only re-run if the tenant prop changes
+    if (!tenant.id) {
+      setEditedTenant({ ...tenant, id: generateTenantId() });
+    } else {
+      setEditedTenant(tenant);
+    }
+    }, [tenant]);
 
     const saveEditTenant = () => {
         if (
@@ -76,10 +58,18 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
         ) {
             // Call the callback to update the parent component (Tenant.js)
             onEditTenantDetails(editedTenant);
-            setshowEditTenantDetails(false);
+            setShowEditTenantDetails(false);
         } else {
             alert("Please fill in all fields.");
         }
+    };
+
+    // Example handler for editing tenant details
+    const handleEditTenantChange = (field, value) => {
+        setEditedTenant((prevTenant) => ({
+          ...prevTenant,
+          [field]: value,
+        }));
     };
 
     // File validation utility
@@ -243,7 +233,7 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                 <div className="tenant-personal-details">
                     <div className='tenant-header'style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} >
                         <h5>Personal Details</h5>
-                        <button onClick={() => setshowEditTenantDetails(true)}>Edit</button>
+                        <button onClick={() => setShowEditTenantDetails(true)}>Edit</button>
                     </div>
                     <div className="tenant-row">
                         <div className="left-tenant-details">
@@ -297,7 +287,7 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                     <PaymentHistory />
                 </div>
                 <div className="tenant-billing-account">
-                    <PaymentMethods />
+                    <ManagePaymentMethods />
                 </div>
             </div>
 
@@ -308,7 +298,9 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                 <button>Delete Tenant</button>
             </div>
             {showSendBillPopup && (
-                <SendBillPopup onClose={() => setShowSendBillPopup(false)} />
+                <SendBillPopup onClose={() => setShowSendBillPopup(false)}
+                tenantId={editedTenant.id}
+                />
             )}
 
             {showEditTenantDetails && (
@@ -371,7 +363,7 @@ function TenantProfile({ tenant, onBack, onUpdateAuthorizedOccupants, onUpdateLe
                         </form>
                         <div>
                         <button onClick={saveEditTenant}>Save</button>
-                        <button onClick={() => setshowEditTenantDetails(false)}>Cancel</button>
+                        <button onClick={() => setShowEditTenantDetails(false)}>Cancel</button>
                         </div>
                     </div>
      

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './HomePropertyProfile.css';
+import OutstandingInvoice from './LandlordHompage/OutstandingInvoice';
 import { Link } from 'react-router-dom';
 import { FaChartBar, FaUsers, FaCog } from 'react-icons/fa';
 
@@ -110,9 +111,7 @@ function HomePropertyProfile({ property, onBack }) {
       </div>
       {/*Monthly invoices*/}
       <div className='invoices-dashboard'>
-        <div className='invoices-header'>
-          <h3 className="invoices-title">Invoices for September</h3>
-        </div>
+        <OutstandingInvoice propertyId={editableProperty.id} />
       </div>
     </div>
   );

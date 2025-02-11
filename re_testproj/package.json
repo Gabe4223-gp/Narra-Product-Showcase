@@ -20,11 +20,12 @@
     "web-vitals": "^4.2.4",
     "xlsx": "^0.18.5"
   },
+  "proxy": "http://localhost:5000",
   "scripts": {
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "start:frontend": "react-scripts start",
     "start:backend": "cd backend && node Server.js --inspect=9229",
-    "start:redis": "\"C:/Users/gpayu/Redis/redis-server.exe\" --daemonize yes",
+    "start:redis": "\"C:/Users/gpayu/Redis/redis-server.exe\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

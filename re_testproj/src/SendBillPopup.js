@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, onSend }) {
-  const BaseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+function SendBillPopup({ onClose, onSend, tenantId }) {
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
   const [utilityFees, setUtilityFees] = useState([{ name: '', amount: '' }]);
@@ -65,39 +65,27 @@ function SendBillPopup({ onClose, onSend }) {
   };
 
   const handleSubmit = async () => {
-    if (!validateFields()) return;
-
-    const billData = {
-      subject,
-      rentalAmount,
-      utilityFees,
-      otherFees,
-      taxRate,
-      totalAmount,
-      deadline,
-      email,
-    };
-
-    try {
-      const response = await fetch(`${BaseURL}/api/send-bill`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(billData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send the bill.');
-      }
-
-      const data = await response.json();
-      alert(data.message);
-    } catch (error) {
-      console.error('Error sending bill:', error);
-      alert('Failed to send the bill. Please try again.');
+    // Check that the deadline field is set
+    console.log("Updating deadline with:", { tenantId, deadline });
+    if (!deadline) {
+      alert("Please add a deadline");
+      return;
     }
-
+    if (!validateFields()) return;
+  
+    try {
+      // Update the billing deadline in Units
+      await axios.put(`/api/sendBill/update-deadline`, { tenantId, deadline });
+  
+      // Update the total cost in Units
+      await axios.put(`/api/sendBill/update-total`, { tenantId, totalAmount });
+  
+      alert("Bill sent successfully.");
+    } catch (error) {
+      console.error("Error sending bill:", error);
+      alert("Failed to send the bill. Please try again.");
+    }
+  
     onClose();
   };
 

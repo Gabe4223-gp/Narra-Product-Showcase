@@ -1,14 +1,10 @@
 const express = require('express');
 const { Form } = require('../models');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/authMiddleware'); // OAuth middleware
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-
-// Middleware to protect all routes
-router.use(authenticateToken);
 
 // Multer setup for file uploads
 const upload = multer({
@@ -27,12 +23,7 @@ const upload = multer({
 });
 
 // Save a new form
-router.post(
-  '/',
-  verifyToken,
-  upload.fields([{ name: 'photo' }, { name: 'governmentId' }]),
-  validateForm,
-  async (req, res) => {
+router.post('/', upload.fields([{ name: 'photo' }, { name: 'governmentId' }]), async (req, res) => {
     try {
       const { name, type, personalDetails, billingDetails, content } = req.body;
 
@@ -144,3 +135,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete form' });
   }
 });
+
+module.exports = router;

@@ -1,6 +1,5 @@
 const express = require('express');
 const { Doc } = require('../models');
-const { verifyToken, validateDoc } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +7,7 @@ const path = require('path');
 const router = express.Router();
 
 // Fetch all documents with pagination
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { page = 1, limit = 5 } = req.query;
     const offset = (page - 1) * limit;
@@ -27,7 +26,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // Save a new document
-router.post('/', verifyToken, validateDoc, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, type, content } = req.body;
 
@@ -59,7 +58,7 @@ router.post('/', verifyToken, validateDoc, async (req, res) => {
 });
 
 // Download document PDF
-router.get('/:id/download', verifyToken, async (req, res) => {
+router.get('/:id/download', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -80,7 +79,7 @@ router.get('/:id/download', verifyToken, async (req, res) => {
 });
 
 // Delete a document
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 

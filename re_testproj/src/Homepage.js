@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
+import axios from 'axios';
 
 class PropertyClass {
   constructor(
@@ -79,35 +80,54 @@ function HomePage({ onLogout }) {
     }
   };
 
-  const handleFormSubmit = (event) => {
+  const handleFormSubmit = async (event) => {
     event.preventDefault();
-
+  
     // Get input values
     const companyName = document.getElementById("company-name").value;
     const propertyName = document.getElementById("property-name").value;
     const propertyAddress = document.getElementById("property-address").value;
     const owner = document.getElementById("owner").value;
+  
+    // Optionally, upload image and get URL from state
+    const imageUrl = uploadedImage || defaultImage;
+  
+    try {
+      // Make the API call to create the property
+      const response = await axios.post("/api/properties", {
+        propertyName,
+        companyName,
+        propertyAddress,
+        owner,
+        image: imageUrl,
+      });
 
-    // Create a new property object
-    const newProperty = new PropertyClass(
-      Math.random(),
-      companyName,
-      propertyName,
-      propertyAddress,
-      uploadedImage || defaultImage,
-      owner,
-      [],
-      [],
-      new Date(),
-    )
-
-    // Add the new property to the state
-    setProperties([...properties, newProperty]);
-
-    // Hide the modal and reset the form
-    setIsModalVisible(false);
-    setUploadedImage(null); // Reset the image state
-    event.target.reset(); // Reset form fields
+      // Map the returned backend property object to your frontend PropertyClass:
+      const backendProperty = response.data.property;
+      const newProperty = new PropertyClass(
+        backendProperty.id,
+        backendProperty.companyName,
+        backendProperty.name,         // propertyName is stored in 'name'
+        backendProperty.address,      // propertyAddress is stored in 'address'
+        backendProperty.image,
+        backendProperty.owner,
+        [], // tenants
+        [], // units
+        new Date(backendProperty.createdAt)
+      );
+  
+      // You might want to update local state based on the response.
+      // For instance, add the new property to your list:
+      setProperties([...properties, newProperty]);
+  
+      // Hide the modal and reset the form
+      setIsModalVisible(false);
+      setUploadedImage(null);
+      event.target.reset();
+    } catch (error) {
+      console.error("Error saving property:", error);
+      alert("Error saving property. Please try again.");
+    }
   };
 
   const handleViewProperty = (index) => {

@@ -7,26 +7,32 @@ const emailMessageRoutes = require('./routes/emailMessageRoutes');
 const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
 const formRoutes = require('./routes/formRoutes');
 const docsRoutes = require('./routes/docsRoutes');
-const checkJwt = require('./middleware/authMiddleware');
+const userProfileRoutes = require('./routes/userProfileRoutes');
+const propertiesRoutes = require('./routes/propertiesRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const sendBillRoutes = require('./routes/sendBillRoutes');
+
+//Commenting out authMiddleware for now.
+//const authenticateToken = require('./middleware/authMiddleware');
+
 const protectedRoutes = require('./routes/protectedRoutes');
+const tenantSettings = require('./routes/tenantSettings');
+const TenantHomepage = require('./routes/tenantHomepage');
 const { createPaymongoIntent } = require('./paymongoService');
 const { createGCashIntent } = require('./paymongoService');
 const cors = require('cors');
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
-const BaseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const corsOptions = {
-  origin: 'https://www.narra-ph.com',
+  origin: ['https://narra-ph.com', 'http://localhost:3000'], //production frontend domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], //allowed HTTP methods
   optionsSuccessStatus: 200,
-  credentials:true,
+  credentials:true, //include cookies, authorization header, etc.
 };
 // server.js (Ensure proper error handling and logging)
 const morgan = require('morgan');
 //const Stripe = require('stripe');
 const app = express();
-//Temporary data storage
-const Redis = require('ioredis');
-const redis = new Redis(); // Defaults to localhost:6379
 //Connect to AWS
 const AWS = require('aws-sdk');
 //Configure AWS SDK
@@ -42,6 +48,21 @@ const Bull = require('bull');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const { JwksRateLimitError } = require('jwks-rsa');
+
+//Temporary Data Storage
+const Redis = require('ioredis');
+// Use an environment variable for the Redis URL.
+// For local development, you can have REDIS_URL=redis://127.0.0.1:6379 in your .env file.
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const redis = new Redis(redisUrl);
+redis.on('connect', () => {
+  console.log('Connected to Redis successfully.');
+});
+
+redis.on('error', (err) => {
+  console.error('Redis connection error:', err);
+});
+
 // Initialize Bull queue
 const invoiceQueue = new Bull('invoice-generation', {
   redis: {
@@ -50,15 +71,24 @@ const invoiceQueue = new Bull('invoice-generation', {
   },
 });
 
-//Authentification
+
+
+//Call apis
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
-app.use('/api/emails', checkJwt, emailMessageRoutes);
-app.use('/api/applications', checkJwt, tenantApplicationRoutes);
-app.use('/api/forms', checkJwt, formRoutes);
-app.use('/api/docs', checkJwt, docsRoutes);
+app.use('/api/emails', emailMessageRoutes);
+app.use('/api/applications', tenantApplicationRoutes);
+app.use('/api/forms', formRoutes);
+app.use('/api/docs', docsRoutes);
+app.use('/api/user-profile', userProfileRoutes);
+app.use('/files', express.static('public/files'));
+app.use('/tenant', TenantHomepage);
+app.use('/tenant/settings', tenantSettings);
+app.use('/api/properties', propertiesRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/sendBill', sendBillRoutes);
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -88,16 +118,16 @@ app.get('/', (req, res) => {
 
 
 
-// Initialize Sequelize with PostgreSQL
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
-  logging: console.log, // Disable logging; enable for debugging
+  logging: console.log, // You might want to disable logging in production by setting logging: false.
 });
 
 sequelize.authenticate()
-.then(() => console.log('Database connection has been established successfully.'))
-.catch((err) => console.error('Unable to connect to the database:', err));
+  .then(() => console.log('Database connection has been established successfully.'))
+  .catch((err) => console.error('Unable to connect to the database:', err));
+
 
 app.get('/db-test', async (req, res) => {
   try {
@@ -178,7 +208,7 @@ sequelize.sync()
 
 //Billings.js AND Tenant.js PAYMENT API ENDPOINTS
 // Paginated Payments API (Checking Payment History)
-app.get('/api/payments', checkJwt, async (req, res) => {
+app.get('/api/payments', async (req, res) => {
   console.log('Query Params:', req.query);
   const page = Number.parseInt(req.query.page, 10);
   const limit = Number.parseInt(req.query.limit, 10);
@@ -255,7 +285,7 @@ app.get('/api/payments', checkJwt, async (req, res) => {
 });
 
 //Saves Payment History with Billings.js Format to PostgreSQL
-app.post('/save-payment-history', checkJwt, async (req, res) => {
+app.post('/save-payment-history', async (req, res) => {
   console.log("request body: ", req.body);
   const { client_id, external_id, name, amountPaid, totalAmount, dateOfPayment, subject, invoiceUrl } = req.body;
 
@@ -299,7 +329,7 @@ app.post('/save-payment-history', checkJwt, async (req, res) => {
 });
 
 //Payment API Through Mastercard/Visa
-app.post('/create-payment-intent', checkJwt, async (req, res) => {
+app.post('/create-payment-intent', async (req, res) => {
   console.log('Request Headers: ', req.headers);
   console.log('Decoded JWT payload:', req.auth.payload);
   const { amount } = req.body;
@@ -487,7 +517,7 @@ app.post('/api/send-bill', async (req, res) => {
 //I DON'T REMEMBER EXACTLY WHAT THESE ARE FOR, BUT THEY ARE IN THE BILLING.JS OR PAYMENT METHOD
 
 //Endpoint for uploading invoice if necessary
-app.post('/api/upload-invoice', checkJwt, async (req, res) => {
+app.post('/api/upload-invoice', async (req, res) => {
   const { fileName, fileType, fileContent} = req.body; //Adjust based on frontend implementation
 
   const params = {
@@ -508,7 +538,7 @@ app.post('/api/upload-invoice', checkJwt, async (req, res) => {
 });
 
 // Endpoint to enqueue invoice generation
-app.post('/api/generate-invoice', checkJwt, async (req, res) => {
+app.post('/api/generate-invoice', async (req, res) => {
   const { paymentId } = req.body;
 
   try {

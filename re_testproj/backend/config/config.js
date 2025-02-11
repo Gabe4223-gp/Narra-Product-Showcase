@@ -6,7 +6,7 @@ module.exports = {
   development: {
     "username": "postgres",
     "password": "***REMOVED***",
-    "database": "narra_payment_history",
+    "database": "narra_database",
     "host": "127.0.0.1",
     "port": 5432,
     "dialect": "postgres"
@@ -14,14 +14,14 @@ module.exports = {
   test: {
     "username": "postgres",
     "password": "***REMOVED***",
-    "database": "narra_payment_history",
+    "database": "narra_database",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   production: {
     "username": "postgres",
     "password": "***REMOVED***",
-    "database": "narra_payment_history",
+    "database": "narra_database",
     "host": "127.0.0.1",
     "dialect": "postgres"
   }
