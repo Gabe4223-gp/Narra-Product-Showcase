@@ -2,6 +2,9 @@ import React, { useState, useEffect} from 'react';
 import './Utilities.css';
 
 function Utilities({ unit, fetchUnitDetails }) {
+    // Generate last 10 years for selection
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
     const [showWaterReadingModal, setShowWaterReadingModal] = useState(false);
     const [showElectricityReadingModal, setShowElectricityReadingModal] = useState(false);
     const [tempReading, setTempReading] = useState({ last: '', current: '' }); // Temporary storage
@@ -9,6 +12,9 @@ function Utilities({ unit, fetchUnitDetails }) {
     const [editingIndex, setEditingIndex] = useState(null)
     const [showModal, setShowModal] = useState(false); // Manage modal visibility
     const [modalType, setModalType] = useState(''); // 'water' or 'electricity'
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedYear2, setSelectedYear2] = useState(currentYear);
+    
 
     useEffect(() => {
         if (unit) {
@@ -273,13 +279,29 @@ function Utilities({ unit, fetchUnitDetails }) {
                 
             )}
 
-           {/* Water Readings */}
+            {/* Water Readings */}
             <div className="reading-table">
                 <div className="reading-header">
                     <h5>Water Readings</h5>
                     <button className="reading-button" onClick={() => setShowWaterReadingModal(true)}>Add</button>
+
+                    {/* Year Selection Dropdown */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span>Select Year:</span>
+                            <select
+                                style={{ fontSize: "12px", padding: "2px 4px" }}
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                            >
+                                {years.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
-                
+
                 <table>
                     <thead>
                         <tr>
@@ -293,25 +315,30 @@ function Utilities({ unit, fetchUnitDetails }) {
                     </thead>
                     <tbody>
                         {unit?.waterLastReading?.length > 0 ? (
-                            unit.waterLastReading.map((item, index) => {
-                                const currentReadingItem = unit.waterCurrentReading ? unit.waterCurrentReading[index] : null;
-                                const readingDifference = currentReadingItem?.reading && item?.reading 
-                                    ? currentReadingItem.reading - item.reading 
-                                    : "N/A";
+                            unit.waterLastReading
+                                .filter(item => {
+                                    const itemDate = new Date(item.date);
+                                    return itemDate.getFullYear() === selectedYear;
+                                })
+                                .map((item, index) => {
+                                    const currentReadingItem = unit.waterCurrentReading ? unit.waterCurrentReading[index] : null;
+                                    const readingDifference = currentReadingItem?.reading && item?.reading 
+                                        ? currentReadingItem.reading - item.reading 
+                                        : "N/A";
 
-                                return (
-                                    <tr key={index}>
-                                        <td>{item.reading || "No Readings"}</td>
-                                        <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
-                                        <td>{currentReadingItem?.reading || "No Readings"}</td>
-                                        <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
-                                        <td>{readingDifference}</td>
-                                        <td>
-                                            <button onClick={() => openEditModal('water', index)}>Edit</button>
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                                    return (
+                                        <tr key={index}>
+                                            <td>{item.reading || "No Readings"}</td>
+                                            <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
+                                            <td>{currentReadingItem?.reading || "No Readings"}</td>
+                                            <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
+                                            <td>{readingDifference}</td>
+                                            <td>
+                                                <button onClick={() => openEditModal('water', index)}>Edit</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                         ) : (
                             <tr>
                                 <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
@@ -328,6 +355,22 @@ function Utilities({ unit, fetchUnitDetails }) {
                 <div className="reading-header">
                     <h5>Electricity Readings</h5>
                     <button className="reading-button" onClick={() => setShowElectricityReadingModal(true)}>Add</button>
+                    
+                    {/* Year Selection Dropdown */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span>Select Year:</span>
+                            <select
+                                style={{ fontSize: "12px", padding: "2px 4px" }}
+                                value={selectedYear2}
+                                onChange={(e) => setSelectedYear2(parseInt(e.target.value, 10))}
+                            >
+                                {years.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
                 
                 <table>
@@ -343,25 +386,30 @@ function Utilities({ unit, fetchUnitDetails }) {
                     </thead>
                     <tbody>
                         {unit?.electricityLastReading?.length > 0 ? (
-                            unit.electricityLastReading.map((item, index) => {
-                                const currentReadingItem = unit.electricityCurrentReading ? unit.electricityCurrentReading[index] : null;
-                                const readingDifference = currentReadingItem?.reading && item?.reading 
-                                    ? currentReadingItem.reading - item.reading 
-                                    : "N/A";
+                            unit.electricityLastReading
+                                .filter(item => {
+                                    const itemDate = new Date(item.date);
+                                    return itemDate.getFullYear() === selectedYear2;
+                                })
+                                .map((item, index) => {
+                                    const currentReadingItem = unit.electricityCurrentReading ? unit.electricityCurrentReading[index] : null;
+                                    const readingDifference = currentReadingItem?.reading && item?.reading 
+                                        ? currentReadingItem.reading - item.reading 
+                                        : "N/A";
 
-                                return (
-                                    <tr key={index}>
-                                        <td>{item.reading || "No Readings"}</td>
-                                        <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
-                                        <td>{currentReadingItem?.reading || "No Readings"}</td>
-                                        <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
-                                        <td>{readingDifference}</td>
-                                        <td>
-                                            <button onClick={() => openEditModal('electricity', index)}>Edit</button>
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                                    return (
+                                        <tr key={index}>
+                                            <td>{item.reading || "No Readings"}</td>
+                                            <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
+                                            <td>{currentReadingItem?.reading || "No Readings"}</td>
+                                            <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
+                                            <td>{readingDifference}</td>
+                                            <td>
+                                                <button onClick={() => openEditModal('electricity', index)}>Edit</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                         ) : (
                             <tr>
                                 <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>

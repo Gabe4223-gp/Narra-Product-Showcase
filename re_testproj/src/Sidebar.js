@@ -2,7 +2,7 @@
 import React from 'react';
 import './Sidebar.css'; // Your existing sidebar CSS
 import { NavLink } from 'react-router-dom';
-import { FaHome, FaCog } from 'react-icons/fa';
+import { FaHome, FaCog, FaBuilding, FaWrench } from 'react-icons/fa';
 // (Other icons are imported for the landlord view only)
 import { AiOutlineForm } from 'react-icons/ai';
 import { FaUser, FaComments, FaClipboardList } from 'react-icons/fa';
@@ -56,13 +56,13 @@ function Sidebar({ isCollapsed, role }) {
               </li>
               <li>
                 <NavLink to="/unit" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaUser className="sidebar-icon"/>
+                  <FaBuilding className="sidebar-icon"/>
                   {!isCollapsed && <span>Units</span>}
                 </NavLink>
               </li>
               <li>
                 <NavLink to="/issues" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaComments className="sidebar-icon" />
+                  <FaWrench className="sidebar-icon" />
                   {!isCollapsed && <span>Issues</span>}
                 </NavLink>
               </li>

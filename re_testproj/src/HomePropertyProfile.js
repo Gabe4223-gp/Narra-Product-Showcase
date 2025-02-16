@@ -347,7 +347,7 @@ function HomePropertyProfile({ property, onBack }) {
       </div>
       {/*Monthly invoices*/}
       <div className='invoices-dashboard'>
-        <OutstandingInvoice propertyId={editableProperty.id} />
+        <OutstandingInvoice propertyId={editedProperty.id} />
       </div>
       <div className='actions'>
         <button className='delete' onClick={() => setShowDeleteModal(true)}>Delete Property</button>

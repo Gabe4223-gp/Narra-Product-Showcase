@@ -1,68 +1,73 @@
 /* src/OutstandingInvoice.css */
 .outstanding-invoice {
+    flex: 1; /* Make both containers take up equal width */
+    background-color: #ffffff;
     padding: 20px;
-    background-color: #f9f9f9;
     border: 1px solid #ddd;
     border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     font-family: Arial, sans-serif;
-    margin: 20px 0; /* Added margin around the component */
-  }
-  
-  .outstanding-invoice .header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
+    flex-direction: column;
+    max-width: 50%;
+}
   
-  .outstanding-invoice .header h3 {
-    margin: 0;
-  }
-  
-  .outstanding-invoice .total-amount {
-    font-size: 20px;
-    font-weight: bold;
-    margin-right: 20px; /* Added margin for spacing */
-  }
-  
-  .outstanding-invoice .body {
-    margin-top: 20px;
-  }
-  
-  .outstanding-invoice .date-toggle {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .outstanding-invoice .date-toggle button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin: 0 10px;
-  }
-  
-  .outstanding-invoice .toggle-message {
-    text-align: center;
-    margin-bottom: 10px;
-    color: #888;
-  }
-  
-  .outstanding-invoice .divider {
-    border-top: 1px solid #ddd;
-    margin: 10px 0;
-  }
-  
-  .outstanding-invoice .invoice-breakdown {
-    display: flex;
-    justify-content: space-around;
-  }
-  
-  .outstanding-invoice .invoice-item {
-    text-align: center;
-  }
-  
+.outstanding-invoice .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.outstanding-invoice .header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.outstanding-invoice .total-amount {
+  font-size: 14px;
+  font-weight: bold;
+  margin-right: 20px; /* Added margin for spacing */
+}
+
+.outstanding-invoice .body {
+  margin-top: 14px;
+}
+
+.outstanding-invoice .date-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.outstanding-invoice .date-toggle button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.outstanding-invoice .toggle-message {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #888;
+}
+
+.outstanding-invoice .divider {
+  border-top: 1px solid #ddd;
+  margin: 10px 0;
+}
+
+.outstanding-invoice .invoice-breakdown {
+  display: flex;
+  justify-content: space-around;
+}
+
+.outstanding-invoice .invoice-item {
+  text-align: center;
+}
