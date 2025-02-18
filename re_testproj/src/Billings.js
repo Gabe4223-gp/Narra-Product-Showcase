@@ -23,7 +23,6 @@ function Billings() {
 
   return (
     <div className="billings-page">
-      <h1>Billings</h1>
       <UnfulfilledBills bills={unfulfilledBills} />
       <FulfilledBills bills={fulfilledBills} />
     </div>

@@ -14,21 +14,30 @@
   
 .outstanding-invoice .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  justify-content: space-between;
   border-bottom: 2px solid #ddd;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  max-height: 20px;
+  max-width: 94%;
 }
 
 .outstanding-invoice .header h3 {
   margin: 0;
+  font-size: 14px;
+  margin-right: -3%;
+}
+
+.invoice-item h4 {
   font-size: 14px;
 }
 
 .outstanding-invoice .total-amount {
   font-size: 14px;
   font-weight: bold;
-  margin-right: 20px; /* Added margin for spacing */
+  margin-right: 20px;
+  margin-top: 0;
 }
 
 .outstanding-invoice .body {

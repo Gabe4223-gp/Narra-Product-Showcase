@@ -498,61 +498,63 @@ function Issues () {
             </div>
             <div className="unresolved-issues">
                 <div className="issue-list">
-                <h5>Unresolved Issues</h5>
-                <table>     
-                    <thead>
-                    <tr>
-                        <th> </th>
-                        <th>ID</th>
-                        <th>Date Raised</th>
-                        <th>Unit</th>
-                        <th>Type</th>
-                        <th>Subject</th>
-                        <th>Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                        {issues.filter(issue => !issue.resolved).length > 0 ? (  // Filter unresolved issues
-                            issues.filter(issue => !issue.resolved).map((issue, index) => (
-                            <tr key={index}>
-                                <td>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedIssueIds.has(issue.id)}
-                                    onChange={() => handleCheckboxChange(issue.id)}
-                                />
+                    <h5>Unresolved Issues</h5>
+                    <table>     
+                        <thead>
+                        <tr>
+                            <th> </th>
+                            <th>ID</th>
+                            <th>Date Raised</th>
+                            <th>Unit</th>
+                            <th>Type</th>
+                            <th>Subject</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {issues.filter(issue => !issue.resolved).length > 0 ? (  // Filter unresolved issues
+                                issues.filter(issue => !issue.resolved).map((issue, index) => (
+                                <tr key={index}>
+                                    <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIssueIds.has(issue.id)}
+                                        onChange={() => handleCheckboxChange(issue.id)}
+                                    />
+                                    </td>
+                                    <td>{issue.id.substring(0, 4)}</td>
+                                    <td>{issue.dateRaised}</td>
+                                    <td>{issue.unit}</td>
+                                    <td>{issue.type}</td>
+                                    <td>{issue.subject}</td>
+                                    <td>
+                                    <button onClick={() => handleViewIssue(issue)}>View</button>
+                                    </td>
+                                </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                                    No issues.
                                 </td>
-                                <td>{issue.id.substring(0, 4)}</td>
-                                <td>{issue.dateRaised}</td>
-                                <td>{issue.unit}</td>
-                                <td>{issue.type}</td>
-                                <td>{issue.subject}</td>
-                                <td>
-                                <button onClick={() => handleViewIssue(issue)}>View</button>
-                                </td>
-                            </tr>
-                            ))
-                        ) : (
-                            <tr>
-                            <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
-                                No issues.
-                            </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            
-            </div>
 
-            <div className="actions">
+                <div className="actions">
                     <button className="addIssue" onClick={() => setIsAddingIssues(true)}>
                         Add Issue
                     </button>
                     <button onClick={handleSelectAllUnResolved}>Select All</button>
                     <button onClick={handleDeselectAll}>Unselect All</button>
                     <button onClick={() => markSelectedAsResolved(selectedIssueIds)}>Mark Selected as Resolved</button>
+                </div>
+            
             </div>
+
+            
         
             {isAddingIssues && (
                 <div className='overlay'>
@@ -729,12 +731,12 @@ function Issues () {
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            <div className="actions">
+                <div className="actions">
                     <button onClick={handleSelectAllResvolved}>Select All</button>
                     <button onClick={handleDeselectAll}>Unselect All</button>
                     <button onClick={() => markSelectedAsUnresolved()}>Mark as Unresolved</button>
+                </div>
             </div>
 
             <div>

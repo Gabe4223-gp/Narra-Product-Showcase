@@ -10,52 +10,101 @@
 }
 
 .bills-container {
-  background-color: #ffffff;
-  margin: 20px 0;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: white; /* White background */
+  padding: 20px; /* Add padding inside the box */
+  border-radius: 8px; /* Round the corners */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Soft shadow for 3D effect */
+  max-width: 90%; /* Set a maximum width */
+  margin: 20px auto; /* Center the container horizontally */
+  min-height: 50%;
+  max-height: 400px; /* Adjust this height to suit your design */
+  overflow-y: auto;  /* This enables scrolling when the content exceeds the height */
+  margin-bottom: 20px;
 }
 
-.bills-container h2 {
-  margin-bottom: 10px;
-  color: #34495e;
-}
-
-.bills-container table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.bills-container th,
-.bills-container td {
-  padding: 10px;
-  border: 1px solid #ddd;
-  text-align: center;
-}
-
-.bills-container th {
-  background-color: #34495e;
-  color: #ecf0f1;
-}
-
-.bills-container tr:nth-child(even) {
+.bills-list tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-.bills-container .actions {
+.bills-list .actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
   gap: 10px;
 }
 
-.bills-container .action-link {
-  color: #1abc9c;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.bills-container .action-link:hover {
+.bills-list .action-link:hover {
   text-decoration: underline;
 }
+
+
+.bills-list table {
+  width: 100%;
+  border-collapse: separate; /* Ensure rows have space between them */
+  border-spacing: 0 10px; /* Add space between rows */
+}
+
+.bills-list tr {
+  background-color: white; /* Set the background for the "box" */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
+  border-radius: 8px; /* Round corners */
+  overflow: hidden; /* Ensure corners are rounded properly */
+}
+
+.bills-list td {
+  padding: 10px 15px; /* Add padding for a spacious look */
+  font-size: 11px;
+}
+
+.bills-list th {
+  text-align: left; /* Align headers to the left */
+  padding: 10px 15px;
+  background-color: #f5f5f5; /* Light gray background for headers */
+  border-bottom: 2px solid #ddd; /* Add bottom border for separation */
+  font-size: 12px;
+}
+
+.bills-list tr:not(:last-child) {
+  margin-bottom: 10px; /* Add space between rows */
+}
+
+.bills-list h5 {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 13px;    
+  margin-top: auto;
+  margin-left: 1%;
+}
+
+.bills-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bills-list thead {
+  position: sticky;
+  top: 0;
+  background: white; /* Keep headers visible */
+  z-index: 10;
+}
+
+.bills-list th,
+.bills-list td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.bills-list tbody {
+  display: block;
+  max-height: 300px; /* Ensure tbody is scrollable */
+  overflow-y: auto;
+  width: 100%;
+}
+
+.bills-list tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+

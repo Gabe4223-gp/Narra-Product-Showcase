@@ -82,12 +82,14 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
 
-
-
+// Set request size limits before routes
+const limit = '50mb';
+app.use(express.json({ limit }));
+app.use(express.urlencoded({ limit, extended: true }));
+console.log("Limit is", limit);
 
 //Authentification
 app.use(cors(corsOptions));
-app.use(express.json());
 app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
 app.use('/api/emails', emailMessageRoutes);
@@ -110,11 +112,6 @@ app.use((err, req, res, next) => {
   }
   next();
 });
-
-const limit = '50mb';
-app.use(express.json({ limit })); 
-app.use(express.urlencoded({ limit, extended: true }));
-console.log("Limit is", limit);
 
 // Serve static files (invoices) from the 'invoices' directory
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
@@ -1440,13 +1437,16 @@ app.delete('/units/delete-all', async (req, res) => {
 
     for (const unit of units) {
       if (unit && Array.isArray(unit.issues) && unit.issues.length > 0) {
+
+        const formattedIssues = `{${unit.issues.join(",")}}`;
+
         const deleteIssueQuery = `
           DELETE FROM "Issues"
           WHERE id = ANY(:issues::uuid[])
         `;
         
         await sequelize.query(deleteIssueQuery, {
-          replacements: { issues: unit.issues },
+          replacements: { issues: formattedIssues },
           type: sequelize.QueryTypes.DELETE,
         });
       }
