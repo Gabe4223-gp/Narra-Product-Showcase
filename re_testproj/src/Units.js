@@ -14,9 +14,8 @@ function Units() {
   const [showSizeUnitModal, setshowSizeUnitModal] = useState(false);
   const [sizeUnits, setsizeUnits] = useState("sqft");
   const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
-      // Check localStorage for previously selected property ID
-      const savedPropertyId = localStorage.getItem('selectedPropertyID');
-      return savedPropertyId ? savedPropertyId : null; // Return saved property ID or null
+      console.log("Selected Property", localStorage.getItem('selectedPropertyIDUnit'));
+      return localStorage.getItem('selectedPropertyIDUnit') || "";
     });
   const [newUnit, setNewUnit] = useState({
     id: null,
@@ -51,11 +50,14 @@ function Units() {
       }
       const data = await response.json();
 
-      if (data.length > 0) {
-        setSelectedPropertyID(data[0].id); // Select the first property's ID
-        console.log("Selected First Property ID:", data[0].id);
-      } else {
-          console.log("No properties found.");
+      // Check if the user previously had zero properties
+      const savedPropertyId = localStorage.getItem('selectedPropertyIDUnit');
+
+      if (!savedPropertyId && data.length > 0) {
+          // Only set selectedPropertyID if there was no previous selection
+          setSelectedPropertyID(data[0].id);
+          localStorage.setItem('selectedPropertyIDUnit', data[0].id);
+          console.log("Setting selected property to first property:", data[0].id);
       }
 
       setProperties(data); // Set tenants fetched from the database
@@ -106,22 +108,8 @@ function Units() {
     setSelectedPropertyID(propertyId); // Update selectedPropertyID state
 
     // Store the selected property ID in localStorage
-    localStorage.setItem('selectedPropertyID', propertyId);
+    localStorage.setItem('selectedPropertyIDUnit', propertyId);
   };
-
-  useEffect(() => {
-    // Get the selected property ID from localStorage (if any)
-    const savedPropertyId = localStorage.getItem('selectedPropertyID');
-  
-    // If there's a saved property ID, set it as the default
-    if (savedPropertyId) {
-      setSelectedPropertyID(savedPropertyId);
-    }
-  }, []);
-
-  // This useEffect will log the updated value of selectedPropertyID
-  useEffect(() => {
-  }, [selectedPropertyID]); // Runs whenever selectedPropertyID changes
 
     // Fetch properties only once or when the component mounts
   useEffect(() => {
@@ -202,6 +190,15 @@ function Units() {
   
         // Optionally: If you have a function that fetches tenants by IDs
         fetchUnits(responseData.units);
+
+        // Update properties to reflect the newly added tenant
+        setProperties((prevProperties) =>
+          prevProperties.map((property) =>
+            property.id === selectedPropertyID
+              ? { ...property, units: [...(property.units || []), unitWithUUID.id] }
+              : property
+          )
+        );
    
         setIsAddingUnits(false); // Close the add tenant form
       } catch (error) {
@@ -313,10 +310,23 @@ function Units() {
   
           alert("Units imported successfully!");
 
-
-
-
           fetchUnits(result.unitIds || [])
+
+          // Update the properties state to include the newly imported units
+          setProperties((prevProperties) =>
+            prevProperties.map((property) =>
+              property.id === selectedPropertyID
+                ? {
+                    ...property,
+                    units: [
+                      ...(property.units || []), // Retain existing units
+                      ...importedUnits.map((unit) => unit.id), // Add imported tenants
+                    ],
+                  }
+                : property
+            )
+          );
+ 
   
         } catch (error) {
           console.error("Error importing tenants:", error);
@@ -358,6 +368,20 @@ function Units() {
         console.log("Unit deleted successfully:", data);
 
         fetchUnits(data.updatedUnitIds);
+
+        // Update properties state by removing deleted units from the selected property
+        setProperties((prevProperties) =>
+          prevProperties.map((property) =>
+              property.id === selectedPropertyID
+                  ? {
+                        ...property,
+                        units: property.units.filter(
+                            (unitId) => !selectedUnitIds.has(unitId)
+                        ),
+                    }
+                  : property
+          )
+        );
         
         setShowDeleteModal(false);
 
@@ -437,31 +461,33 @@ function Units() {
           </thead>
           <tbody>
             {units?.length > 0 ? (
-              units.map((unit, index) => (
-                <tr key={index}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedUnitIds.has(unit?.id)}
-                      onChange={() => handleCheckboxChange(unit?.id)}
-                    />
-                  </td>
-                  <td>{unit.unitNo}</td>
-                  <td>{unit.type}</td>
-                  <td>{unit.mode}</td>
-                  <td>{unit.sizeValue}</td>
-                  <td>{unit.sizeUnit} </td>
-                  <td>{unit.petsAllowed ? "Yes" : "No"}</td>
-                  <td>
-                  {unit.tenants && unit.tenants?.length > 0 
-                    ? unit.tenants.length
-                    : 'No tenants'}
-                  </td>
-                  <td>
-                    <button onClick={() => handleViewUnit(unit)}>View</button>
-                  </td>
-                </tr>
-              ))
+              [...units]
+                .sort((a, b) => Number(a.unitNo) - Number(b.unitNo))
+                .map((unit, index) => (
+                  <tr key={index}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedUnitIds.has(unit?.id)}
+                        onChange={() => handleCheckboxChange(unit?.id)}
+                      />
+                    </td>
+                    <td>{unit.unitNo}</td>
+                    <td>{unit.type}</td>
+                    <td>{unit.mode}</td>
+                    <td>{unit.sizeValue}</td>
+                    <td>{unit.sizeUnit}</td>
+                    <td>{unit.petsAllowed ? "Yes" : "No"}</td>
+                    <td>
+                      {unit.tenants && unit.tenants?.length > 0 
+                        ? unit.tenants.length
+                        : "No tenants"}
+                    </td>
+                    <td>
+                      <button onClick={() => handleViewUnit(unit)}>View</button>
+                    </td>
+                  </tr>
+                ))
             ) : (
               <tr>
                 <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>

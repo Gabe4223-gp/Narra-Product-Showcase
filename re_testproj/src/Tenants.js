@@ -12,9 +12,8 @@ function Tenants() {
   const [isAddingTenant, setIsAddingTenant] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
-    // Check localStorage for previously selected property ID
-    const savedPropertyId = localStorage.getItem('selectedPropertyID');
-    return savedPropertyId ? savedPropertyId : null; // Return saved property ID or null
+    console.log("Selected Property", localStorage.getItem('selectedPropertyID'));
+    return localStorage.getItem('selectedPropertyID') || "";
   });
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedTenantIds, setSelectedTenantIds] = useState(new Set());
@@ -63,11 +62,14 @@ function Tenants() {
       }
       const data = await response.json();
 
-      if (data.length > 0) {
-        setSelectedPropertyID(data[0].id); // Select the first property's ID
-        console.log("Selected First Property ID:", data[0].id);
-      } else {
-          console.log("No properties found.");
+      // Check if the user previously had zero properties
+      const savedPropertyId = localStorage.getItem('selectedPropertyID');
+
+      if (!savedPropertyId && data.length > 0) {
+          // Only set selectedPropertyID if there was no previous selection
+          setSelectedPropertyID(data[0].id);
+          localStorage.setItem('selectedPropertyID', data[0].id);
+          console.log("Setting selected property to first property:", data[0].id);
       }
 
 
@@ -118,31 +120,12 @@ function Tenants() {
     }
   };
 
-
   const handlePropertyChange = (event) => {
-    const propertyId = event.target.value; // Get selected property's ID
-    setSelectedPropertyID(propertyId); // Update selectedPropertyID state
-
-
-    // Store the selected property ID in localStorage
+    const propertyId = event.target.value;
+    setSelectedPropertyID(propertyId);
     localStorage.setItem('selectedPropertyID', propertyId);
+    console.log("Selected Property 12", localStorage.getItem('selectedPropertyID'));
   };
-
-
-  useEffect(() => {
-    // Get the selected property ID from localStorage (if any)
-    const savedPropertyId = localStorage.getItem('selectedPropertyID');
-   
-    // If there's a saved property ID, set it as the default
-    if (savedPropertyId) {
-      setSelectedPropertyID(savedPropertyId);
-    }
-  }, []);
- 
-  // This useEffect will log the updated value of selectedPropertyID
-  useEffect(() => {
-  }, [selectedPropertyID]); // Runs whenever selectedPropertyID changes
-
 
     // Fetch properties only once or when the component mounts
   useEffect(() => {
@@ -230,6 +213,15 @@ function Tenants() {
 
       // Optionally: If you have a function that fetches tenants by IDs
       fetchTenants(responseData.tenants);
+
+      // Update properties to reflect the newly added tenant
+      setProperties((prevProperties) =>
+        prevProperties.map((property) =>
+          property.id === selectedPropertyID
+            ? { ...property, tenants: [...(property.tenants || []), tenantWithUUID.id] }
+            : property
+        )
+      );
  
       setIsAddingTenant(false); // Close the add tenant form
     } catch (error) {
@@ -305,6 +297,21 @@ function Tenants() {
 
 
           fetchTenants(result.tenantIds || [])
+
+          // Update the properties state to include the newly imported tenants
+          setProperties((prevProperties) =>
+            prevProperties.map((property) =>
+              property.id === selectedPropertyID
+                ? {
+                    ...property,
+                    tenants: [
+                      ...(property.tenants || []), // Retain existing tenants
+                      ...importedTenants.map((tenant) => tenant.id), // Add imported tenants
+                    ],
+                  }
+                : property
+            )
+          );
  
         } catch (error) {
           console.error("Error importing tenants:", error);
@@ -346,6 +353,20 @@ function Tenants() {
         console.log("Tenant deleted successfully:", data);
 
         fetchTenants(data.updatedTenantIds);
+
+        // Update properties state by removing deleted tenants from the selected property
+        setProperties((prevProperties) =>
+          prevProperties.map((property) =>
+              property.id === selectedPropertyID
+                  ? {
+                        ...property,
+                        tenants: property.tenants.filter(
+                            (tenantId) => !selectedTenantIds.has(tenantId)
+                        ),
+                    }
+                  : property
+          )
+        );
         
         setShowDeleteModal(false);
 
@@ -434,26 +455,37 @@ function Tenants() {
           </thead>
           <tbody>
             {tenants.length > 0 ? (
-              tenants.map((tenant, index) => (
-                <tr key={index}>
-                  <td style={{ width: "5%" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedTenantIds.has(tenant.id)}
-                      onChange={() => handleCheckboxChange(tenant.id)}
-                    />
-                  </td>
-                  <td style={{ width: "15%" }}>{tenant.name}</td>
-                  <td style={{ width: "10%" }}>{tenant.unit}</td>
-                  <td style={{ width: "20%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tenant.email}</td>
-                  <td style={{ width: "15%" }}>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
-                  <td style={{ width: "15%" }}>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
-                  <td style={{ width: "10%" }}>{tenant.billingDeadline}</td>
-                  <td style={{ width: "10%" }}>
-                    <button onClick={() => handleViewProfile(tenant)}>View</button>
-                  </td>
-                </tr>
-              ))
+              [...tenants]
+                .sort((a, b) => Number(a.unit) - Number(b.unit))
+                .map((tenant, index) => (
+                  <tr key={index}>
+                    <td style={{ width: "5%" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTenantIds.has(tenant.id)}
+                        onChange={() => handleCheckboxChange(tenant.id)}
+                      />
+                    </td>
+                    <td style={{ width: "15%" }}>{tenant.name}</td>
+                    <td style={{ width: "10%" }}>{tenant.unit}</td>
+                    <td
+                      style={{
+                        width: "20%",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {tenant.email}
+                    </td>
+                    <td style={{ width: "15%" }}>{tenant.leaseStarted || ""}</td>
+                    <td style={{ width: "15%" }}>{tenant.leaseExpiry || ""}</td>
+                    <td style={{ width: "10%" }}>{tenant.billingDeadline}</td>
+                    <td style={{ width: "10%" }}>
+                      <button onClick={() => handleViewProfile(tenant)}>View</button>
+                    </td>
+                  </tr>
+                ))
             ) : (
               <tr>
                 <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
@@ -462,6 +494,7 @@ function Tenants() {
               </tr>
             )}
           </tbody>
+
 
           
         </table>

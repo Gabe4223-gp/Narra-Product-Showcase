@@ -4,7 +4,16 @@ import IssueProfile from "./IssueProfile";
 import { v4 as uuidv4 } from 'uuid';
 
 function Issues () {
+    // Generate last 10 years for selection
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
+    // Generate months for selection
+    const months = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
+
+    // State for month and year selection
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(currentYear);
     const [properties, setProperties] = useState([]); // Handle property list
     const [issues, setIssues] = useState([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -13,10 +22,9 @@ function Issues () {
     const [isAddingIssues, setIsAddingIssues] = useState(false);
     const [documents, setDocuments] = useState([]);
     const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
-        // Check localStorage for previously selected property ID
-        const savedPropertyId = localStorage.getItem('selectedPropertyID');
-        return savedPropertyId ? savedPropertyId : null; // Return saved property ID or null
-    });
+        console.log("Selected Property", localStorage.getItem('selectedPropertyIDIssue'));
+        return localStorage.getItem('selectedPropertyIDIssue') || "";
+      });
     const [newIssue, setNewIssue] = useState({
           id: null, 
           type: null, 
@@ -28,9 +36,6 @@ function Issues () {
           dateResolved: null, 
           documents: [],
         });
-
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [filteredIssues, setFilteredIssues] = useState([]);
 
     useEffect(() => {
@@ -57,12 +62,15 @@ function Issues () {
             }
             const data = await response.json();
 
-            if (data.length > 0) {
-                setSelectedPropertyID(data[0].id); // Select the first property's ID
-                console.log("Selected First Property ID:", data[0].id);
-              } else {
-                  console.log("No properties found.");
-              }
+            // Check if the user previously had zero properties
+            const savedPropertyId = localStorage.getItem('selectedPropertyIDIssue');
+
+            if (!savedPropertyId && data.length > 0) {
+                // Only set selectedPropertyID if there was no previous selection
+                setSelectedPropertyID(data[0].id);
+                localStorage.setItem('selectedPropertyIDIssue', data[0].id);
+                console.log("Setting selected property to first property:", data[0].id);
+            }
     
             setProperties(data); // Set tenants fetched from the database
     
@@ -108,22 +116,8 @@ function Issues () {
         setSelectedPropertyID(propertyId); // Update selectedPropertyID state
 
         // Store the selected property ID in localStorage
-        localStorage.setItem('selectedPropertyID', propertyId);
+        localStorage.setItem('selectedPropertyIDIssue', propertyId);
     };
-
-    useEffect(() => {
-        // Get the selected property ID from localStorage (if any)
-        const savedPropertyId = localStorage.getItem('selectedPropertyID');
-        
-        // If there's a saved property ID, set it as the default
-        if (savedPropertyId) {
-            setSelectedPropertyID(savedPropertyId);
-        }
-    }, []);
-
-    // This useEffect will log the updated value of selectedPropertyID
-    useEffect(() => {
-    }, [selectedPropertyID]); // Runs whenever selectedPropertyID changes
 
     // Fetch properties only once or when the component mounts
     useEffect(() => {
@@ -226,6 +220,25 @@ function Issues () {
             );
     
             fetchIssues(selectedProperty.units);
+
+            //Update properties state, specifically the units within the selected property
+            setProperties((prevProperties) =>
+                prevProperties.map((property) =>
+                    property.id === selectedPropertyID
+                        ? {
+                            ...property,
+                            units: property.units.map((unit) =>
+                                unit.id === issueWithUUID.unit
+                                    ? {
+                                            ...unit,
+                                            issues: [...(unit.issues || []), issueWithUUID.id],
+                                        }
+                                    : unit
+                            ),
+                        }
+                        : property
+                )
+            );
     
             setDocuments([]); // Clear uploaded documents
             setIsAddingIssues(false); // Close the add issue form
@@ -398,6 +411,27 @@ function Issues () {
             console.log("Issue deleted successfully:", data);
     
             fetchIssues(data.updatedUnitIds); //fetchIssues takes in a set of unit ids
+
+            // Update properties state by removing deleted issues from the selected property
+            setProperties((prevProperties) =>
+                prevProperties.map((property) =>
+                    property.id === selectedPropertyID
+                        ? {
+                            ...property,
+                            units: property.units.map((unit) =>
+                                unit.issues
+                                    ? {
+                                            ...unit,
+                                            issues: unit.issues.filter(
+                                                (issueId) => !selectedIssueIds.has(issueId)
+                                            ),
+                                        }
+                                    : unit
+                            ),
+                        }
+                        : property
+                )
+            );
             
             setShowDeleteModal(false);
     
@@ -612,24 +646,36 @@ function Issues () {
 
             <div className="resolved-issues">
                 <div className="issue-list">
-                    <div className='resolved-issues-header' style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <div className='resolved-issues-header' style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <h5>Resolved Issues</h5>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", marginTop:"-2%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
                             <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                                 <span>Select Month:</span>
-                                <select style={{fontSize: "12px", padding: "2px 4px" }} value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}>
-                                    {Array.from({ length: 12 }, (_, i) => (
-                                        <option key={i} value={i}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
+                                <select
+                                    style={{ fontSize: "12px", padding: "2px 4px" }}
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+                                >
+                                    {months.map((month, index) => (
+                                        <option key={index} value={index}>{month}</option>
                                     ))}
                                 </select>
                             </label>
                             <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                                 <span>Select Year:</span>
-                                <input type="number" style={{ width: "60px", fontSize: "12px", padding: "2px 4px" }} value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))} />
+                                <select
+                                    style={{ fontSize: "12px", padding: "2px 4px" }}
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                                >
+                                    {years.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
                             </label>
                         </div>
                     </div>
-                    
+
                     <table>
                         <thead>
                             <tr>
@@ -643,37 +689,46 @@ function Issues () {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredIssues.length > 0 ? (
-                                filteredIssues.map((issue, index) => (
-                                    <tr key={index}>
-                                        <td>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIssueIds.has(issue.id)}
-                                                onChange={() => handleCheckboxChange(issue.id)}
-                                            />
-                                        </td>
-                                        <td>{issue.id.substring(0, 4)}</td>
-                                        <td>{issue.dateResolved}</td>
-                                        <td>{issue.unit}</td>
-                                        <td>{issue.type}</td>
-                                        <td>{issue.subject}</td>
-                                        <td>
-                                            <button onClick={() => handleViewIssue(issue)}>View</button>
-                                        </td>
-                                    </tr>
-                                ))
+                            {filteredIssues
+                                .filter(issue => {
+                                    const issueDate = new Date(issue.dateResolved);
+                                    return issueDate.getFullYear() === selectedYear && issueDate.getMonth() === selectedMonth;
+                                })
+                                .length > 0 ? (
+                                filteredIssues
+                                    .filter(issue => {
+                                        const issueDate = new Date(issue.dateResolved);
+                                        return issueDate.getFullYear() === selectedYear && issueDate.getMonth() === selectedMonth;
+                                    })
+                                    .map((issue, index) => (
+                                        <tr key={index}>
+                                            <td>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIssueIds.has(issue.id)}
+                                                    onChange={() => handleCheckboxChange(issue.id)}
+                                                />
+                                            </td>
+                                            <td>{issue.id.substring(0, 4)}</td>
+                                            <td>{issue.dateResolved}</td>
+                                            <td>{issue.unit}</td>
+                                            <td>{issue.type}</td>
+                                            <td>{issue.subject}</td>
+                                            <td>
+                                                <button onClick={() => handleViewIssue(issue)}>View</button>
+                                            </td>
+                                        </tr>
+                                    ))
                             ) : (
                                 <tr>
                                     <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
-                                        No resolved issues for the selected month.
+                                        No resolved issues for the selected month and year.
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            
             </div>
 
             <div className="actions">

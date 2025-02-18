@@ -15,7 +15,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
     const defaultImage = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
     const [tenantDetails, setTenantDetails] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showEditTenantDetails, setshowEditTenantDetails] = useState(false);
+    const [showEditTenantDetails, setShowEditTenantDetails] = useState(false);
     const [editedTenant, setEditedTenant] = useState(null);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
@@ -160,7 +160,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
             // Optionally: If you have a function that fetches tenants by IDs
             fetchTenantDetails();
        
-            setshowEditTenantDetails(false);
+            setShowEditTenantDetails(false);
           } catch (error) {
             console.error('Error creating tenant:', error);
             alert(`Failed to save tenant. Error: ${error.message}`);
@@ -487,18 +487,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
               </div>
             </div>
           )}
-      
-          <div className="tenant-billing-account">
-            <ManagePaymentMethods />
-          </div>
-      
-          <div className="tenant-actions">
-            <h5>Actions</h5>
-            <button onClick={() => setShowSendBillPopup(true)}>Create Bill</button>
-            <button onClick={handleMarkasMovedOut}>Mark as Moved Out</button>
-            <button>Delete Tenant</button>
-          </div>
-      
+          
           {showSendBillPopup && (
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
