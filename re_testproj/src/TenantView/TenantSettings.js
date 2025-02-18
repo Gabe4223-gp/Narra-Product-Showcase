@@ -1,75 +1,104 @@
 // src/TenantSettings.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUserProfile } from '../UserProfileContext'; // or correct path
+import axios from 'axios';
 import './TenantSettings.css';
 
-const TenantSettings = () => {
+function TenantSettings() {
+  const {
+    userProfile,
+    loadingProfile,
+    error,
+    refreshUserProfile,
+    updateUserProfile,
+  } = useUserProfile();
+
+  // Locally store the form data
   const [formData, setFormData] = useState({
-    id: 1, // For testing purposes, set a fixed tenant id (or get it from auth context)
-    name: 'Lebron James',
-    phone: '123-456-7890',
-    dob: '1990-01-01',
-    email: 'nigga@example.com',
-    password: '', // This field is disabled for now.
+    id: '',
+    name: '',
+    phoneNumber: '',
+    dateofBirth: '',
+    email: '',
+    password: '',
   });
-  
+
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
 
+  // When userProfile changes, populate formData
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        id: userProfile.id || '',
+        name: userProfile.name || '',
+        phoneNumber: userProfile.phoneNumber || '',
+        dateofBirth: userProfile.dateofBirth
+          ? userProfile.dateofBirth.split('T')[0]
+          : '',
+        email: userProfile.email || '',
+        password: userProfile.password || '',
+      });
+    }
+  }, [userProfile]);
+
   const handleChange = (e) => {
-    setFormData((prevData) => ({
-      ...prevData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleChangePassword = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/tenant/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      // PUT request to update
+      const res = await axios.put(`/api/user-profile/${formData.id}`, {
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        dateofBirth: formData.dateofBirth,
+        email: formData.email,
+        password: formData.password,
       });
-      const result = await response.json();
-      if (response.ok) {
-        setMessage('Settings updated successfully.');
-        console.log('Response:', result);
-      } else {
-        setMessage(result.error || 'An error occurred.');
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setMessage('Server error.');
+      setMessage(res.data.message || 'Settings updated successfully.');
+
+      // Option 1: Re-fetch the profile from backend
+      // refreshUserProfile();
+
+      // Option 2: Manually update the context
+      updateUserProfile({
+        id: formData.id,
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        dateofBirth: formData.dateofBirth,
+        email: formData.email,
+        password: formData.password, // consider hashing
+      });
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setMessage('An error occurred while saving settings.');
     }
   };
 
-  const handleChangePassword = async () => {
-    // This function would similarly make an API call to change the password.
-    try {
-      const response = await fetch('http://localhost:5000/tenant/change-password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: formData.id, newPassword: 'newPassword123' }),
-      });
-      const result = await response.json();
-      if (response.ok) {
-        setMessage('Password updated successfully.');
-      } else {
-        setMessage(result.error || 'Error updating password.');
-      }
-    } catch (error) {
-      console.error('Error changing password:', error);
-      setMessage('Server error.');
-    }
-  };
+  if (loadingProfile) {
+    return <div>Loading your profile...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading profile: {error}</div>;
+  }
 
   return (
     <div className="settings-container">
       <h3>Account Settings</h3>
-      <h4>Personal Details</h4>
       <form onSubmit={handleSubmit}>
         <div className="fields">
           <label htmlFor="name">Name</label>
-          <input 
+          <input
             type="text"
             id="name"
             name="name"
@@ -77,29 +106,33 @@ const TenantSettings = () => {
             onChange={handleChange}
           />
         </div>
+
         <div className="fields">
-          <label htmlFor="phone">Phone Number</label>
-          <input 
+          <label htmlFor="phoneNumber">Phone Number</label>
+          <input
             type="text"
-            id="phone"
-            name="phone"
-            value={formData.phone}
+            id="phoneNumber"
+            name="phoneNumber"
+            placeholder="+63 ### ### ####"
+            value={formData.phoneNumber}
             onChange={handleChange}
           />
         </div>
+
         <div className="fields">
-          <label htmlFor="dob">Date of Birth</label>
-          <input 
+          <label htmlFor="dateofBirth">Date of Birth</label>
+          <input
             type="date"
-            id="dob"
-            name="dob"
-            value={formData.dob}
+            id="dateofBirth"
+            name="dateofBirth"
+            value={formData.dateofBirth}
             onChange={handleChange}
           />
         </div>
+
         <div className="fields">
           <label htmlFor="email">Email</label>
-          <input 
+          <input
             type="email"
             id="email"
             name="email"
@@ -107,25 +140,32 @@ const TenantSettings = () => {
             onChange={handleChange}
           />
         </div>
+
         <div className="fields">
           <label htmlFor="password">Password</label>
-          <input 
-            type="password"
+          <input
+            type={showPassword ? 'text' : 'password'}
             id="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
-            disabled
+            disabled={!showPassword}
           />
-          <button type="button" className="link-btn" onClick={handleChangePassword}>
-            Change Password
+          <button
+            type="button"
+            className="link-btn"
+            onClick={handleChangePassword}
+          >
+            {showPassword ? 'Hide Password' : 'Change Password'}
           </button>
         </div>
+
         <button type="submit" className="edit-btn">Save Changes</button>
       </form>
+
       {message && <p>{message}</p>}
     </div>
   );
-};
+}
 
 export default TenantSettings;

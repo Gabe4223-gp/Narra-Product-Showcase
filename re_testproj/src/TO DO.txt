@@ -69,3 +69,12 @@ Gmail often blocks unauthorized access; you might need to enable Less Secure App
 Fix Tenant Page implementation with Josh's changes
 
 EC2 CD: narra_backend
+
+
+
+AWS Deployment deployment
+Work On: Tenant View (option after login to be tenant or landlord)
+Upon uploading landlords/tenants to database. If we put a tenant on a property for example it should send an email to the tenant for invite.
+
+For ssh into EC2 (backend)
+ssh -i "NarraBackendKeyPair.pem" ec2-user@3.138.113.140

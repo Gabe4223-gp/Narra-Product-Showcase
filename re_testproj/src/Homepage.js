@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
+import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
 class PropertyClass {
@@ -65,7 +66,6 @@ class PropertyClass {
       };
   }
 }
-import { v4 as uuidv4 } from 'uuid';
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
@@ -78,7 +78,7 @@ function HomePage({ onLogout }) {
 
       try {
 
-        const response = await fetch('http://localhost:5000/properties', {
+        const response = await fetch(`/properties`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -137,7 +137,7 @@ function HomePage({ onLogout }) {
     
     try {
       // Make a POST request to the backend
-      const response = await fetch("http://localhost:5000/properties", {
+      const response = await fetch(`/properties`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

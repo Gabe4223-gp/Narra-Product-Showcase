@@ -1,11 +1,14 @@
 import React from 'react';
 import AppContent from './AppContent';
+import { UserProfileProvider } from './UserProfileContext';
 
 function App() {
   return (
-    <div className="invoice-page">
+    <UserProfileProvider>
+      <div className="invoice-page">
       <AppContent />
-    </div>
+      </div>
+    </UserProfileProvider>
   );
 }
 

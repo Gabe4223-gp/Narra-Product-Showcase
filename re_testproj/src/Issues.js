@@ -45,7 +45,7 @@ function Issues () {
     const fetchProperties = async () => {
 
         try {
-            const response = await fetch('http://localhost:5000/properties', {
+            const response = await fetch('/properties', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ function Issues () {
     
         try {
      
-          const response = await fetch('http://localhost:5000/issues/byIds', {
+          const response = await fetch('/issues/byIds', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ function Issues () {
             };
     
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/issues', {
+            const response = await fetch('/issues', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ function Issues () {
             // Upload documents only if issue creation succeeds
             if (documents.length > 0) {
                 const uploadPromises = documents.map(async (doc) => {
-                    const response = await fetch('http://localhost:5000/issues/upload-issue-doc', {
+                    const response = await fetch('/issues/upload-issue-doc', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -242,7 +242,7 @@ function Issues () {
         try {
             const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/issues/resolve', {
+            const response = await fetch('/issues/resolve', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ function Issues () {
         try {
             const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/issues/unresolve', {
+            const response = await fetch('/issues/unresolve', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -380,7 +380,7 @@ function Issues () {
         }
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`http://localhost:5000/issues/delete-all`, {
+            const response = await fetch(`/issues/delete-all`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

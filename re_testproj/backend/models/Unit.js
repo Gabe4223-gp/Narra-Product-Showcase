@@ -1,37 +1,37 @@
+// models/Unit.js
 'use strict';
-
 module.exports = (sequelize, DataTypes) => {
-  const Unit = sequelize.define(
-    'Unit',
-    {
-      // `id` is automatically created unless otherwise specified
-      unitNumber: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
+  const Unit = sequelize.define('Unit', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
     },
-    {
-      tableName: 'Units',
-    }
-  );
-
-  Unit.associate = (models) => {
-    // Many Units belong to One Property:
-    Unit.belongsTo(models.Property, {
-      foreignKey: 'propertyId',
-      as: 'property',
-    });
-
-    // Many-to-Many relationship with Tenants:
-    // - This will create (or use) a join table named `TenantUnits` by default.
-    //   If you want a custom table name, specify `through: 'SomeCustomName'`.
-    Unit.belongsToMany(models.Tenant, {
-      through: 'TenantUnits',  // name of the join table
-      foreignKey: 'unitId',    // column in join table for this model
-      otherKey: 'tenantId',    // column in join table for the other model
-      as: 'tenants',           // alias when eager-loading
-    });
+    unitNo: DataTypes.STRING,
+    type: DataTypes.STRING,
+    mode: DataTypes.STRING,
+    sizeValue: DataTypes.INTEGER,
+    sizeUnit: DataTypes.STRING,
+    petsAllowed: DataTypes.BOOLEAN,
+    tenants: DataTypes.ARRAY(DataTypes.STRING),
+    // propertyId is now a UUID
+    propertyId: DataTypes.UUID,
+    waterLastReading: DataTypes.JSONB,
+    waterCurrentReading: DataTypes.JSONB,
+    electricityLastReading: DataTypes.JSONB,
+    electricityCurrentReading: DataTypes.JSONB,
+    issues: DataTypes.ARRAY(DataTypes.STRING),
+    image: DataTypes.STRING,
+    cost: DataTypes.DOUBLE,
+    paid: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    leaseStarted: DataTypes.DATE,
+    leaseExpiry: DataTypes.DATE,
+  }, {});
+  Unit.associate = function(models) {
+    // e.g., Unit.belongsTo(models.Property, { foreignKey: 'propertyId' });
   };
-
   return Unit;
 };

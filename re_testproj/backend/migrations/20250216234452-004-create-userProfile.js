@@ -3,24 +3,23 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('userProfiles', {
+    await queryInterface.createTable('userProfile', {
       id: {
         allowNull: false,
-        autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('uuid_generate_v4()'),
       },
-      // Personal Information
       name: {
         type: Sequelize.STRING,
         allowNull: false,
       },
       phoneNumber: {
-        type: Sequelize.BIGINT, // changed to BIGINT for phone numbers
+        type: Sequelize.STRING,
         allowNull: true,
       },
-      dateOfBirth: {
-        type: Sequelize.DATEONLY,
+      dateofBirth: {
+        type: Sequelize.DATE,
         allowNull: true,
       },
       email: {
@@ -32,7 +31,13 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      // Debit/Credit Card Payment Information
+      units: {
+        // Now an array of UUIDs
+        type: Sequelize.ARRAY(Sequelize.UUID),
+        allowNull: true,
+        defaultValue: [],
+      },
+      
       cardholderName: {
         type: Sequelize.STRING,
         allowNull: true,
@@ -42,45 +47,39 @@ module.exports = {
         allowNull: true,
       },
       cardNumber: {
-        type: Sequelize.BIGINT, // changed to BIGINT for card numbers
+        type: Sequelize.STRING(19),
         allowNull: true,
       },
       expiryDate: {
-        type: Sequelize.DATE, // changed to DATE
+        type: Sequelize.STRING(7),
         allowNull: true,
       },
       cvv: {
-        type: Sequelize.INTEGER, // changed to INTEGER
+        type: Sequelize.INTEGER,
         allowNull: true,
       },
       billingZipCode: {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      // Bank Transfer Payment Information
       bank: {
         type: Sequelize.STRING,
         allowNull: true,
       },
       accountNumber: {
-        type: Sequelize.INTEGER, // changed to INTEGER
+        type: Sequelize.STRING,
         allowNull: true,
       },
       accountName: {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      // GCash Payment Information
       gcashMobileNumber: {
-        type: Sequelize.BIGINT, // changed to BIGINT
+        type: Sequelize.STRING,
         allowNull: true,
       },
       gcashTransactionId: {
         type: Sequelize.STRING,
-        allowNull: true,
-      },
-      gcashPaymentStatus: {
-        type: Sequelize.BOOLEAN, // changed to BOOLEAN
         allowNull: true,
       },
       gcashPaymentTime: {
@@ -96,11 +95,11 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-      },
+      }
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('userProfiles');
-  },
+    await queryInterface.dropTable('userProfile');
+  }
 };
 

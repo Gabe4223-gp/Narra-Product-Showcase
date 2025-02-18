@@ -26,3 +26,4 @@ module.exports = {
     "dialect": "postgres"
   }
 };
+console.log('Sequelize development config:', module.exports.development);

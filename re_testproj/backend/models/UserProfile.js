@@ -1,48 +1,47 @@
+// models/userProfile.js
 'use strict';
-
 module.exports = (sequelize, DataTypes) => {
-    const UserProfile = sequelize.define('UserProfile', {
-      name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      phoneNumber: DataTypes.BIGINT, // changed to BIGINT
-      dateOfBirth: DataTypes.DATEONLY,
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      units: {
-        type: DataTypes.ARRAY(DataTypes.INTEGER),
-        allowNull: true,
-        defaultValue: [],
-      },
-      // Debit/Credit Card Payment Information
-      cardholderName: DataTypes.STRING,
-      billingAddress: DataTypes.STRING,
-      cardNumber: DataTypes.BIGINT, // changed to BIGINT
-      expiryDate: DataTypes.DATE, // changed to DATE
-      cvv: DataTypes.INTEGER, // changed to INTEGER
-      billingZipCode: DataTypes.STRING,
-      // Bank Transfer Payment Information
-      bank: DataTypes.STRING,
-      accountNumber: DataTypes.INTEGER, // changed to INTEGER
-      accountName: DataTypes.STRING,
-      // GCash Payment Information
-      gcashMobileNumber: DataTypes.BIGINT, // changed to BIGINT
-      gcashTransactionId: DataTypes.STRING,
-      gcashPaymentStatus: DataTypes.BOOLEAN, // changed to BOOLEAN
-      gcashPaymentTime: DataTypes.DATE,
-    }, {});
-  
-    UserProfile.associate = (models) => {
-      // One UserProfile has many Units:
-    };
-  
-    return UserProfile;
+  const UserProfile = sequelize.define('UserProfile', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    name: DataTypes.STRING,
+    phoneNumber: DataTypes.STRING,
+    dateofBirth: DataTypes.DATE,
+    email: DataTypes.STRING,
+    password: DataTypes.STRING,
+    // CHANGED TO ARRAY OF UUID
+    units: DataTypes.ARRAY(DataTypes.UUID),
+
+    cardholderName: DataTypes.STRING,
+    billingAddress: DataTypes.STRING,
+    cardNumber: { 
+      type: DataTypes.STRING(19),
+      allowNull: true,
+    },
+    expiryDate: {
+      type: DataTypes.STRING(7),
+      allowNull: true,
+    },
+    cvv: DataTypes.INTEGER,
+    billingZipCode: DataTypes.STRING,
+    bank: DataTypes.STRING,
+    accountNumber: DataTypes.STRING,
+    accountName: DataTypes.STRING,
+    gcashMobileNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    gcashTransactionId: DataTypes.STRING,
+    gcashPaymentTime: DataTypes.DATE,
+  }, {
+    tableName: 'userProfile',
+    freezeTableName: true,
+  });
+  UserProfile.associate = function(models) {
+    // associations if needed
+  };
+  return UserProfile;
 };

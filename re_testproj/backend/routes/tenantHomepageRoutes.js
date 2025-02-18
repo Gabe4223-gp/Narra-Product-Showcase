@@ -41,17 +41,6 @@ let mockRenewLease = {
 
 // --- Endpoints ---
 
-// GET /tenant/dashboard?tenantId=1
-router.get('/dashboard', (req, res) => {
-  // In production, query your PostgreSQL database for tenant data.
-  res.json({
-    lease: mockLease,
-    billing: mockBilling,
-    paymentMethods: mockPaymentMethods,
-    renewLease: mockRenewLease,
-  });
-});
-
 // POST /tenant/lease/end-request
 router.post('/lease/end-request', (req, res) => {
   const { tenantId, leaseId } = req.body;
@@ -70,16 +59,6 @@ router.post('/billing/pay', upload.single('proofFile'), (req, res) => {
   console.log('File:', file);
   // Update billing records in your database and store the file.
   res.json({ message: 'Payment information submitted successfully' });
-});
-
-// POST /tenant/renew-lease/upload
-router.post('/renew-lease/upload', upload.single('signedLease'), (req, res) => {
-  const tenantId = req.body.tenantId;
-  const file = req.file;
-  console.log(`Signed lease uploaded for tenant ${tenantId}`);
-  console.log('File:', file);
-  // Save the signed lease information in your database.
-  res.json({ message: 'Signed lease uploaded successfully' });
 });
 
 // GET /tenant/:userId/billingDeadline

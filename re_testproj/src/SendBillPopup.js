@@ -1,8 +1,9 @@
+// src/SendBillPopup.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, onSend, tenantId }) {
+function SendBillPopup({ onClose, tenantemail, landlordemail }) {
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
   const [utilityFees, setUtilityFees] = useState([{ name: '', amount: '' }]);
@@ -65,29 +66,53 @@ function SendBillPopup({ onClose, onSend, tenantId }) {
   };
 
   const handleSubmit = async () => {
-    // Check that the deadline field is set
-    console.log("Updating deadline with:", { tenantId, deadline });
+    if (!tenantemail || !landlordemail) {
+      console.error("Missing tenantemail or landlordemail");
+      return;
+    }
+    
     if (!deadline) {
       alert("Please add a deadline");
       return;
     }
     if (!validateFields()) return;
-  
-    try {
-      // Update the billing deadline in Units
-      await axios.put(`/api/sendBill/update-deadline`, { tenantId, deadline });
-  
-      // Update the total cost in Units
-      await axios.put(`/api/sendBill/update-total`, { tenantId, totalAmount });
-  
-      alert("Bill sent successfully.");
-    } catch (error) {
-      console.error("Error sending bill:", error);
-      alert("Failed to send the bill. Please try again.");
-    }
-  
-    onClose();
-  };
+
+    const billData = {
+      tenantemail,
+      landlordemail,
+      subject,
+      rentalAmount,
+      utilityFees,
+      otherFees,
+      taxRate,
+      deadline,
+      email,
+      totalAmount,
+    };
+
+    console.log("Sending billData:", billData);
+  try {
+    const res = await axios.post('/api/sendBill/generate', billData);
+    console.log("Sending bill data to /generate:", {
+      tenantemail,
+      landlordemail,
+      subject,
+      rentalAmount,
+      utilityFees,
+      otherFees,
+      taxRate,
+      deadline,
+      email,
+      totalAmount,
+    })
+    alert(res.data.message);
+  } catch (error) {
+    console.error("Error sending bill:", error);
+    alert("Failed to send the bill. Please try again.");
+  }
+
+  onClose();
+};
 
   return (
     <div className="send-bill-popup">

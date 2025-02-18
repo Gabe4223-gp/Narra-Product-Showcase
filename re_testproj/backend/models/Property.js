@@ -1,28 +1,21 @@
 'use strict';
-
 module.exports = (sequelize, DataTypes) => {
-  const Property = sequelize.define(
-    'Property',
-    {
-      // `id` is automatically created by Sequelize by default (if no custom PK is defined).
-      name: {
-        type: DataTypes.STRING, // Or DataTypes.TEXT if names can be very long
-        allowNull: false,
-      },
+  const Property = sequelize.define('Property', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
     },
-    {
-      tableName: 'Properties', // optional, default table name is `Properties`
-    }
-  );
-
-  // Define associations in an `associate` function
-  Property.associate = (models) => {
-    // One Property has many Units:
-    Property.hasMany(models.Unit, {
-      foreignKey: 'propertyId',   // the foreign key in the Units table
-      as: 'units',                // optional "alias" for use in include/query
-    });
+    companyName: DataTypes.STRING,
+    propertyName: DataTypes.STRING,
+    address: DataTypes.STRING,
+    image: DataTypes.STRING,
+    owner: DataTypes.STRING,
+    tenants: DataTypes.ARRAY(DataTypes.STRING),
+    units: DataTypes.ARRAY(DataTypes.STRING),
+  }, {});
+  Property.associate = function(models) {
+    // associations can be defined here
   };
-
   return Property;
 };

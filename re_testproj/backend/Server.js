@@ -11,13 +11,14 @@ const userProfileRoutes = require('./routes/userProfileRoutes');
 const propertiesRoutes = require('./routes/propertiesRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const sendBillRoutes = require('./routes/sendBillRoutes');
+const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
 
 const protectedRoutes = require('./routes/protectedRoutes');
 const tenantSettings = require('./routes/tenantSettings');
-const TenantHomepage = require('./routes/tenantHomepage');
+const TenantHomepage = require('./routes/tenantHomepageRoutes');
 const { createPaymongoIntent } = require('./paymongoService');
 const { createGCashIntent } = require('./paymongoService');
 const cors = require('cors');
@@ -25,7 +26,11 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = ['https://www.narra-ph.com', 'http://localhost:3000'];
+    console.log("CORS origin:", origin);
+    const allowedOrigins = [
+      'https://www.narra-ph.com',
+      'http://localhost:5000/',
+    ];    
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
       callback(null, true);
@@ -80,6 +85,7 @@ const invoiceQueue = new Bull('invoice-generation', {
 
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
+const { File } = require('./models'); // Adjust if your models are in a different path
 
 
 
@@ -88,6 +94,7 @@ const upload = multer({ storage: multer.memoryStorage() }); // Store files in me
 //Authentification
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
 app.use('/api/emails', emailMessageRoutes);
@@ -96,11 +103,12 @@ app.use('/api/forms', formRoutes);
 app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/files', express.static('public/files'));
-app.use('/tenant', TenantHomepage);
+app.use('/api/tenant', TenantHomepage);
 app.use('/tenant/settings', tenantSettings);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/sendBill', sendBillRoutes);
+app.use('/api/lease-proposal', leaseProposalRoutes);
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -2224,6 +2232,36 @@ app.post("/tenants/import", async (req, res) => {
   } catch (error) {
     console.error("Error importing tenants:", error);
     res.status(500).json({ error: "Failed to import tenants." });
+  }
+});
+
+/**
+ * POST /files/associate-landlord-tenant
+ * Request body: { tenantId, landlordUserProfileId }
+ * Behavior:
+ *  1. Finds the tenant's email from the tenant table (by tenantId).
+ *  2. Finds the landlord's email from userProfile (by landlordUserProfileId).
+ *  3. Inserts a row into the files table with tenantemail, landlordemail, plus optional filename/url
+ */
+// POST /files/associate-landlord-tenant
+app.post('/files/associate-landlord-tenant', async (req, res) => {
+  try {
+    const { tenantemail, landlordemail } = req.body;
+    if (!tenantemail || !landlordemail) {
+      return res.status(400).json({ message: 'Missing tenantemail or landlordemail.' });
+    }
+
+    // Create a new row in "files" table
+    const newRecord = await File.create({
+      tenantemail,
+      landlordemail,
+      // optionally store a filename, url, etc. if needed
+    });
+
+    return res.json({ message: 'Emails associated successfully.', fileRecord: newRecord });
+  } catch (error) {
+    console.error('Error creating file record:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 

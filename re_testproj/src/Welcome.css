@@ -1,0 +1,68 @@
+/* src/Welcome.css */
+.welcome-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #272d2d;
+    font-family: Tahoma, Verdana, sans-serif;
+  }
+  
+  .welcome-container h2 {
+    margin-bottom: 10px;
+    color: #edf5fc;
+    font-size: 50px;
+  }
+  
+  .welcome-container p {
+    color: #edf5fc;
+    font-size: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .welcome-container .form-group {
+    margin-bottom: 20px;
+    width: 300px;
+  }
+  
+  .welcome-container label {
+    display: flex;
+    flex-direction: column;
+    color: #edf5fc;
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  
+  .welcome-container input[type="text"],
+  .welcome-container input[type="email"],
+  .welcome-container input[type="password"],
+  .welcome-container input[type="date"] {
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .welcome-container .btn-role, .welcome-container .actions button {
+    padding: 10px 20px;
+    background-color: #23ce6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0;
+    width: 200px;
+  }
+  
+  .welcome-container .btn-role:hover,
+  .welcome-container .actions button:hover {
+    background-color: #76f0a9;
+  }
+  
+  .error {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+  }

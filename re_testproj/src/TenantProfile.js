@@ -6,11 +6,12 @@ import "./TenantProfile.css";
 import DocumentViewer from './DocumentViewer.js';
 import Lease from './Lease.js';
 import { v4 as uuidv4 } from 'uuid';
+import { useUserProfile } from './UserProfileContext.js';
 import { useAuth0 } from '@auth0/auth0-react';
   
 
 
-function TenantProfile({tenantId, onBack, propertyId}) {
+function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
     const defaultImage = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
     const [tenantDetails, setTenantDetails] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -21,9 +22,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
     const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
-  
-    console.log("Tenant prop:", tenant);
-    console.log("Edited tenant:", editedTenant);
+    const { userProfile } = useUserProfile();
 
     useEffect(() => {
         if (tenantDetails) {
@@ -67,7 +66,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           }
    
           // Make a request to the backend
-          const response = await fetch(`http://localhost:5000/tenants/${tenantId}`, {
+          const response = await fetch(`/tenants/${tenantId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -91,7 +90,34 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     // UseEffect to fetch tenant details right when the page loads
     useEffect(() => {
         fetchTenantDetails();
-    }, []);
+    }, [tenantId]);
+
+    // Once tenantDetails is fetched AND we have userProfile.email, call the associate function
+    useEffect(() => {
+    if (tenantDetails?.email && userProfile?.email) {
+      associateLandlordTenant(tenantDetails.email, userProfile.email);
+    }
+    }, [tenantDetails, userProfile]);
+
+    // The function to call POST /files/associate-landlord-tenant
+    async function associateLandlordTenant(tenantemail, landlordemail) {
+    try {
+      // Avoid spamming the endpoint if we already have a record (optional check)
+      const response = await fetch('/files/associate-landlord-tenant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantemail, landlordemail }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.message || "Error associating emails.");
+      } else {
+        console.log(`Successfully associated ${tenantemail} with landlord ${landlordemail}`);
+      }
+    } catch (err) {
+      console.error("Error associating landlord & tenant emails:", err);
+    }
+  }
 
     //when handleUploadLeaseDoc happens, saveEditTenant() is invoked
     useEffect(() => {
@@ -114,7 +140,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
 
 
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/tenants/update', {
+            const response = await fetch('/tenants/update', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -144,6 +170,9 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     const handleBack = async () => {
         setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
     };
+
+    //TODO: DEFINE THIS FUNCTION!
+    const handleMarkasMovedOut = async () => {};
 
     const handleSetForPreview = () => {
         setForPreview(true);
@@ -180,7 +209,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                 };
     
                 try {
-                    const response = await fetch('http://localhost:5000/tenants/upload-govid', {
+                    const response = await fetch('/tenants/upload-govid', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -215,7 +244,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`http://localhost:5000/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
+            const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -253,7 +282,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`http://localhost:5000/tenants/delete`, {
+            const response = await fetch(`/tenants/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -307,7 +336,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                 <h5>Personal Details</h5>
                 <button
                   className="edit-button"
-                  onClick={() => setShowEditTenantDetails(true)}
+                  onClick={() => setshowEditTenantDetails(true)}
                 >
                   Edit
                 </button>
@@ -473,6 +502,8 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           {showSendBillPopup && (
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
+              tenantemail={tenantDetails?.email}
+              landlordemail={userProfile?.email}
               tenantId={editedTenant.id}
             />
           )}
@@ -543,7 +574,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                 </form>
                 <div>
                   <button onClick={saveEditTenant}>Save</button>
-                  <button onClick={() => setShowEditTenantDetails(false)}>
+                  <button onClick={() => setshowEditTenantDetails(false)}>
                     Cancel
                   </button>
                 </div>

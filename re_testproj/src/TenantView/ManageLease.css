@@ -1,0 +1,47 @@
+/* src/ManageLease.css */
+.manage-lease {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    max-width: 800px; /* Wide enough to fill the page */
+    margin: 20px auto;
+  }
+  
+  .manage-lease h3 {
+    margin-bottom: 15px;
+    font-size: 24px;
+    color: #333;
+  }
+  
+  .manage-lease p {
+    margin: 10px 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .lease-actions {
+    margin-top: 15px;
+  }
+  
+  .lease-actions button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  
+  .lease-actions button:hover {
+    background-color: #0056b3;
+  }
+  
+  .error-banner {
+    margin-top: 10px;
+    color: red;
+    font-weight: bold;
+  }
+  
