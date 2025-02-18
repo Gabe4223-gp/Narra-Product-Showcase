@@ -75,7 +75,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/units/update', {
+            const response = await fetch('/units/update', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('http://localhost:5000/units/update', {
+            const response = await fetch('/units/update', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

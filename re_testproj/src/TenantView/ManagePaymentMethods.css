@@ -49,10 +49,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0,0,0,0.5);
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
   }
   
   .modal {
@@ -60,32 +60,38 @@
     padding: 20px;
     border-radius: 8px;
     width: 400px;
+    font-family: Arial, sans-serif;
   }
   
   .modal h3 {
     margin-top: 0;
   }
   
-  .form-group {
-    margin-bottom: 15px;
+  .form-group label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
   }
   
-  .form-group label {
-    display: block;
+  .radio-options label {
+    display: block; /* each radio on its own line, aligned to left */
     margin-bottom: 5px;
   }
   
-  .form-group input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
+  .payment-fields label {
+    display: block;
+    margin-top: 10px;
   }
   
-  .radio-label {
-    margin-right: 10px;
+  .payment-fields input {
+    width: 100%;
+    padding: 6px;
+    box-sizing: border-box;
+    margin-top: 5px;
   }
   
   .modal-buttons {
+    margin-top: 20px;
     display: flex;
     justify-content: flex-end;
   }

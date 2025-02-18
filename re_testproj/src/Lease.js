@@ -62,7 +62,7 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
 
         try {
            
-            const response = await fetch('http://localhost:5000/tenants/upload-lease', {
+            const response = await fetch('/tenants/upload-lease', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`http://localhost:5000/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
+            const response = await fetch(`/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,8 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
-import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
+
+class PropertyClass {
+  constructor(
+    id = Math.random(), 
+    companyName = "NA", 
+    propertyName = "NA", 
+    propertyAddress = "NA", 
+    image = "https://via.placeholder.com/150", 
+    owner = "NA", 
+    tenants = [], 
+    units = [], 
+    createdAt = new Date()) 
+    {
+    this.id = id;  
+    this.companyName = companyName;  
+    this.propertyName = propertyName;
+    this.propertyAddress = propertyAddress;
+    this.image = image;
+    this.owner = owner;
+    this.tenants = tenants;
+    this.units = units;
+    this.createdAt = createdAt;
+  }
+
+  // Method to remove a tenant by ID
+  removeTenant(tenantIndex) {
+    this.tenants.splice(tenantIndex, 1) 
+  }
+
+  addTenant(newTenant) {
+    this.tenants.push(newTenant); // Append the new tenant to the tenants array
+  }
+
+  // Method to get the total number of units
+  getUnitCount() {
+      return this.units.length;
+  }
+
+  // Method to get the total number of tenants
+  getTenantCount() {
+    return this.tenants.length;
+  }
+
+  getOccupancy() {
+    if (this.units.length === 0) {
+        return 0;  // Or return an appropriate message indicating no units available
+    }
+    return this.tenants.length / this.units.length;
+  }
+
+  // Method to get the property details
+  getPropertyDetails() {
+      return {
+          id: this.id,
+          name: this.name,
+          address: this.address,
+          owner: this.owner,
+          unitCount: this.getUnitCount(),
+          tenantCount: this.getTenantCount(),
+          createdAt: this.createdAt,
+      };
+  }
+}
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
@@ -15,7 +78,7 @@ function HomePage({ onLogout }) {
 
       try {
 
-        const response = await fetch('http://localhost:5000/properties', {
+        const response = await fetch(`/properties`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -74,7 +137,7 @@ function HomePage({ onLogout }) {
     
     try {
       // Make a POST request to the backend
-      const response = await fetch("http://localhost:5000/properties", {
+      const response = await fetch(`/properties`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

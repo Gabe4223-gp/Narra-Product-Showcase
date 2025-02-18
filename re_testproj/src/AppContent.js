@@ -2,7 +2,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import Header from './Header';
 import Homepage from './Homepage';
 import Billings from './Billings';
 import Applications from './Applications/Applications';
@@ -14,9 +13,13 @@ import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
 import RoleSelection from './RoleSelection';
+
 // New Tenant view components:
 import TenantHomepage from './TenantView/TenantHomepage';
 import TenantSettings from './TenantView/TenantSettings';
+
+// New "Welcome" component for setting up a profile if incomplete
+import Welcome from './Welcome';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth0();
@@ -28,7 +31,7 @@ function AppContent() {
 
   return (
     <Routes>
-      {/* Public Route for non-authenticated users */}
+      {/* 1. Public Route for non-authenticated users */}
       {!isAuthenticated && (
         <>
           <Route path="/*" element={<Login />} />
@@ -36,7 +39,7 @@ function AppContent() {
         </>
       )}
 
-      {/* Authenticated but no role chosen yet */}
+      {/* 2. Authenticated but no role chosen yet */}
       {isAuthenticated && !role && (
         <>
           <Route
@@ -47,11 +50,22 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          {/* If userProfile check fails, we route them to Welcome */}
+          <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <Welcome onProfileCreated={(selectedRole) => setRole(selectedRole)} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Default path when no role is set */}
           <Route path="*" element={<Navigate to="/select-role" replace />} />
         </>
       )}
 
-      {/* Authenticated and role chosen */}
+      {/* 3. Authenticated and role chosen */}
       {isAuthenticated && role && (
         <Route
           path="/"
@@ -61,6 +75,7 @@ function AppContent() {
             </ProtectedRoute>
           }
         >
+          {/* Landlord Routes */}
           {role === 'landlord' && (
             <>
               <Route index element={<Homepage />} />
@@ -75,16 +90,16 @@ function AppContent() {
             </>
           )}
 
+          {/* Tenant Routes */}
           {role === 'tenant' && (
             <>
-              {/* All Tenant routes are grouped under /tenant */}
               <Route path="tenant">
                 <Route path="dashboard" element={<TenantHomepage />} />
                 <Route path="settings" element={<TenantSettings />} />
-                {/* Default tenant route redirects to dashboard */}
+                {/* Default tenant route redirects to /tenant/dashboard */}
                 <Route index element={<Navigate to="dashboard" replace />} />
               </Route>
-              <Route path="*" element={<Navigate to="tenant/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/tenant/dashboard" replace />} />
             </>
           )}
         </Route>

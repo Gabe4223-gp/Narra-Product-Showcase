@@ -50,7 +50,7 @@ function Tenants() {
     
     try {
 
-      const response = await fetch('http://localhost:5000/properties', {
+      const response = await fetch('/properties', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ function Tenants() {
 
     try {
  
-      const response = await fetch('http://localhost:5000/tenants/byIds', {
+      const response = await fetch('/tenants/byIds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ function Tenants() {
       };
  
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('http://localhost:5000/tenants', {
+      const response = await fetch('/tenants', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,7 +276,7 @@ function Tenants() {
           }
  
           // Send the imported tenants and selected property ID to the backend
-          const response = await fetch("http://localhost:5000/tenants/import", {
+          const response = await fetch("/tenants/import", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -335,7 +335,7 @@ function Tenants() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`http://localhost:5000/tenants/delete-all`, {
+        const response = await fetch(`/tenants/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

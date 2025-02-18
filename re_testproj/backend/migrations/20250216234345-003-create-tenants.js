@@ -2,87 +2,81 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    // Create the 'Tenants' table
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('Tenants', {
       id: {
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
+        allowNull: false,
         primaryKey: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('uuid_generate_v4()'),
       },
       name: {
         type: Sequelize.STRING,
-        allowNull: true,
+        allowNull: false,
       },
       unit: {
         type: Sequelize.STRING,
-        onDelete: 'SET NULL', // Optional: Set unitId to null if the unit is deleted
         allowNull: true,
       },
       phone: {
-        type: Sequelize.STRING, // Changed from INTEGER to STRING for phone numbers
-        allowNull: false,
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       email: {
         type: Sequelize.STRING,
-        allowNull: false,
-        validate: {
-          isEmail: true, // Optional: Validates that the email is in a valid format
-        },
+        allowNull: true,
       },
       leaseStarted: {
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       leaseExpiry: {
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       leaseDocs: {
-        type: Sequelize.ARRAY(Sequelize.STRING), // Array of strings for document links
-        allowNull: false,
-        defaultValue: [],
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        allowNull: true,
       },
       moveinDate: {
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       moveoutDate: {
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
       },
-      billingDeadline: {
+      billingDeadline: {   // New column for tenants
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       nationality: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       occupation: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       image: {
-        type: Sequelize.STRING, // Changed from URL to STRING
-        allowNull: false,
-        defaultValue: 'https://via.placeholder.com/150',
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       eWalletName: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       eWalletReferenceNo: {
-        type: Sequelize.STRING, // Changed from INTEGER to STRING
-        allowNull: false,
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       bankName: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       bankReferenceNo: {
-        type: Sequelize.STRING, // Changed from INTEGER to STRING
-        allowNull: false,
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       creditCardName: {
         type: Sequelize.STRING,
@@ -93,18 +87,30 @@ module.exports = {
         allowNull: true,
       },
       creditCardDate: {
-        type: Sequelize.DATE, // Changed from INTEGER to DATE
+        type: Sequelize.DATE,
         allowNull: true,
       },
       primaryPaymentMethod: {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      govid: {
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        allowNull: true,
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      }
     });
   },
-
-  async down(queryInterface, Sequelize) {
-    // Drop the 'Tenants' table
+  down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Tenants');
-  },
+  }
 };
