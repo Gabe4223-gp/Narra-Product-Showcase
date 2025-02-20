@@ -54,9 +54,6 @@ function OutstandingInvoice({ propertyId }) {
           <span>{currentMonthYear}</span>
           <button onClick={handleNextMonth}>&gt;</button>
         </div>
-        <div className="toggle-message">
-          <small>Will fix when database is restructured</small>
-        </div>
         <div className="divider"></div>
         <div className="invoice-breakdown">
           <div className="invoice-item">

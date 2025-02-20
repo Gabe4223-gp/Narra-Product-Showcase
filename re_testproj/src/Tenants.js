@@ -4,6 +4,7 @@ import TenantProfile from './TenantProfile';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useUserProfile } from "./UserProfileContext";
 
 function Tenants() {
   const defaultImage = "https://via.placeholder.com/150";
@@ -15,6 +16,7 @@ function Tenants() {
     console.log("Selected Property", localStorage.getItem('selectedPropertyID'));
     return localStorage.getItem('selectedPropertyID') || "";
   });
+
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedTenantIds, setSelectedTenantIds] = useState(new Set());
   const [newTenant, setNewTenant] = useState({
@@ -42,6 +44,7 @@ function Tenants() {
     primaryPaymentMethod: null,
     govid: [],
   });
+  const {userProfile} = useUserProfile();
 
   //
   //Handle database changes
@@ -50,13 +53,12 @@ function Tenants() {
     
     try {
 
-      const response = await fetch('/properties', {
-        method: 'GET',
+      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch properties');
       }
@@ -64,12 +66,18 @@ function Tenants() {
 
       // Check if the user previously had zero properties
       const savedPropertyId = localStorage.getItem('selectedPropertyID');
+      const propertyExists = data.some((property) => property.id === savedPropertyId);
 
       if (!savedPropertyId && data.length > 0) {
           // Only set selectedPropertyID if there was no previous selection
           setSelectedPropertyID(data[0].id);
           localStorage.setItem('selectedPropertyID', data[0].id);
           console.log("Setting selected property to first property:", data[0].id);
+      }
+      
+      if (!propertyExists) {
+        setSelectedPropertyID(data[0].id);
+        console.log("heres the selected Property", selectedPropertyID);
       }
 
 
@@ -88,6 +96,8 @@ function Tenants() {
 
 
   const fetchTenants = async (tenantIds) => {
+
+    console.log("Tenants", tenantIds);
 
     if (tenantIds.length === 0) {
       console.log("No tenant IDs provided, exiting fetch.");
@@ -210,6 +220,8 @@ function Tenants() {
 
      
       const responseData = await response.json(); // Get the response data
+
+      console.log("Aflooie", responseData);
 
       // Optionally: If you have a function that fetches tenants by IDs
       fetchTenants(responseData.tenants);

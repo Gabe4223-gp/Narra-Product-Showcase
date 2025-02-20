@@ -1187,13 +1187,16 @@ app.delete('/units/delete-all', async (req, res) => {
 
     for (const unit of units) {
       if (unit && Array.isArray(unit.issues) && unit.issues.length > 0) {
+
+        const formattedIssues = `{${unit.issues.join(",")}}`;
+
         const deleteIssueQuery = `
           DELETE FROM "Issues"
           WHERE id = ANY(:issues::uuid[])
         `;
         
         await sequelize.query(deleteIssueQuery, {
-          replacements: { issues: unit.issues },
+          replacements: { issues: formattedIssues },
           type: sequelize.QueryTypes.DELETE,
         });
       }
@@ -1238,8 +1241,13 @@ app.delete('/units/delete-all', async (req, res) => {
 
 //Get all properties
 app.get('/properties', async (req, res) => {
+  const userId = req.query.user_id;
   try {
-    const [properties, metadata] = await sequelize.query('SELECT * FROM "Properties"'); // Raw SQL query
+    const properties = await sequelize.query(
+      'SELECT * FROM "Properties" WHERE "user_id" = :userId', {
+      replacements: { userId: userId }, // Bind the user_id to the query
+      type: sequelize.QueryTypes.SELECT
+    }); 
     res.json(properties); // Send the properties as JSON
   } catch (err) {
     console.error('Error fetching properties:', err);
@@ -1249,20 +1257,21 @@ app.get('/properties', async (req, res) => {
 
 //Adding new property
 app.post("/properties", async (req, res) => {
-  const { id, companyName, propertyName, address, image, owner, tenants, units } = req.body;
+  const { id, user_id, companyName, propertyName, address, image, owner, tenants, units } = req.body;
 
 
   try {
     // Use Sequelize query to insert the new property into the database
     const [result] = await sequelize.query(
       `
-      INSERT INTO "Properties" ("id", "companyName", "propertyName", "address", "image", "owner", "tenants", "units", "createdAt", "updatedAt")
-      VALUES (:id, :companyName, :propertyName, :address, :image, :owner, :tenants, :units, :createdAt, :updatedAt)
+      INSERT INTO "Properties" ("id", "user_id", "companyName", "propertyName", "address", "image", "owner", "tenants", "units", "createdAt", "updatedAt")
+      VALUES (:id, :user_id, :companyName, :propertyName, :address, :image, :owner, :tenants, :units, :createdAt, :updatedAt)
       RETURNING *;
       `,
       {
         replacements: {
           id,
+          user_id,
           companyName,
           propertyName,
           address,
@@ -1580,19 +1589,16 @@ app.post('/tenants/byIds', async (req, res) => {
 
 //Save tenant//
 app.post('/tenants', async (req, res) => {
-  const { tenant, propertyId } = req.body;
-
+  const { tenant, propertyId, userId } = req.body;
 
   // Validate input
   if (!tenant || !propertyId) {
     return res.status(400).json({ error: 'Invalid tenant or property ID' });
   }
 
-
   try {
     // Format array
     const formattedArray = "{}";
-
 
     // Save the new tenant to the "Tenants" table
     const query = `
@@ -1601,13 +1607,13 @@ app.post('/tenants', async (req, res) => {
         "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", nationality,
         occupation, image, "eWalletName", "eWalletReferenceNo", "bankName",
         "bankReferenceNo", "creditCardName", "creditCardNo", "creditCardDate",
-        "primaryPaymentMethod", govid
+        "primaryPaymentMethod", govid, "propertyId"
       ) VALUES (
         :id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry,
         :leaseDoc, :moveinDate, :moveoutDate, :billingDeadline, :nationality,
         :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName,
         :bankReferenceNo, :creditCardName, :creditCardNo, :creditCardDate,
-        :primaryPaymentMethod, :govid
+        :primaryPaymentMethod, :govid, :propertyId
       )
       RETURNING id;
     `;
@@ -1616,9 +1622,22 @@ app.post('/tenants', async (req, res) => {
         ...tenant,
         leaseDoc: formattedArray,
         govid: formattedArray,
+        propertyId: propertyId,
       },
       type: sequelize.QueryTypes.INSERT,
-   
+    });
+
+    const userQuery = `
+      UPDATE "Tenants"
+      SET "user_id" = u.id
+      FROM "userProfile" u
+      WHERE "Tenants"."email" = u."email"
+        AND u."email" = :email
+    `;
+
+    await sequelize.query(userQuery, {
+      replacements: { email: tenant.email }, // Replace 'targetEmail' with the actual email variable
+      type: sequelize.QueryTypes.UPDATE,
     });
 
     //Update the unit if the tenant unit matches the unitNo
@@ -2172,7 +2191,7 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { fileName, fileType, fileContent, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordEmail, tenantEmail, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
@@ -2189,6 +2208,24 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     console.log("FileUrl", fileUrl)
 
+    //Store file in Files table
+    const fileQuery = `
+      INSERT INTO "Files" (id, "fileName", url, "landlordEmail", "tenantEmail")
+      VALUES (:id, :fileName, :url, :landlordEmail, :tenantEmail)
+      RETURNING *;
+    `
+
+    const fileUpload = await sequelize.query(fileQuery, {
+      replacements: {
+        id: id,                       // UUID passed from frontend
+        fileName: fileName,           // UUID as fileName
+        url: fileUrl,                 // URL from S3
+        landlordEmail: landlordEmail,
+        tenantEmail: tenantEmail,
+      },
+      type: sequelize.QueryTypes.INSERT, // Specify the query type
+    });
+    
     // Store document reference in the database
     const updateQuery = `
       UPDATE "Tenants"

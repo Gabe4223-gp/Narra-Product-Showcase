@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    user_id: DataTypes.UUID,
     name: DataTypes.STRING,
     unit: DataTypes.STRING,
     phone: DataTypes.STRING,
@@ -28,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     creditCardDate: DataTypes.DATE,
     primaryPaymentMethod: DataTypes.STRING,
     govid: DataTypes.ARRAY(DataTypes.STRING),
+    propertyId: DataTypes.UUID,
   }, {});
   Tenant.associate = function(models) {
     // associations if needed

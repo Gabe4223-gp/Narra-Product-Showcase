@@ -18,6 +18,7 @@
   font-weight: normal;
   margin-right: 20.5px;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-bottom: 25%;
 }
 
 .left-section {
