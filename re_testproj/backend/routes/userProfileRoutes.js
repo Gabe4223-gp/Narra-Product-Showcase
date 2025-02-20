@@ -1,7 +1,7 @@
 // routes/userProfileRoutes.js
 const express = require('express');
 const router = express.Router();
-const { UserProfile } = require('../models');
+const { sequelize, UserProfile } = require('../models');
 
 // GET endpoint to retrieve payment method details for editing
 router.get('/payment-methods', async (req, res) => {
@@ -160,6 +160,30 @@ router.post('/welcome', async (req, res) => {
       email,
       password,
     });
+
+    // Update the corresponding tenant's user_id if email matches
+    const [updatedTenant] = await sequelize.query(
+      `
+      UPDATE "Tenants"
+      SET user_id = :userId
+      WHERE email = :email
+      RETURNING *;
+      `,
+      {
+        replacements: { userId: newProfile.id, email },
+        type: sequelize.QueryTypes.UPDATE,
+      }
+    );
+
+    if (!updatedTenant || updatedTenant.length === 0) {
+      return res.status(200).json({
+        message: "Profile created successfully, but no matching tenant found for this email.",
+        userProfile: newProfile,
+      });
+    }
+
+
+
     res.status(201).json({ message: "Profile created successfully", userProfile: newProfile });
   } catch (error) {
     console.error("Error creating profile:", error);

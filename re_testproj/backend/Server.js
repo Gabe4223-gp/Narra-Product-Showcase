@@ -86,10 +86,6 @@ const invoiceQueue = new Bull('invoice-generation', {
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
-
-
-
-
 //Authentification
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
@@ -127,14 +123,6 @@ app.get('/', (req, res) => {
   res.send('Backend is running successfully!');
 });
 
-
-
-
-
-
-
-
-
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
@@ -153,275 +141,6 @@ app.get('/db-test', async (req, res) => {
   } catch (err) {
       res.status(500).send('Database connection failed: ' + err.message);
   }
-});
-
-// Define Property model
-const Property = sequelize.define('Property', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  companyName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  propertyName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  address: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  image: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-  owner: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  tenants: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
-    allowNull: true,
-    defaultValue: [],
-  },
-  units: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
-    allowNull: true,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'Properties', // Specify the table name (Tenants in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-
-// Define Tenant model
-const Tenant = sequelize.define('Tenant', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  unit: {
-    type: DataTypes.STRING,
-    onDelete: 'SET NULL', // Optional: Set unitId to null if the unit is deleted
-  },
-  phone: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isEmail: true, // Optional: Validates that the email is in a valid format
-    },
-  },
-  leaseStarted: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  leaseExpiry: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  leaseDocs: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
-    allowNull: true,
-    defaultValue: [],
-  },
-  moveinDate: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  moveoutDate: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  billingDeadline: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  nationality: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  occupation: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  image: {
-    type: DataTypes.STRING, // Changed from URL to STRING
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-  eWalletName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  eWalletReferenceNo: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING
-    allowNull: true,
-  },
-  bankName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  bankReferenceNo: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING
-    allowNull: true,
-  },
-  creditCardName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  creditCardNo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  creditCardDate: {
-    type: DataTypes.DATE, // Changed from INTEGER to DATE
-    allowNull: true,
-  },
-  primaryPaymentMethod: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  govid: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: true,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'Tenants', // Specify the table name (Tenants in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-//Define Unit Modal
-const Unit = sequelize.define('Unit', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  unitNo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  type: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  mode: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  sizeValue: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  sizeUnit: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  petsAllowed: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  tenants: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
-    allowNull: true,
-    defaultValue: [],
-  },
-  propertyId: {
-    type: DataTypes.STRING, // Array of strings for document links
-    allowNull: true,
-  },
-  waterLastReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  waterCurrentReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  electricityLastReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  electricityCurrentReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  issues: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: true,
-    defaultValue: [],
-  },
-  image: {
-    type: DataTypes.STRING, // Changed from URL to STRING
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-}, {
-  tableName: 'Units', // Specify the table name (Units in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-//Define Issue Modal
-const Issue = sequelize.define('Issue', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  type: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  subject: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  description: {
-    type: DataTypes.TEXT, // Changed to TEXT for longer descriptions
-    allowNull: true,
-  },
-  unit: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  resolved: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false, // Default value for resolved
-  },
-  dateRaised: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW, // Default to current date and time
-  },
-  dateResolved: {
-    type: DataTypes.DATE,
-    allowNull: true, // Can be null if the issue is not resolved
-  },
-  documents: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of document URLs or paths
-    allowNull: true,
-  },
-}, {
-  timestamps: true, // Adds createdAt and updatedAt fields
-  tableName: 'Issues', // Optional: Define the table name explicitly
 });
 
 // Define the Payment model (WILL MOVE TO A MODELS FOLDER)
@@ -1494,8 +1213,13 @@ app.delete('/units/delete-all', async (req, res) => {
 
 //Get all properties
 app.get('/properties', async (req, res) => {
+  const userId = req.query.user_id;
   try {
-    const [properties, metadata] = await sequelize.query('SELECT * FROM "Properties"'); // Raw SQL query
+    const properties = await sequelize.query(
+      'SELECT * FROM "Properties" WHERE "user_id" = :userId', {
+      replacements: { userId: userId }, // Bind the user_id to the query
+      type: sequelize.QueryTypes.SELECT
+    }); 
     res.json(properties); // Send the properties as JSON
   } catch (err) {
     console.error('Error fetching properties:', err);
@@ -1505,20 +1229,21 @@ app.get('/properties', async (req, res) => {
 
 //Adding new property
 app.post("/properties", async (req, res) => {
-  const { id, companyName, propertyName, address, image, owner, tenants, units } = req.body;
+  const { id, user_id, companyName, propertyName, address, image, owner, tenants, units } = req.body;
 
 
   try {
     // Use Sequelize query to insert the new property into the database
     const [result] = await sequelize.query(
       `
-      INSERT INTO "Properties" ("id", "companyName", "propertyName", "address", "image", "owner", "tenants", "units", "createdAt", "updatedAt")
-      VALUES (:id, :companyName, :propertyName, :address, :image, :owner, :tenants, :units, :createdAt, :updatedAt)
+      INSERT INTO "Properties" ("id", "user_id", "companyName", "propertyName", "address", "image", "owner", "tenants", "units", "createdAt", "updatedAt")
+      VALUES (:id, :user_id, :companyName, :propertyName, :address, :image, :owner, :tenants, :units, :createdAt, :updatedAt)
       RETURNING *;
       `,
       {
         replacements: {
           id,
+          user_id,
           companyName,
           propertyName,
           address,
@@ -1836,19 +1561,16 @@ app.post('/tenants/byIds', async (req, res) => {
 
 //Save tenant//
 app.post('/tenants', async (req, res) => {
-  const { tenant, propertyId } = req.body;
-
+  const { tenant, propertyId, userId } = req.body;
 
   // Validate input
   if (!tenant || !propertyId) {
     return res.status(400).json({ error: 'Invalid tenant or property ID' });
   }
 
-
   try {
     // Format array
     const formattedArray = "{}";
-
 
     // Save the new tenant to the "Tenants" table
     const query = `
@@ -1857,13 +1579,13 @@ app.post('/tenants', async (req, res) => {
         "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", nationality,
         occupation, image, "eWalletName", "eWalletReferenceNo", "bankName",
         "bankReferenceNo", "creditCardName", "creditCardNo", "creditCardDate",
-        "primaryPaymentMethod", govid
+        "primaryPaymentMethod", govid, "propertyId"
       ) VALUES (
         :id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry,
         :leaseDoc, :moveinDate, :moveoutDate, :billingDeadline, :nationality,
         :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName,
         :bankReferenceNo, :creditCardName, :creditCardNo, :creditCardDate,
-        :primaryPaymentMethod, :govid
+        :primaryPaymentMethod, :govid, :propertyId
       )
       RETURNING id;
     `;
@@ -1872,9 +1594,22 @@ app.post('/tenants', async (req, res) => {
         ...tenant,
         leaseDoc: formattedArray,
         govid: formattedArray,
+        propertyId: propertyId,
       },
       type: sequelize.QueryTypes.INSERT,
-   
+    });
+
+    const userQuery = `
+      UPDATE "Tenants"
+      SET "user_id" = u.id
+      FROM "userProfile" u
+      WHERE "Tenants"."email" = u."email"
+        AND u."email" = :email
+    `;
+
+    await sequelize.query(userQuery, {
+      replacements: { email: tenant.email }, // Replace 'targetEmail' with the actual email variable
+      type: sequelize.QueryTypes.UPDATE,
     });
 
     //Update the unit if the tenant unit matches the unitNo
@@ -2428,7 +2163,7 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { fileName, fileType, fileContent, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordEmail, tenantEmail, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
@@ -2445,6 +2180,24 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     console.log("FileUrl", fileUrl)
 
+    //Store file in Files table
+    const fileQuery = `
+      INSERT INTO "Files" (id, "fileName", url, "landlordEmail", "tenantEmail")
+      VALUES (:id, :fileName, :url, :landlordEmail, :tenantEmail)
+      RETURNING *;
+    `
+
+    const fileUpload = await sequelize.query(fileQuery, {
+      replacements: {
+        id: id,                       // UUID passed from frontend
+        fileName: fileName,           // UUID as fileName
+        url: fileUrl,                 // URL from S3
+        landlordEmail: landlordEmail,
+        tenantEmail: tenantEmail,
+      },
+      type: sequelize.QueryTypes.INSERT, // Specify the query type
+    });
+    
     // Store document reference in the database
     const updateQuery = `
       UPDATE "Tenants"

@@ -92,33 +92,6 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
         fetchTenantDetails();
     }, [tenantId]);
 
-    // Once tenantDetails is fetched AND we have userProfile.email, call the associate function
-    useEffect(() => {
-    if (tenantDetails?.email && userProfile?.email) {
-      associateLandlordTenant(tenantDetails.email, userProfile.email);
-    }
-    }, [tenantDetails, userProfile]);
-
-    // The function to call POST /files/associate-landlord-tenant
-    async function associateLandlordTenant(tenantemail, landlordemail) {
-    try {
-      // Avoid spamming the endpoint if we already have a record (optional check)
-      const response = await fetch('/files/associate-landlord-tenant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantemail, landlordemail }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        alert(data.message || "Error associating emails.");
-      } else {
-        console.log(`Successfully associated ${tenantemail} with landlord ${landlordemail}`);
-      }
-    } catch (err) {
-      console.error("Error associating landlord & tenant emails:", err);
-    }
-  }
-
     //when handleUploadLeaseDoc happens, saveEditTenant() is invoked
     useEffect(() => {
         if (uploadLeaseDoc) {
@@ -336,7 +309,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
                 <h5>Personal Details</h5>
                 <button
                   className="edit-button"
-                  onClick={() => setshowEditTenantDetails(true)}
+                  onClick={() => setShowEditTenantDetails(true)}
                 >
                   Edit
                 </button>
@@ -563,7 +536,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
                 </form>
                 <div>
                   <button onClick={saveEditTenant}>Save</button>
-                  <button onClick={() => setshowEditTenantDetails(false)}>
+                  <button onClick={() => setShowEditTenantDetails(false)}>
                     Cancel
                   </button>
                 </div>

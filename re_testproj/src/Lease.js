@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./Lease.css";
 import { v4 as uuidv4 } from 'uuid';
-import DocumentViewer from "./DocumentViewer";
+import { useUserProfile } from "./UserProfileContext";
+
 
 
 
@@ -12,12 +13,12 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [showRenewLease, setshowRenewLease] = useState(false);
     const [previewLease, setPreviewLease] = useState(null);
+    const {userProfile} = useUserProfile();
    
     //Lease Generation const
     const [leaseStartDate, setLeaseStartDate] = useState('');
     const [leaseEndDate, setLeaseEndDate] = useState('');
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-
 
     //Lease upload
 
@@ -36,13 +37,20 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                 alert('Invalid file type. Please upload a PDF or image.');
                 return;
             }
+
+            const uuidid = uuidv4();
+
+            console.log("UserProfile", userProfile.email);
    
             const reader = new FileReader();
             reader.onload = () => {
                 const newDoc = {
-                    fileName: uuidv4(),
+                    id: uuidid,
+                    fileName: uuidid,
+                    url: `http://localhost:5000/lease_bills/${encodeURIComponent(uuidid)}`,
                     fileContent: reader.result,
-                    dateUploaded: new Date().toISOString(),
+                    landlordEmail: userProfile.email,
+                    tenantEmail: tenantDetails.email,
                     fileType: file.type,
                 };
    
@@ -68,9 +76,13 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    id: selectedDoc.id,
                     fileName: selectedDoc.fileName,
+                    url: selectedDoc.url,
                     fileType: selectedDoc.fileType,
                     fileContent: selectedDoc.fileContent,
+                    landlordEmail: selectedDoc.landlordEmail,
+                    tenantEmail: selectedDoc.tenantEmail,
                     tenantId: tenantDetails.id,
                     leaseStartDate: leaseStartDate,
                     leaseEndDate: leaseEndDate,

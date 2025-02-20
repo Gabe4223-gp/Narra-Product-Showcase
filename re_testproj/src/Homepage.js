@@ -2,105 +2,42 @@ import React, { useState, useEffect } from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
 import { v4 as uuidv4 } from 'uuid';
-import axios from 'axios';
-
-class PropertyClass {
-  constructor(
-    id = Math.random(), 
-    companyName = "NA", 
-    propertyName = "NA", 
-    propertyAddress = "NA", 
-    image = "https://via.placeholder.com/150", 
-    owner = "NA", 
-    tenants = [], 
-    units = [], 
-    createdAt = new Date()) 
-    {
-    this.id = id;  
-    this.companyName = companyName;  
-    this.propertyName = propertyName;
-    this.propertyAddress = propertyAddress;
-    this.image = image;
-    this.owner = owner;
-    this.tenants = tenants;
-    this.units = units;
-    this.createdAt = createdAt;
-  }
-
-  // Method to remove a tenant by ID
-  removeTenant(tenantIndex) {
-    this.tenants.splice(tenantIndex, 1) 
-  }
-
-  addTenant(newTenant) {
-    this.tenants.push(newTenant); // Append the new tenant to the tenants array
-  }
-
-  // Method to get the total number of units
-  getUnitCount() {
-      return this.units.length;
-  }
-
-  // Method to get the total number of tenants
-  getTenantCount() {
-    return this.tenants.length;
-  }
-
-  getOccupancy() {
-    if (this.units.length === 0) {
-        return 0;  // Or return an appropriate message indicating no units available
-    }
-    return this.tenants.length / this.units.length;
-  }
-
-  // Method to get the property details
-  getPropertyDetails() {
-      return {
-          id: this.id,
-          name: this.name,
-          address: this.address,
-          owner: this.owner,
-          unitCount: this.getUnitCount(),
-          tenantCount: this.getTenantCount(),
-          createdAt: this.createdAt,
-      };
-  }
-}
+import { useUserProfile } from "./UserProfileContext";
 
 function HomePage({ onLogout }) {
   const [isModalVisible, setIsModalVisible] = useState(false); // Handle create new property pop-up
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedPropertyIndex, setSelectedPropertyIndex] = useState(null); // Track selected property index
   const [uploadedImage, setUploadedImage] = useState(null);
+  const {userProfile} = useUserProfile();
 
 
   const fetchProperties = async () => {
 
-      try {
-
-        const response = await fetch(`/properties`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch properties');
-        }
-        const data = await response.json();
- 
-        setProperties(data); // Set tenants fetched from the database
-      } catch (error) {
-        console.error('Error fetching properties:', error);
-        alert('Failed to load properties. Please try again.');
+    console.log("user Profile", userProfile);
+    try {
+      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
       }
-    };
-   
-    // useEffect to initially fetch tenants
-    useEffect(() => {
-      fetchProperties(); // Fetch tenants when component mounts
-    }, []);
+      const data = await response.json();
+      setProperties(data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      alert('Failed to load properties. Please try again.');
+    }
+  };
+
+  // useEffect to initially fetch tenants
+  useEffect(() => {
+    fetchProperties(); // Fetch tenants when component mounts
+  }, []);
 
 
   const handleImageUpload = (event) => {
@@ -126,6 +63,7 @@ function HomePage({ onLogout }) {
     // Create a new property object
     const newProperty = {
       id: uuidv4(),
+      user_id: userProfile.id,
       companyName,
       propertyName,
       address: propertyAddress,

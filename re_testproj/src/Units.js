@@ -3,6 +3,7 @@ import './Units.css';
 import * as XLSX from 'xlsx';
 import UnitProfile from './UnitProfile';
 import { v4 as uuidv4 } from 'uuid';
+import { useUserProfile } from "./UserProfileContext";
 
 function Units() {
   const [properties, setProperties] = useState([]); // Handle property list
@@ -34,14 +35,15 @@ function Units() {
     issues: [],
     image: "https://via.placeholder.com/150"
   });
+  const {userProfile} = useUserProfile();
 
   const fetchProperties = async () => {
 
     try {
-      const response = await fetch('/properties', {
-        method: 'GET',
+      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
