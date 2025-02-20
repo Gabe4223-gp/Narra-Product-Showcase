@@ -1,8 +1,15 @@
 // backend/server.js
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
-const express = require('express');
+
 const bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+
+// Error handling
+const morgan = require('morgan');
+
+//Routes
 const emailMessageRoutes = require('./routes/emailMessageRoutes');
 const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
 const formRoutes = require('./routes/formRoutes');
@@ -12,21 +19,24 @@ const propertiesRoutes = require('./routes/propertiesRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const sendBillRoutes = require('./routes/sendBillRoutes');
 const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
-
-//Commenting out authMiddleware for now.
-//const authenticateToken = require('./middleware/authMiddleware');
-
 const protectedRoutes = require('./routes/protectedRoutes');
 const tenantSettings = require('./routes/tenantSettings');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
+
+//Commenting out authMiddleware for now.
+//const authenticateToken = require('./middleware/authMiddleware');
+//const { JwksRateLimitError } = require('jwks-rsa');
+
+//Payments
 const { createPaymongoIntent } = require('./paymongoService');
 const { createGCashIntent } = require('./paymongoService');
+
+//CORS Configuration
 const cors = require('cors');
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log("CORS origin:", origin);
     const allowedOrigins = [
       'https://www.narra-ph.com',
       'http://localhost:5000/',
@@ -41,10 +51,8 @@ const corsOptions = {
   optionsSuccessStatus: 200,
   credentials: true, // Allow cookies and authentication credentials
 };
-// server.js (Ensure proper error handling and logging)
-const morgan = require('morgan');
-//const Stripe = require('stripe');
-const app = express();
+
+
 //Connect to AWS
 const AWS = require('aws-sdk');
 //Configure AWS SDK
@@ -54,17 +62,20 @@ AWS.config.update({
 });
 //S3 Instance
 const s3 = new AWS.S3();
-// server.js (Implement Queueing System for Invoice Generation using Bull and Redis)
-const Bull = require('bull');
-// server.js (Implementing PDF generation for invoices using pdfkit)
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const { JwksRateLimitError } = require('jwks-rsa');
+//AWS RDS Configuration
+const { Pool } = require('pg');
+const pool = new Pool({
+  host: process.env.DB_HOST || 'your-rds-endpoint.us-east-2.rds.amazonaws.com',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+});
+
+
 
 //Temporary Data Storage
 const Redis = require('ioredis');
-// Use an environment variable for the Redis URL.
-// For local development, you can have REDIS_URL=redis://127.0.0.1:6379 in your .env file.
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const redis = new Redis(redisUrl);
 redis.on('connect', () => {
@@ -75,6 +86,9 @@ redis.on('error', (err) => {
   console.error('Redis connection error:', err);
 });
 
+
+// Queuing System
+const Bull = require('bull');
 // Initialize Bull queue
 const invoiceQueue = new Bull('invoice-generation', {
   redis: {
@@ -83,17 +97,21 @@ const invoiceQueue = new Bull('invoice-generation', {
   },
 });
 
+//PDF Generation
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+//File Uploads
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 const { File } = require('./models'); // Adjust if your models are in a different path
 
 
-
-
-
-//Authentification
+//Configure with Frontend
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(morgan('combined'));
+app.get('/', (req, res) => {res.send('Backend is running successfully!');});
+app.use(express.json({ limit: '50mb' }));
+console.log("Limit is", limit);
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
@@ -119,27 +137,17 @@ app.use((err, req, res, next) => {
   next();
 });
 
-const limit = '50mb';
-app.use(express.json({ limit })); 
-app.use(express.urlencoded({ limit, extended: true }));
-console.log("Limit is", limit);
-
 // Serve static files (invoices) from the 'invoices' directory
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/uploads', express.static('uploads'));
 
-// Use morgan for HTTP request logging
-app.use(morgan('combined'));
-
-app.get('/', (req, res) => {
-  res.send('Backend is running successfully!');
-});
 
 
 
 
 
 
+//Sequelize Connection
 
 
 
@@ -161,275 +169,6 @@ app.get('/db-test', async (req, res) => {
   } catch (err) {
       res.status(500).send('Database connection failed: ' + err.message);
   }
-});
-
-// Define Property model
-const Property = sequelize.define('Property', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  companyName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  propertyName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  address: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  image: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-  owner: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  tenants: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
-    allowNull: true,
-    defaultValue: [],
-  },
-  units: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of JSON objects for structured data
-    allowNull: true,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'Properties', // Specify the table name (Tenants in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-
-// Define Tenant model
-const Tenant = sequelize.define('Tenant', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  unit: {
-    type: DataTypes.STRING,
-    onDelete: 'SET NULL', // Optional: Set unitId to null if the unit is deleted
-  },
-  phone: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isEmail: true, // Optional: Validates that the email is in a valid format
-    },
-  },
-  leaseStarted: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  leaseExpiry: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  leaseDocs: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
-    allowNull: true,
-    defaultValue: [],
-  },
-  moveinDate: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  moveoutDate: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  billingDeadline: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  nationality: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  occupation: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  image: {
-    type: DataTypes.STRING, // Changed from URL to STRING
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-  eWalletName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  eWalletReferenceNo: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING
-    allowNull: true,
-  },
-  bankName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  bankReferenceNo: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING
-    allowNull: true,
-  },
-  creditCardName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  creditCardNo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  creditCardDate: {
-    type: DataTypes.DATE, // Changed from INTEGER to DATE
-    allowNull: true,
-  },
-  primaryPaymentMethod: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  govid: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: true,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'Tenants', // Specify the table name (Tenants in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-//Define Unit Modal
-const Unit = sequelize.define('Unit', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  unitNo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  type: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  mode: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  sizeValue: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  sizeUnit: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  petsAllowed: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  tenants: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of strings for document links
-    allowNull: true,
-    defaultValue: [],
-  },
-  propertyId: {
-    type: DataTypes.STRING, // Array of strings for document links
-    allowNull: true,
-  },
-  waterLastReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  waterCurrentReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  electricityLastReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  electricityCurrentReading: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: [],
-  },
-  issues: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: true,
-    defaultValue: [],
-  },
-  image: {
-    type: DataTypes.STRING, // Changed from URL to STRING
-    allowNull: true,
-    defaultValue: 'https://via.placeholder.com/150',
-  },
-}, {
-  tableName: 'Units', // Specify the table name (Units in this case)
-  timestamps: true, // Automatically includes createdAt and updatedAt fields
-});
-
-//Define Issue Modal
-const Issue = sequelize.define('Issue', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4, // Auto-generate UUID
-    primaryKey: true,
-  },
-  type: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  subject: {
-    type: DataTypes.STRING, // Changed from INTEGER to STRING for phone numbers
-    allowNull: true,
-  },
-  description: {
-    type: DataTypes.TEXT, // Changed to TEXT for longer descriptions
-    allowNull: true,
-  },
-  unit: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  resolved: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false, // Default value for resolved
-  },
-  dateRaised: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW, // Default to current date and time
-  },
-  dateResolved: {
-    type: DataTypes.DATE,
-    allowNull: true, // Can be null if the issue is not resolved
-  },
-  documents: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Array of document URLs or paths
-    allowNull: true,
-  },
-}, {
-  timestamps: true, // Adds createdAt and updatedAt fields
-  tableName: 'Issues', // Optional: Define the table name explicitly
 });
 
 // Define the Payment model (WILL MOVE TO A MODELS FOLDER)

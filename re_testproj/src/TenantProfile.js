@@ -336,7 +336,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
                 <h5>Personal Details</h5>
                 <button
                   className="edit-button"
-                  onClick={() => setshowEditTenantDetails(true)}
+                  onClick={() => setShowEditTenantDetails(true)}
                 >
                   Edit
                 </button>
@@ -563,7 +563,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
                 </form>
                 <div>
                   <button onClick={saveEditTenant}>Save</button>
-                  <button onClick={() => setshowEditTenantDetails(false)}>
+                  <button onClick={() => setShowEditTenantDetails(false)}>
                     Cancel
                   </button>
                 </div>

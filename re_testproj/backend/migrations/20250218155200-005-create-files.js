@@ -14,6 +14,10 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: false,
       },
+      filetype: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
       url: {
         type: Sequelize.TEXT,
         allowNull: true,

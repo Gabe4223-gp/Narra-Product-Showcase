@@ -136,6 +136,7 @@ router.post('/generate', async (req, res) => {
     // Note: ensure column names match your model (e.g., landlordemail, tenantemail)
     const newFile = await File.create({
       filename: pdfFileName,
+      fileType: 'pdf',
       url: fileURL,
       landlordemail: landlordemail, // using lowercase to match DB column
       tenantemail: tenantemail,
