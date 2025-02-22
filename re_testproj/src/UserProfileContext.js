@@ -9,7 +9,7 @@ export function useUserProfile() {
   return useContext(UserProfileContext);
 }
 
-// The provider that wraps your app (somewhere in AppContent.js or a top-level file)
+// The provider that wraps your app
 export function UserProfileProvider({ children }) {
   const { user, isAuthenticated } = useAuth0();
   const [userProfile, setUserProfile] = useState(null);
@@ -39,8 +39,13 @@ export function UserProfileProvider({ children }) {
 
   // Use effect to fetch the profile once on mount if the user is authenticated
   useEffect(() => {
+    if (!isAuthenticated || !user?.email) {
+      setUserProfile(null); //Reset profile when user logs out
+      setLoadingProfile(false);
+      return;
+    }
     fetchUserProfile();
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, user?.email, isAuthenticated]);
 
   // Method to refresh or force reload the userProfile (e.g., after saving changes)
   const refreshUserProfile = async () => {

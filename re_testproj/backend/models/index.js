@@ -9,6 +9,7 @@ const config = require(configPath)[env];
 
 const db = {};
 
+
 // Initialize Sequelize
 let sequelize;
 if (config.use_env_variable) {

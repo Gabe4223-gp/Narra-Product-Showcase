@@ -20,7 +20,6 @@ const invoiceRoutes = require('./routes/invoiceRoutes');
 const sendBillRoutes = require('./routes/sendBillRoutes');
 const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
-const tenantSettings = require('./routes/tenantSettings');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
 
 //Commenting out authMiddleware for now.
@@ -107,6 +106,7 @@ const { File } = require('./models'); // Adjust if your models are in a differen
 
 
 //Configure with Frontend
+const limit = '50mb';
 app.use(cors(corsOptions));
 app.use(morgan('combined'));
 app.get('/', (req, res) => {res.send('Backend is running successfully!');});
@@ -122,11 +122,11 @@ app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
-app.use('/tenant/settings', tenantSettings);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
+app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -2430,8 +2430,6 @@ app.post('/save-payment-history', async (req, res) => {
 
 //Payment API Through Mastercard/Visa
 app.post('/create-payment-intent', async (req, res) => {
-  console.log('Request Headers: ', req.headers);
-  console.log('Decoded JWT payload:', req.auth.payload);
   const { amount } = req.body;
   const client_id = req.auth.payload.sub; // Auth0 user ID
   console.log('Payment Intent Data:', {amount, client_id});

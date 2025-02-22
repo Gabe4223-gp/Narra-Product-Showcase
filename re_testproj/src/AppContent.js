@@ -14,9 +14,8 @@ import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
 import RoleSelection from './RoleSelection';
 
-// New Tenant view components:
+// New Tenant view component:
 import TenantHomepage from './TenantView/TenantHomepage';
-import TenantSettings from './TenantView/TenantSettings';
 
 // New "Welcome" component for setting up a profile if incomplete
 import Welcome from './Welcome';
@@ -86,7 +85,7 @@ function AppContent() {
               <Route path="unit" element={<Units />} />
               <Route path="issues" element={<Issues />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="homepage" replace />} />
+              <Route path="*" element={<Navigate to="/homepage" replace />} />
             </>
           )}
 
@@ -95,7 +94,7 @@ function AppContent() {
             <>
               <Route path="tenant">
                 <Route path="dashboard" element={<TenantHomepage />} />
-                <Route path="settings" element={<TenantSettings />} />
+                <Route path="settings" element={<Settings />} />
                 {/* Default tenant route redirects to /tenant/dashboard */}
                 <Route index element={<Navigate to="dashboard" replace />} />
               </Route>
