@@ -1,26 +1,50 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const File = sequelize.define('File', {
+  const Files = sequelize.define('Files', {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      primaryKey: true
     },
     filename: {
-      type: DataTypes.TEXT,
-      allowNull: true,
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    fileType: {
+      type: DataTypes.STRING,
+      defaultValue: 'pdf',
+      allowNull: false
     },
     url: {
-      type: DataTypes.TEXT,
-      allowNull: true,
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    landlordemail: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
+    subject: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    tenantemail: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
+    totalAmount: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+      allowNull: false
+    },
+    paid: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
+    },
+    propertyId: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
+    tenantEmail: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: 'tenantemail'  // maps JS attribute tenantEmail to DB column tenantemail
+    },
+    landlordId: {
+      type: DataTypes.UUID,
+      allowNull: true
     },
     signed: {
       type: DataTypes.BOOLEAN,
@@ -32,8 +56,12 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {
     tableName: 'Files',
-    timestamps: false,
-    freezeTableName: true,
+    freezeTableName: true
   });
-  return File;
+
+  Files.associate = function(models) {
+    // Define associations if needed.
+  };
+
+  return Files;
 };

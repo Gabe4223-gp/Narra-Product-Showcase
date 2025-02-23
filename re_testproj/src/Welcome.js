@@ -17,34 +17,21 @@ function Welcome({ onProfileCreated }) {
   const [email, setEmail] = useState(authUserInfo?.email || '');
   const [password, setPassword] = useState('');
 
-  // Add a errors state
   const [errors, setErrors] = useState({});
 
-  // Simple validation
+  // Field validation
   const validateFields = () => {
     const newErrors = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-    if (!phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    }
-    if (!dob) {
-      newErrors.dob = 'Date of birth is required';
-    }
-    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
+    if (!name.trim()) newErrors.name = 'Name is required';
+    if (!phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!dob) newErrors.dob = 'Date of birth is required';
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email))
       newErrors.email = 'A valid email is required';
-    }
-    if (!password) {
-      newErrors.password = 'Password is required';
-    }
-
+    if (!password) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // We either remove this function or actually call it
   const handleUseAuthInfo = () => {
     if (authUserInfo) {
       setName(authUserInfo.name || '');
@@ -53,9 +40,7 @@ function Welcome({ onProfileCreated }) {
   };
 
   const handleSave = async () => {
-    // Call validateFields
     if (!validateFields()) return;
-
     try {
       await axios.post('/api/user-profile/welcome', {
         name,
@@ -65,8 +50,6 @@ function Welcome({ onProfileCreated }) {
         password,
       });
       alert("Profile created successfully!");
-
-      // Now that the profile is created, call onProfileCreated with the chosen role
       onProfileCreated(chosenRole);
       navigate('/');
     } catch (error) {

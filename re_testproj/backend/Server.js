@@ -1,8 +1,15 @@
 // backend/server.js
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
-const express = require('express');
+
 const bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+
+// Error handling
+const morgan = require('morgan');
+
+//Routes
 const emailMessageRoutes = require('./routes/emailMessageRoutes');
 const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
 const formRoutes = require('./routes/formRoutes');
@@ -12,21 +19,23 @@ const propertiesRoutes = require('./routes/propertiesRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const sendBillRoutes = require('./routes/sendBillRoutes');
 const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
+const protectedRoutes = require('./routes/protectedRoutes');
+const TenantHomepage = require('./routes/tenantHomepageRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
+//const { JwksRateLimitError } = require('jwks-rsa');
 
-const protectedRoutes = require('./routes/protectedRoutes');
-const tenantSettings = require('./routes/tenantSettings');
-const TenantHomepage = require('./routes/tenantHomepageRoutes');
+//Payments
 const { createPaymongoIntent } = require('./paymongoService');
 const { createGCashIntent } = require('./paymongoService');
+
+//CORS Configuration
 const cors = require('cors');
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log("CORS origin:", origin);
     const allowedOrigins = [
       'https://www.narra-ph.com',
       'http://localhost:5000/',
@@ -41,10 +50,8 @@ const corsOptions = {
   optionsSuccessStatus: 200,
   credentials: true, // Allow cookies and authentication credentials
 };
-// server.js (Ensure proper error handling and logging)
-const morgan = require('morgan');
-//const Stripe = require('stripe');
-const app = express();
+
+
 //Connect to AWS
 const AWS = require('aws-sdk');
 //Configure AWS SDK
@@ -54,17 +61,20 @@ AWS.config.update({
 });
 //S3 Instance
 const s3 = new AWS.S3();
-// server.js (Implement Queueing System for Invoice Generation using Bull and Redis)
-const Bull = require('bull');
-// server.js (Implementing PDF generation for invoices using pdfkit)
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const { JwksRateLimitError } = require('jwks-rsa');
+//AWS RDS Configuration
+const { Pool } = require('pg');
+const pool = new Pool({
+  host: process.env.DB_HOST || 'your-rds-endpoint.us-east-2.rds.amazonaws.com',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+});
+
+
 
 //Temporary Data Storage
 const Redis = require('ioredis');
-// Use an environment variable for the Redis URL.
-// For local development, you can have REDIS_URL=redis://127.0.0.1:6379 in your .env file.
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const redis = new Redis(redisUrl);
 redis.on('connect', () => {
@@ -75,6 +85,9 @@ redis.on('error', (err) => {
   console.error('Redis connection error:', err);
 });
 
+
+// Queuing System
+const Bull = require('bull');
 // Initialize Bull queue
 const invoiceQueue = new Bull('invoice-generation', {
   redis: {
@@ -83,14 +96,25 @@ const invoiceQueue = new Bull('invoice-generation', {
   },
 });
 
+//PDF Generation
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+//File Uploads
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
+const { File } = require('./models'); // Adjust if your models are in a different path
 
-//Authentification
+
+//Configure with Frontend
+const limit = '50mb';
 app.use(cors(corsOptions));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(morgan('combined'));
+app.get('/', (req, res) => {res.send('Backend is running successfully!');});
+app.use(express.json({ limit: '50mb' }));
+console.log("Limit is", limit);
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use('/api', protectedRoutes);
 app.use('/api/emails', emailMessageRoutes);
 app.use('/api/applications', tenantApplicationRoutes);
@@ -99,11 +123,11 @@ app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
-app.use('/tenant/settings', tenantSettings);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
+app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
@@ -118,12 +142,15 @@ app.use((err, req, res, next) => {
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/uploads', express.static('uploads'));
 
-// Use morgan for HTTP request logging
-app.use(morgan('combined'));
 
-app.get('/', (req, res) => {
-  res.send('Backend is running successfully!');
-});
+
+
+
+
+
+//Sequelize Connection
+
+
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
@@ -2586,8 +2613,6 @@ app.post('/save-payment-history', async (req, res) => {
 
 //Payment API Through Mastercard/Visa
 app.post('/create-payment-intent', async (req, res) => {
-  console.log('Request Headers: ', req.headers);
-  console.log('Decoded JWT payload:', req.auth.payload);
   const { amount } = req.body;
   const client_id = req.auth.payload.sub; // Auth0 user ID
   console.log('Payment Intent Data:', {amount, client_id});

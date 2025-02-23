@@ -6,12 +6,14 @@ const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Import models
-const { Tenant, Unit, UserProfile, File } = require('../models');
+// Import models – note Files is our reintroduced model
+const { Tenant, Files } = require('../models');
 
-// Determine storage type from env variable
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
+const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
+
 let s3;
 if (STORAGE_TYPE === 's3') {
   s3 = new AWS.S3({
@@ -20,36 +22,38 @@ if (STORAGE_TYPE === 's3') {
     region: process.env.AWS_REGION,
   });
 }
-const S3_BUCKET = process.env.AWS_S3_BUCKET;
 
-// Helper function: Generate PDF using pdfkit
 function generatePDF(data, outputPath) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
 
-    doc.fontSize(20).text(`Subject: ${data.subject}`, { underline: true });
+    doc.fontSize(20).text(`Bill Subject: ${data.subject}`, { underline: true });
     doc.moveDown();
     doc.fontSize(14).text(`Rental Amount: PHP ${data.rentalAmount}`);
     doc.moveDown();
+
     doc.text(`Utility Fees:`);
-    data.utilityFees.forEach((fee) => {
+    (data.utilityFees || []).forEach((fee) => {
       doc.text(` - ${fee.name}: PHP ${fee.amount}`);
     });
     doc.moveDown();
+
     doc.text(`Other Fees:`);
-    data.otherFees.forEach((fee) => {
+    (data.otherFees || []).forEach((fee) => {
       doc.text(` - ${fee.name}: PHP ${fee.amount}`);
     });
     doc.moveDown();
+
     doc.text(`Tax Rate: ${data.taxRate}%`);
     doc.moveDown();
     doc.text(`Total Amount: PHP ${data.totalAmount.toFixed(2)}`);
     doc.moveDown();
     doc.text(`Deadline: ${data.deadline}`);
-    doc.moveDown();
-    doc.text(`Send To: ${data.email}`);
+
+    // IDs are not printed on the PDF
+
     doc.end();
 
     stream.on('finish', () => resolve(outputPath));
@@ -57,111 +61,149 @@ function generatePDF(data, outputPath) {
   });
 }
 
-// POST /api/sendBill/generate
 router.post('/generate', async (req, res) => {
-  console.log("Incoming /generate request body:", req.body);
   try {
     const {
-      tenantemail,
-      landlordemail,
+      tenantEmail,
+      propertyId,
+      landlordId,
       subject,
       rentalAmount,
       utilityFees,
       otherFees,
       taxRate,
       deadline,
-      email,
       totalAmount,
     } = req.body;
-    
-    // Then rename them or just use them directly
-    if (!tenantemail || !landlordemail || !subject || !deadline || !email || !totalAmount) {
-      return res.status(400).json({ message: 'Missing required fields.' });
+
+    if (!tenantEmail || !subject || !deadline) {
+      return res.status(400).json({ message: 'Missing required fields (tenantEmail, subject, or deadline).' });
     }
 
-    // Generate a PDF file named "<Subject>.pdf"
-    const pdfFileName = `${subject}.pdf`;
+    const safeSubject = subject.replace(/[^\w\d-]/g, '_');
+    const pdfFileName = `${safeSubject}.pdf`;
+
     const localDir = path.join(__dirname, '..', 'lease_bills');
     if (!fs.existsSync(localDir)) fs.mkdirSync(localDir);
     const localPDFPath = path.join(localDir, pdfFileName);
 
-    // Generate the PDF file based on input data
-    await generatePDF({ subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, email, totalAmount }, localPDFPath);
+    await generatePDF({ subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount }, localPDFPath);
 
     let fileURL;
     if (STORAGE_TYPE === 'local') {
       fileURL = `http://localhost:5000/lease_bills/${encodeURIComponent(pdfFileName)}`;
     } else {
       const fileData = fs.readFileSync(localPDFPath);
-      const key = pdfFileName;
       try {
-        await s3.headObject({ Bucket: S3_BUCKET, Key: key }).promise();
-        await s3.deleteObject({ Bucket: S3_BUCKET, Key: key }).promise();
+        await s3.headObject({ Bucket: S3_BUCKET_NAME, Key: pdfFileName }).promise();
+        await s3.deleteObject({ Bucket: S3_BUCKET_NAME, Key: pdfFileName }).promise();
       } catch (err) {
-        // File not found in S3, ignore error
+        // Ignore if not found
       }
       await s3.putObject({
-        Bucket: S3_BUCKET,
-        Key: key,
+        Bucket: S3_BUCKET_NAME,
+        Key: pdfFileName,
         Body: fileData,
         ContentType: 'application/pdf',
       }).promise();
       fs.unlinkSync(localPDFPath);
       fileURL = s3.getSignedUrl('getObject', {
-        Bucket: S3_BUCKET,
-        Key: key,
+        Bucket: S3_BUCKET_NAME,
+        Key: pdfFileName,
         Expires: 3600,
       });
     }
 
-    // Update Tenant: set billingDeadline and email
-    const tenant = await Tenant.findOne({ where: { email: tenantemail } });
-    if (tenant) {
-      await tenant.update({ billingDeadline: deadline, email });
+    // Update the Tenant's billingDeadline based on tenantEmail
+    const tenantRecord = await Tenant.findOne({ where: { email: tenantEmail } });
+    if (tenantRecord) {
+      await tenantRecord.update({ billingDeadline: deadline });
     } else {
-      console.log(`Tenant with email ${tenantemail} not found.`);
+      console.log(`Tenant with email ${tenantEmail} not found.`);
     }
 
-    // Update Unit: update cost with totalAmount. Here we assume a unit has a tenantId that matches tenant.id.
-    if (tenant) {
-      const unit = await Unit.findOne({ where: { tenantId: tenant.id } });
-      if (unit) {
-        await unit.update({ cost: totalAmount });
-      } else {
-        console.log(`No unit found for tenant with email ${tenantemail}`);
-      }
-    }
-
-    // Create a record in Files table.
-    // Note: ensure column names match your model (e.g., landlordemail, tenantemail)
-    const newFile = await File.create({
+    // Create a record in Files table
+    const newFileRecord = await Files.create({
       filename: pdfFileName,
+      fileType: 'pdf',
       url: fileURL,
-      landlordemail: landlordemail, // using lowercase to match DB column
-      tenantemail: tenantemail,
+      subject,
+      totalAmount,
+      paid: false,
+      propertyId,
+      tenantEmail,
+      landlordId,
     });
 
-    return res.json({ message: 'Bill generated successfully.', pdfURL: fileURL });
+    console.log("Bill generated. File record:", newFileRecord);
+
+    return res.json({
+      message: 'Bill generated successfully.',
+      pdfURL: fileURL,
+      fileRecord: newFileRecord,
+    });
   } catch (error) {
     console.error('Error generating bill:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// 2️⃣ Retrieve Tenant PDFs (GET /tenant/:tenantemail/files)
-router.get('/tenant/:tenantemail/files', async (req, res) => {
+router.get('/tenant/:tenantEmail/files', async (req, res) => {
   try {
-    const { tenantemail } = req.params;
-    if (!tenantemail) {
-      return res.status(400).json({ message: 'tenantemail is required.' });
+    const { tenantEmail } = req.params;
+    if (!tenantEmail) {
+      return res.status(400).json({ message: 'tenantEmail is required.' });
     }
-    const { File } = require('../models');
-    const files = await File.findAll({ where: { tenantemail } });
+    const files = await Files.findAll({
+      where: { tenantEmail },
+      order: [['createdAt', 'DESC']]
+    });
     return res.json({ files });
   } catch (error) {
     console.error('Error fetching tenant files:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// routes/sendBillRoutes.js (append these endpoints)
+
+// GET unfulfilled bills by propertyId
+router.get('/unfulfilled', async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    if (!propertyId) {
+      return res.status(400).json({ message: 'propertyId is required.' });
+    }
+    // Filter files by propertyId and unpaid status (paid === false)
+    const files = await Files.findAll({
+      where: { propertyId, paid: false },
+      order: [['createdAt', 'DESC']]
+    });
+    return res.json(files);
+  } catch (error) {
+    console.error('Error fetching unfulfilled bills:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// GET fulfilled bills by propertyId
+router.get('/fulfilled', async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    if (!propertyId) {
+      return res.status(400).json({ message: 'propertyId is required.' });
+    }
+    // Filter files by propertyId and paid status (paid === true)
+    const files = await Files.findAll({
+      where: { propertyId, paid: true },
+      order: [['createdAt', 'DESC']]
+    });
+    return res.json(files);
+  } catch (error) {
+    console.error('Error fetching fulfilled bills:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

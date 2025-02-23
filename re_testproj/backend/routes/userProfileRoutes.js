@@ -146,13 +146,16 @@ router.delete('/payment-method', async (req, res) => {
 });
 
 // POST endpoint to create a new user profile
+// In userProfileRoutes.js
+// In userProfileRoutes.js
 router.post('/welcome', async (req, res) => {
   try {
     const { name, phoneNumber, dateofBirth, email, password } = req.body;
-    // Additional fields can be added if needed.
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, Email, and Password are required" });
     }
+
+    // Simply create a new user profile
     const newProfile = await UserProfile.create({
       name,
       phoneNumber,
@@ -161,35 +164,49 @@ router.post('/welcome', async (req, res) => {
       password,
     });
 
-    // Update the corresponding tenant's user_id if email matches
-    const [updatedTenant] = await sequelize.query(
-      `
-      UPDATE "Tenants"
-      SET user_id = :userId
-      WHERE email = :email
-      RETURNING *;
-      `,
-      {
-        replacements: { userId: newProfile.id, email },
-        type: sequelize.QueryTypes.UPDATE,
-      }
-    );
-
-    if (!updatedTenant || updatedTenant.length === 0) {
-      return res.status(200).json({
-        message: "Profile created successfully, but no matching tenant found for this email.",
-        userProfile: newProfile,
-      });
-    }
-
-
-
     res.status(201).json({ message: "Profile created successfully", userProfile: newProfile });
   } catch (error) {
     console.error("Error creating profile:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// When a new tenant registers, check for an existing Tenants row with the same email and update it.
+router.post('/register', async (req, res) => {
+  try {
+    const { email, name, role, password } = req.body;
+    if (!email || !name || !role || !password) {
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    // Check if a user already exists with this email
+    let existingProfile = await UserProfile.findOne({ where: { email } });
+    if (existingProfile) {
+      return res.status(400).json({ message: 'User with this email already exists.' });
+    }
+
+    // Create the new userProfile (for tenants, role would be 'tenant')
+    const newProfile = await UserProfile.create({
+      email,
+      name,
+      role,
+      password, // remember to hash in production
+    });
+
+    // Attempt to unify with a Tenants record that has the same email
+    const tenantRecord = await Tenant.findOne({ where: { email } });
+    if (tenantRecord && !tenantRecord.userProfileId) {
+      // Update the tenant record so that it “belongs” to this newly registered user
+      await tenantRecord.update({ userProfileId: newProfile.id });
+    }
+
+    return res.status(201).json({ message: 'Registration successful.', userProfile: newProfile });
+  } catch (err) {
+    console.error('Error in register route:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 // GET endpoint to check if profile exists in userProfile table
 router.get('/existing', async (req, res) => {
@@ -273,5 +290,25 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await UserProfile.findByPk(id);
+
+    if (!profile) {
+      return res.status(404).json({ message: 'UserProfile not found.' });
+    }
+
+    // Delete the record from the database
+    await profile.destroy();
+
+    res.json({ message: 'UserProfile deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting userProfile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

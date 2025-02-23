@@ -488,9 +488,9 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
           {showSendBillPopup && (
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
-              tenantemail={tenantDetails?.email}
-              landlordemail={userProfile?.email}
-              tenantId={editedTenant.id}
+              tenantEmail={tenantDetails.email}
+              landlordId={landlordUserProfileId}
+              propertyId={propertyId}
             />
           )}
       

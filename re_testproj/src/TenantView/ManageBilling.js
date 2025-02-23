@@ -10,16 +10,18 @@ const ManageBilling = ({ tenantEmail }) => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const filesPerPage = 5;
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
 
   useEffect(() => {
     async function fetchFiles() {
       try {
-        const res = await axios.get(`/tenant/${encodeURIComponent(tenantEmail)}/files`);
+        const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
         setFiles(res.data.files || []);
         setError(null);
       } catch (err) {
-        console.error("Error fetching files:", err);
-        setError("Error fetching files.");
+        console.error('Error fetching files:', err);
+        setError('Error fetching bills from server.');
       } finally {
         setLoadingFiles(false);
       }
@@ -31,7 +33,6 @@ const ManageBilling = ({ tenantEmail }) => {
     }
   }, [tenantEmail]);
 
-  // Pagination calculations
   const indexOfLastFile = currentPage * filesPerPage;
   const indexOfFirstFile = indexOfLastFile - filesPerPage;
   const currentFiles = files.slice(indexOfFirstFile, indexOfLastFile);
@@ -44,10 +45,6 @@ const ManageBilling = ({ tenantEmail }) => {
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
-  // Pay modal state
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [selectedBill, setSelectedBill] = useState(null);
 
   const handlePayClick = (bill) => {
     setSelectedBill(bill);
@@ -63,26 +60,46 @@ const ManageBilling = ({ tenantEmail }) => {
     <div className="manage-billing">
       <h3>Manage Billing</h3>
       {loadingFiles ? (
-        <p>Loading files...</p>
+        <p>Loading bills...</p>
       ) : error ? (
-        <div className="error-banner" style={{ color: 'red' }}>
-          {error}. Displaying fallback layout.
-        </div>
+        <div className="error-banner" style={{ color: 'red' }}>{error}</div>
       ) : files.length === 0 ? (
-        <p>No files found.</p>
+        <p>No bills found.</p>
       ) : (
         <>
-          <ul>
-            {currentFiles.map((file) => (
-              <li key={file.id}>
-                <a href={file.url} target="_blank" rel="noreferrer">
-                  {file.filename}
-                </a>{' '}
-                - Uploaded on {new Date(file.uploaded_at).toLocaleDateString()}
-                <button onClick={() => handlePayClick(file)}>Pay</button>
-              </li>
-            ))}
-          </ul>
+          <table className="billing-table">
+            <thead>
+              <tr>
+                <th>Paid</th>
+                <th>Full Amount</th>
+                <th>Subject</th>
+                <th>Date Billed</th>
+                <th>Invoice</th>
+                <th>Pay</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentFiles.map((file) => {
+                const dateBilled = file.createdAt
+                  ? new Date(file.createdAt).toLocaleString()
+                  : 'N/A';
+                return (
+                  <tr key={file.id}>
+                    <td>{file.paid ? 'Yes' : 'No'}</td>
+                    <td>{file.totalAmount?.toFixed(2)}</td>
+                    <td>{file.subject}</td>
+                    <td>{dateBilled}</td>
+                    <td>
+                      <a href={file.url} target="_blank" rel="noreferrer">View PDF</a>
+                    </td>
+                    <td>
+                      <button onClick={() => handlePayClick(file)}>Pay</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
           {totalPages > 1 && (
             <div className="pagination">
               <button onClick={prevPage} disabled={currentPage === 1}>Previous</button>
@@ -92,11 +109,6 @@ const ManageBilling = ({ tenantEmail }) => {
           )}
         </>
       )}
-
-      {/* Additional containers can be rendered here if needed */}
-      <div className="additional-billing-container">
-        {/* For instance, other billing summary components */}
-      </div>
 
       {showPayModal && <Pay bill={selectedBill} onClose={closePayModal} />}
     </div>
