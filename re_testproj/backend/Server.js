@@ -86,9 +86,11 @@ const invoiceQueue = new Bull('invoice-generation', {
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
+
 //Authentification
 app.use(cors(corsOptions));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use('/api', protectedRoutes);
 app.use('/api/emails', emailMessageRoutes);
 app.use('/api/applications', tenantApplicationRoutes);
@@ -2163,7 +2165,7 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { id, fileName, fileType, url, fileContent, landlordEmail, tenantEmail, tenantId, leaseStartDate, leaseEndDate} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordEmail, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed} = req.body; //Adjust based on frontend implementation
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
@@ -2182,8 +2184,8 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Files" (id, "fileName", url, "landlordEmail", "tenantEmail")
-      VALUES (:id, :fileName, :url, :landlordEmail, :tenantEmail)
+      INSERT INTO "Files" (id, "fileName", url, "landlordEmail", "tenantEmail", "Signed")
+      VALUES (:id, :fileName, :url, :landlordEmail, :tenantEmail, :signed)
       RETURNING *;
     `
 
@@ -2194,6 +2196,7 @@ app.post('/tenants/upload-lease', async (req, res) => {
         url: fileUrl,                 // URL from S3
         landlordEmail: landlordEmail,
         tenantEmail: tenantEmail,
+        signed: signed,
       },
       type: sequelize.QueryTypes.INSERT, // Specify the query type
     });
@@ -2273,6 +2276,187 @@ app.post('/tenants/upload-govid', async (req, res) => {
   } catch (error) {
     console.error('Error uploading invoice:', error);
     res.status(500).json({ message: 'Error uploading invoice.' });
+  }
+});
+
+//Leases////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Retrieve all leases
+app.get('/tenants/:tenantId/leaseDocs', async (req, res) => {
+  const { tenantId } = req.params;
+
+  try {
+      const [leaseDocs] = await sequelize.query(
+          'SELECT "leaseDocs" FROM "Tenants" WHERE "id" = :tenantId',
+          {
+              replacements: { tenantId },
+              type: sequelize.QueryTypes.SELECT,
+          }
+      );
+
+       // Convert leaseDocs array to a PostgreSQL array format (e.g., '{id1,id2,id3}')
+       const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
+
+       // Step 2: Get files matching the leaseDocs IDs
+       const files = await sequelize.query(
+           `SELECT * FROM "Files" WHERE "id" = ANY(:leaseDocs::UUID[])`,
+           {
+               replacements: { leaseDocs: leaseDocsArray },
+               type: sequelize.QueryTypes.SELECT,
+           }
+       );
+
+       res.status(200).json(files);
+  } catch (error) {
+      console.error("Error fetching leaseDocs:", error);
+      res.status(500).json({ error: 'Failed to fetch leaseDocs.' });
+  }
+});
+
+//Retrieve unsigned leases
+app.get('/unsigned-leases/:tenantId', async (req, res) => {
+  const { tenantId } = req.params;
+
+  console.log("tenantid", tenantId);
+
+  try {
+    // Step 1: Get leaseDocs for the tenant
+    const [leaseDocs] = await sequelize.query(
+      `SELECT "leaseDocs"
+       FROM "Tenants"
+       WHERE "user_id" = CAST(:tenantId AS UUID)`,
+      {
+        replacements: { tenantId },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    // Convert leaseDocs array to a string formatted as an array literal
+    const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
+   
+    // Step 2: Get files where the id matches any value in leaseDocs and signed is false
+    const files = await sequelize.query(
+      `SELECT *
+       FROM "Files"
+       WHERE "id" = ANY (:leaseDocs::UUID[])
+       AND "Signed" = false`,
+      {
+        replacements: { leaseDocs: leaseDocsArray },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    res.status(200).json(files);
+  } catch (error) {
+    console.error('Error fetching unsigned leases:', error);
+    res.status(500).json({ error: 'Failed to fetch unsigned leases.' });
+  }
+});
+
+//Update an unsigned lease
+app.put('/tenants/update-lease', async (req, res) => {
+  const { id, fileName, fileContent, fileType } = req.body;
+
+  // Ensure you have the file content as base64 (strip base64 prefix if any)
+  const bufferContent = Buffer.from(fileContent.split(',')[1], 'base64');  // Removing base64 prefix
+
+  const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: fileName,  // This should match the fileName (S3 key) of the document you want to update
+      Body: bufferContent,  // The updated content to upload (in binary format)
+      ContentType: fileType,  // The content type of the file (PDF, image, etc.)
+  };
+
+  try {
+      // Upload updated content to the same file in S3 (it will overwrite the existing file)
+      const uploadResponse = await s3.upload(params).promise();
+
+      // Raw query to update the file in the Files table
+      const updateQuery = `
+          UPDATE "Files"
+          SET "Signed" = true
+          WHERE "id" = :id
+          RETURNING *;
+      `;
+
+      // Execute raw query
+      const [updatedFile] = await sequelize.query(updateQuery, {
+          replacements: {
+              id: id,  // ID of the file to update
+          },
+          type: sequelize.QueryTypes.SELECT,  // Since you're returning data, use SELECT
+      });
+
+      if (updatedFile) {
+          res.status(200).json({
+              message: 'Document content updated successfully in S3 and database',
+              url: uploadResponse.Location,  // The new URL of the updated document
+          });
+      } else {
+          res.status(404).json({ error: 'File not found or update failed' });
+      }
+  } catch (error) {
+      console.error("Error updating file in S3:", error);
+      res.status(500).json({ error: 'Failed to update document in S3.' });
+  }
+});
+
+//Fetch current leases
+app.get('/current-lease/:tenantId', async (req, res) => {
+  const { tenantId } = req.params;
+
+  try {
+    // Raw query to fetch tenant data by id
+    const [tenantData] = await sequelize.query(
+      'SELECT "leaseStarted", "leaseExpiry", "leaseDocs" FROM "Tenants" WHERE user_id = :tenantId::UUID',
+      {
+        replacements: { tenantId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!tenantData || tenantData.length === 0) {
+      return res.status(404).json(null); // No tenant found, return null
+    }
+
+    const leaseDocsData = tenantData.leaseDocs;
+    if (!leaseDocsData || leaseDocsData.length === 0) {
+      return res.status(404).json({ message: 'No lease documents found.' });
+    }
+
+    // Convert leaseDocs array to a string formatted as an array literal
+    const leaseDocsArray = `{${leaseDocsData.join(',')}}`;
+
+    // Raw query to fetch lease documents for the tenant
+    const leaseDocs = await sequelize.query(
+      `SELECT *
+       FROM "Files"
+       WHERE "id" = ANY (:leaseDocs::UUID[])
+       AND "Signed" = true
+       ORDER BY "uploadedAt" DESC`,
+      {
+        replacements: { leaseDocs: leaseDocsArray },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    console.log("Lease DOcs", leaseDocs);
+
+    const currentLease = leaseDocs[0];
+
+    // Structure the response
+    const leaseData = {
+      leaseStarted: tenantData.leaseStarted,
+      leaseExpiry: tenantData.leaseExpiry,
+      currentLeaseDoc: currentLease,
+    };
+
+    console.log("leasee data", leaseData);
+
+    res.status(200).json(leaseData); // Return lease data
+  } catch (err) {
+    console.error('Error fetching lease data:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

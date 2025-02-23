@@ -2,20 +2,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './ManageLease.css';
+import { useUserProfile } from "../UserProfileContext";
 
-const ManageLease = ({ tenantEmail }) => {
+const ManageLease = () => {
   const [leaseData, setLeaseData] = useState({
-    leaseStart: null,
-    leaseEnd: null,
-    monthlyRent: null,
-    billingDeadline: null,
-    agreementUrl: null,
+    leaseStarted: null,
+    leaseExpiry: null,
+    currentLeaseDoc: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [previewLease, setPreviewLease] = useState(null);
+  const {userProfile} = useUserProfile();
+  
+  const tenantId = userProfile.id;
 
   // Fetch lease agreement information from the backend
-  useEffect(() => {
+  /*useEffect(() => {
     async function fetchLeaseData() {
       try {
         const res = await axios.get(`/api/leaseAgreement/${encodeURIComponent(tenantEmail)}`);
@@ -34,15 +37,66 @@ const ManageLease = ({ tenantEmail }) => {
     } else {
       setLoading(false);
     }
-  }, [tenantEmail]);
+  }, [tenantEmail]);*/
 
-  const handleViewLease = () => {
-    if (leaseData.agreementUrl) {
-      window.open(leaseData.agreementUrl, '_blank');
-    } else {
-      alert("No Lease Agreement PDF found.");
+  
+  const fetchLeaseData = async () => {
+    try {
+      const res = await fetch(`/current-lease/${tenantId}`);
+      const data = await res.json();
+      console.log("data ha", data);
+      setLeaseData(data);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching lease data:", err);
+      setError("Could not fetch lease data.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+      
+    fetchLeaseData();
+    
+  }, []);
+
+
+  const handleViewLease = async () => {
+    try {
+      // Use query parameters instead of body
+      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error(`Retrieval failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+      console.log("Here's the doc", data);
+      console.log("Here's the cleanedBased", cleanedBase64);
+
+      const loadedDoc = {
+          fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+          fileName: leaseData.currentLeaseDoc.fileName,  
+          fileType: data.fileType,
+      };
+
+      console.log("Here's the loadedDoc", loadedDoc);
+
+      setPreviewLease(loadedDoc);
+
+    } catch (error) {
+        console.error("Error retrieving lease:", error);
+    }
+    
+  }
 
   const handleRequestEndLease = async () => {
     const inputEmail = window.prompt("Enter your email to request lease end:");
@@ -63,37 +117,79 @@ const ManageLease = ({ tenantEmail }) => {
   };
 
   return (
+    
     <div className="manage-lease">
-      <h3>Manage Lease</h3>
+      <div className="manage-lease-header">
+        <h5>Manage Lease</h5>
+      </div>
       {loading ? (
         <p>Loading lease information...</p>
       ) : (
         <>
+          <div className="manage-lease-dates">
+            <p>
+              <h6>Lease Started:</h6>{" "}
+              {leaseData?.leaseStarted ? new Date(leaseData?.leaseStarted).toLocaleDateString() : "No Lease Start Found"}
+            </p>
+            <p>
+              <h6>Lease Expiry:</h6>{" "}
+              {leaseData?.leaseExpiry ? new Date(leaseData?.leaseExpiry).toLocaleDateString() : "No Lease End Found"}
+            </p>
+          </div>
           <p>
-            <strong>Lease Start:</strong>{" "}
-            {leaseData.leaseStart ? new Date(leaseData.leaseStart).toLocaleDateString() : "No Lease Start Found"}
+            <h6>Next Billing Deadline:</h6>{" "}
+            {userProfile?.billingDeadline ? new Date(userProfile?.billingDeadline).toLocaleDateString() : "No Billing Deadline Found"}
           </p>
-          <p>
-            <strong>Lease End:</strong>{" "}
-            {leaseData.leaseEnd ? new Date(leaseData.leaseEnd).toLocaleDateString() : "No Lease End Found"}
-          </p>
-          <p>
-            <strong>Monthly Rent:</strong>{" "}
-            {leaseData.monthlyRent ? `PHP ${parseFloat(leaseData.monthlyRent).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "No Monthly Rent Found"}
-          </p>
-          <p>
-            <strong>Billing Deadline:</strong>{" "}
-            {leaseData.billingDeadline ? new Date(leaseData.billingDeadline).toLocaleDateString() : "No Billing Deadline Found"}
-          </p>
-          <div className="lease-actions">
+          <div className="manage-lease-actions">
             <button onClick={handleViewLease}>View Lease</button>
             <button onClick={handleRequestEndLease}>Request to End Lease</button>
           </div>
           {error && <div className="error-banner">{error}</div>}
         </>
       )}
+
+      {previewLease && (
+        <div className='preview-lease-overlay'>
+            <div className='preview-lease-modal'>
+                {previewLease?.fileContent ? (
+                    (previewLease?.fileType === 'image/png' || 
+                        previewLease?.fileType === 'image/jpeg' || 
+                        previewLease?.fileType === 'image/jpg') ? (
+                        <img
+                            id="imageViewer"
+                            src={previewLease?.fileContent}
+                            alt="Selected"
+                            style={{
+                                width: "100%",
+                                height: "auto",
+                                border: "1px solid #ccc",
+                            }}
+                        />
+                    ) : previewLease?.fileType === 'application/pdf' ? (
+                        <iframe
+                            id="pdfViewer"
+                            src={previewLease?.fileContent}
+                            style={{
+                                width: "100%",
+                                height: "600px",
+                                border: "1px solid #ccc",
+                            }}
+                        ></iframe>
+                    ) : (
+                        <p>Unsupported file type</p>
+                    )
+                ) : (
+                    <p>No document selected</p>
+                )}
+                <div>
+                    <button onClick={() => setPreviewLease(null)}>Back</button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
+  
 };
 
 export default ManageLease;

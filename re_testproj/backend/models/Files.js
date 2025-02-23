@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(255),
       allowNull: true,
     },
+    signed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     uploaded_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

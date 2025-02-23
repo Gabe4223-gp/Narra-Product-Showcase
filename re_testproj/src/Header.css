@@ -71,7 +71,7 @@
 .header .navbar ul li a {
   text-decoration: none;
   color: #333;
-  margin-left: 100%;
+  font-size: 14px;
 }
 
 .header .logo2 {
@@ -102,23 +102,29 @@
     display: flex;
   }
   
-  .header .account ul li {
-    margin-right: 20px;
-    margin-top: 10px;
-  }
-  
-  .header .account ul li b {
-    text-decoration: none;
-    color: #ffffff;
-  }
 
-  .btn-logout {
-    background: none;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
-  }
-  
-  .btn-logout:hover {
-    color: #b1b1b1;
-  }
+.header .account ul li b {
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.btn-logout {
+  background: none;
+  border: none;
+  color: #181616;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-logout:hover {
+  color: #b1b1b1;
+}
+
+.right-section {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-right: 5%;
+  padding-left: 5%;
+}

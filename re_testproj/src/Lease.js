@@ -6,13 +6,17 @@ import { useUserProfile } from "./UserProfileContext";
 
 
 
-function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview}) {
-    const [sentForSigning, setSentForSigning] = useState(false);
+function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, onSetForPreview, leaseDocs}) {
+    // Generate last 10 years for selection
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+    const [selectedYear, setSelectedYear] = useState(currentYear);
     const [signed, setSigned] = useState(false);
-    const [requestCancel, setRequestCancel] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [showRenewLease, setshowRenewLease] = useState(false);
     const [previewLease, setPreviewLease] = useState(null);
+    const [selectedDocIds, setSelectedDocIds] = useState(new Set());
     const {userProfile} = useUserProfile();
    
     //Lease Generation const
@@ -56,7 +60,6 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
    
                 setSelectedDoc(newDoc);
 
-
                 if (forPreview === true) {
                     onSetForPreview();
                 }
@@ -86,6 +89,7 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                     tenantId: tenantDetails.id,
                     leaseStartDate: leaseStartDate,
                     leaseEndDate: leaseEndDate,
+                    signed: signed,
                 }),
             });
 
@@ -94,20 +98,25 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
             const data = await response.json();
             if (response.ok) {
                 console.log("Lease uploaded successfully:", data.url);
-                setSentForSigning(true); // Only set after successful upload
+                if (signed !== true) {
+                    alert("Lease has been sent for signing");
+                }
             } else {
                 console.error("Upload failed:", data.message);
             }
+
+            setSigned(false);
         } catch (error) {
             console.error("Error uploading lease:", error);
         }
 
         onFetchTenant();
+        onFetchLeases();
         setSelectedDoc(null);
         setshowRenewLease(false);
     };
 
-    const handleViewCurrentLease = async (tenantId, fileName) => {
+    const handleViewLease = async (tenantId, fileName) => {
         
         try {
             // Use query parameters instead of body
@@ -143,52 +152,93 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
         }
     };
 
+    const handleCheckboxChange = (DocId) => {
+        const updatedSelectedDocIds = new Set(selectedDocIds);
+        if (updatedSelectedDocIds.has(DocId)) {
+          updatedSelectedDocIds.delete(DocId); // Deselect
+        } else {
+          updatedSelectedDocIds.add(DocId); // Select
+        }
+        setSelectedDocIds(updatedSelectedDocIds);
+    };
+
 
     return (
-        <div className="tenant-lease-decision">
+        <div className="lease-table">
 
-            <h5>Lease Decision</h5>
-
-
-            <p>Current Lease</p>
-            <p>Date Uploaded: {new Date(tenantDetails?.leaseDocs[0]?.dateUploaded).toLocaleDateString() ?? ""}</p>
-
-
-            {signed ? (
-                <p>Lease Signed</p>
-            ) : sentForSigning ? (
-                <p>Lease Sent For Signing</p>
-            ) : null}
-            {requestCancel ?? (
-                <p>Tenant requested not to renew lease</p>
-            )}
-           
-            {tenantDetails?.leaseDocs && tenantDetails.leaseDocs.length > 0 ? (
-                <div className="lease-actions">
-                    <button 
-                        onClick={() => {
-                            const lastLeaseDoc = tenantDetails?.leaseDocs?.length 
-                                ? tenantDetails.leaseDocs[tenantDetails.leaseDocs.length - 1] 
-                                : null;
-                            handleViewCurrentLease(tenantDetails.id, lastLeaseDoc);
-                        }} 
-                        className='tenant-lease-view'
-                    >
-                        View Lease
-                    </button>
-                    <button onClick={() => setshowRenewLease(true)} className="tenant-renew-lease">
-                        Renew Current Lease
-                    </button>
+            
+            <div className="lease-table-header" style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
+                <h5>Leases</h5>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span>Select Year:</span>
+                            <select
+                                style={{ fontSize: "12px"}}
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                            >
+                                {years.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
-            ) : (
-                <div>
-                    <button
-                    onClick={() => setshowRenewLease(true)}
-                    className="tenant-lease-upload">
-                    Upload Lease
-                    </button>
-                </div>  
-            )}
+                <button className="upload-lease-button"
+                    onClick={() => setshowRenewLease(true)}>
+                    Send New Lease
+                </button>
+            </div>
+
+            
+
+            <table>
+                <thead>
+                    <tr>
+                        <th> </th>
+                        <th>Uploaded At</th>
+                        <th>Signed</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {leaseDocs && leaseDocs.length > 0 ? (
+                        leaseDocs
+                            .filter((doc) => new Date(doc.uploadedAt).getFullYear() === selectedYear) 
+                            .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+                            .map((doc) => (
+                                <tr key={doc.id}>
+                                    <td style={{ width: "5%" }}>
+                                        <input
+                                        type="checkbox"
+                                        checked={selectedDocIds.has(doc.id)}
+                                        onChange={() => handleCheckboxChange(doc.id)}
+                                        />
+                                    </td>
+                                    <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
+                                    <td>{doc.Signed ? 'Signed' : 'Not Signed'}</td>
+                                    <td>
+                                        <button onClick={() => handleViewLease(tenantDetails?.id, doc.fileName)}>
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                    ) : (
+                        <tr>
+                            <td colSpan="3" className="text-center py-2">
+                                No lease documents available.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+
+            <div>
+                <button className="delete-leases" onClick={() => deleteLeases(selectedDocIds)}>Delete Selected</button>
+            </div>
+            
 
             {previewLease && (
                 <div className='preview-lease-overlay'>
@@ -246,12 +296,21 @@ function Lease ({tenantDetails, onFetchTenant, onloadLeaseDoc, onSetForPreview})
                             </label>
                            
                             <label>
-                            Lease End Date:
-                            <input
-                            type="date"
-                            value={leaseEndDate}
-                            onChange={(e) => setLeaseEndDate(e.target.value)}
-                            />
+                                Lease End Date:
+                                <input
+                                type="date"
+                                value={leaseEndDate}
+                                onChange={(e) => setLeaseEndDate(e.target.value)}
+                                />
+                            </label>
+
+                            <label>
+                                Lease Has Been Signed:
+                                <input
+                                    type="checkbox"
+                                    checked={signed}
+                                    onChange={(e) => setSigned(e.target.checked)}  // This will update the 'signed' state
+                                />
                             </label>
                         </form>
                         <div className="modal-actions">

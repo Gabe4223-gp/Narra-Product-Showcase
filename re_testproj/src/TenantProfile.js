@@ -22,6 +22,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
     const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
     const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
+    const [leaseDocs, setLeaseDocs] = useState(null);
     const { userProfile } = useUserProfile();
 
     useEffect(() => {
@@ -86,10 +87,33 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
         }
     };
 
+    const fetchLeaseDocs = async () => {
+      try {
+        const response = await fetch(`/tenants/${tenantId}/leaseDocs`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error fetching leaseDocs: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("LeaseDocs for tenant:", data);
+        setLeaseDocs(data);
+      } catch (error) {
+          console.error("Failed to fetch leaseDocs:", error);
+          return null;
+      }
+    }
+
 
     // UseEffect to fetch tenant details right when the page loads
     useEffect(() => {
         fetchTenantDetails();
+        fetchLeaseDocs();
     }, [tenantId]);
 
     //when handleUploadLeaseDoc happens, saveEditTenant() is invoked
@@ -132,6 +156,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
      
             // Optionally: If you have a function that fetches tenants by IDs
             fetchTenantDetails();
+            fetchLeaseDocs();
        
             setShowEditTenantDetails(false);
           } catch (error) {
@@ -143,9 +168,6 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
     const handleBack = async () => {
         setSelectedDoc(null); // Set selectedDoc to null to hide DocumentViewer and go back
     };
-
-    //TODO: DEFINE THIS FUNCTION!
-    const handleMarkasMovedOut = async () => {};
 
     const handleSetForPreview = () => {
         setForPreview(true);
@@ -386,8 +408,10 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
             <Lease
               tenantDetails={tenantDetails}
               onFetchTenant={fetchTenantDetails}
+              onFetchLeases={fetchLeaseDocs}
               onloadLeaseDoc={handleLoadLeaseDoc}
               onSetForPreview={handleSetForPreview}
+              leaseDocs={leaseDocs}
             />
             <div className="tenant-actions">
               <h5>Actions</h5>

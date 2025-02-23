@@ -91,10 +91,11 @@ const TenantHomepage = ({ tenantEmail }) => {
           )}
         </>
       )}
-      <ManageBilling tenantEmail={tenantEmail} />
-      <div className="additional-containers">
-        <RenewLease />
+      
+      <div className="additional-containers" style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+        <ManageBilling tenantEmail={tenantEmail} />
         <ManageLease />
+        <RenewLease />
         <ManagePaymentMethods />
       </div>
     </div>
