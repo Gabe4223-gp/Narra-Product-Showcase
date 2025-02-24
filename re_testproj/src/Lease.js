@@ -13,10 +13,12 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
 
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [signed, setSigned] = useState(false);
+    const [subject, setSubject] = useState(null);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [showRenewLease, setshowRenewLease] = useState(false);
     const [previewLease, setPreviewLease] = useState(null);
     const [selectedDocIds, setSelectedDocIds] = useState(new Set());
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const {userProfile} = useUserProfile();
    
     //Lease Generation const
@@ -53,7 +55,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     fileName: uuidid,
                     url: `http://localhost:5000/lease_bills/${encodeURIComponent(uuidid)}`,
                     fileContent: reader.result,
-                    landlordEmail: userProfile.email,
+                    landlordId: userProfile.id,
                     tenantEmail: tenantDetails.email,
                     fileType: file.type,
                 };
@@ -84,12 +86,13 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     url: selectedDoc.url,
                     fileType: selectedDoc.fileType,
                     fileContent: selectedDoc.fileContent,
-                    landlordEmail: selectedDoc.landlordEmail,
+                    landlordId: selectedDoc.landlordId,
                     tenantEmail: selectedDoc.tenantEmail,
                     tenantId: tenantDetails.id,
                     leaseStartDate: leaseStartDate,
                     leaseEndDate: leaseEndDate,
                     signed: signed,
+                    subject: subject,
                 }),
             });
 
@@ -162,6 +165,47 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
         setSelectedDocIds(updatedSelectedDocIds);
     };
 
+    const handleDeleteLeases = async () => {
+        // Check if any leases are selected
+        if (selectedDocIds.size === 0) {
+            console.error("No leases selected for deletion.");
+            return;
+        }
+        
+        try {
+            // Make a DELETE request to the backend
+            const response = await fetch(`/leases/delete-all`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                docIds: Array.from(selectedDocIds), // Convert Set to Array
+                tenantId: tenantDetails?.id, // Optional chaining to avoid errors
+            }),
+            });
+        
+            // Check if the request was successful
+            if (!response.ok) {
+            throw new Error(`Failed to delete lease docs: ${response.statusText}`);
+            }
+        
+            // Handle the backend response
+            const data = await response.json();
+            console.log("Docs deleted successfully:", data);
+        
+            // Refresh the leases list
+            onFetchLeases();
+            // Clear the selected document IDs
+            setSelectedDocIds(new Set()); // Reset the Set to empty
+            // Close the delete confirmation modal
+            setShowDeleteModal(false);
+            
+        } catch (error) {
+            console.error("Error deleting leases:", error);
+        }
+    };
+
 
     return (
         <div className="lease-table">
@@ -198,6 +242,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     <tr>
                         <th> </th>
                         <th>Uploaded At</th>
+                        <th>Subject</th>
                         <th>Signed</th>
                         <th>Action</th>
                     </tr>
@@ -217,7 +262,8 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                                         />
                                     </td>
                                     <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
-                                    <td>{doc.Signed ? 'Signed' : 'Not Signed'}</td>
+                                    <td>{doc.subject}</td>
+                                    <td>{doc.signed ? 'Signed' : 'Not Signed'}</td>
                                     <td>
                                         <button onClick={() => handleViewLease(tenantDetails?.id, doc.fileName)}>
                                             View
@@ -236,8 +282,20 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
             </table>
 
             <div>
-                <button className="delete-leases" onClick={() => deleteLeases(selectedDocIds)}>Delete Selected</button>
+                <button className="delete-leases" onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
             </div>
+
+            {showDeleteModal && (
+                <div className='overlay'>
+                    <div className='modal'>
+                        <div>
+                            Are you sure you want to delete these tenants?
+                        </div>
+                        <button onClick={handleDeleteLeases}>Confirm</button>
+                        <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                    </div>
+                </div>
+            )}
             
 
             {previewLease && (
@@ -286,19 +344,29 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     <div className="modal-container">
                         <h3 className="modal-header">Lease Details</h3>
                         <form>
+
                             <label>
+                                Subject:
+                                <input
+                                type="text"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                />
+                            </label>
+
+                            <label className="input-datetime-lease">
                                 Lease Start Date:
                                 <input
-                                type="date"
+                                type="datetime-local"
                                 value={leaseStartDate}
                                 onChange={(e) => setLeaseStartDate(e.target.value)}
                                 />
                             </label>
                            
-                            <label>
+                            <label className="input-datetime-lease">
                                 Lease End Date:
                                 <input
-                                type="date"
+                                type="datetime-local"
                                 value={leaseEndDate}
                                 onChange={(e) => setLeaseEndDate(e.target.value)}
                                 />

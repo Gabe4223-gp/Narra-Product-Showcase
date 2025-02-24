@@ -165,7 +165,10 @@ function ManagePaymentMethods() {
 
   return (
     <div className="manage-payment-methods">
-      <h2>Payment Methods</h2>
+      <div className="payment-method-header">
+        <h5>Payment Methods</h5>
+      </div>
+      
       {paymentMethods.length > 0 ? (
         <ul>
           {paymentMethods.map((method, index) => (
@@ -181,7 +184,7 @@ function ManagePaymentMethods() {
       ) : (
         <p>No payment methods added yet.</p>
       )}
-      <button className="add-btn" onClick={handleAdd}>
+      <button className="add-payment-method-btn" onClick={handleAdd}>
         Add Payment Method
       </button>
 

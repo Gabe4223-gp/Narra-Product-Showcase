@@ -27,7 +27,8 @@ function DocumentViewer({ onBack, selectedDoc, forPreview }) {
         <button onClick={onBack}>Back</button>
       </div>
 
-      {/* Display the document based on its file type */}
+      {console.log(selectedDoc.fileContent)}
+      {console.log("isImageFile: ", isImageFile)}
       {selectedDoc?.fileContent ? (
         isImageFile ? (
           <img

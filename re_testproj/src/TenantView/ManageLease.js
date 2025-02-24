@@ -4,16 +4,9 @@ import axios from 'axios';
 import './ManageLease.css';
 import { useUserProfile } from "../UserProfileContext";
 
-const ManageLease = () => {
-  const [leaseData, setLeaseData] = useState({
-    leaseStarted: null,
-    leaseExpiry: null,
-    currentLeaseDoc: null,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [previewLease, setPreviewLease] = useState(null);
+const ManageLease = ({leaseData}) => {
   const {userProfile} = useUserProfile();
+  const [previewLease, setPreviewLease] = useState(null);
   
   const tenantId = userProfile.id;
 
@@ -39,28 +32,9 @@ const ManageLease = () => {
     }
   }, [tenantEmail]);*/
 
-  
-  const fetchLeaseData = async () => {
-    try {
-      const res = await fetch(`/current-lease/${tenantId}`);
-      const data = await res.json();
-      console.log("data ha", data);
-      setLeaseData(data);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching lease data:", err);
-      setError("Could not fetch lease data.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-      
-    fetchLeaseData();
-    
-  }, []);
-
+    console.log("ManageLease received new leaseData:", leaseData); // Debugging line
+  }, [leaseData]);
 
   const handleViewLease = async () => {
     try {
@@ -122,32 +96,26 @@ const ManageLease = () => {
       <div className="manage-lease-header">
         <h5>Manage Lease</h5>
       </div>
-      {loading ? (
-        <p>Loading lease information...</p>
-      ) : (
-        <>
-          <div className="manage-lease-dates">
-            <p>
-              <h6>Lease Started:</h6>{" "}
-              {leaseData?.leaseStarted ? new Date(leaseData?.leaseStarted).toLocaleDateString() : "No Lease Start Found"}
-            </p>
-            <p>
-              <h6>Lease Expiry:</h6>{" "}
-              {leaseData?.leaseExpiry ? new Date(leaseData?.leaseExpiry).toLocaleDateString() : "No Lease End Found"}
-            </p>
-          </div>
-          <p>
-            <h6>Next Billing Deadline:</h6>{" "}
-            {userProfile?.billingDeadline ? new Date(userProfile?.billingDeadline).toLocaleDateString() : "No Billing Deadline Found"}
-          </p>
-          <div className="manage-lease-actions">
-            <button onClick={handleViewLease}>View Lease</button>
-            <button onClick={handleRequestEndLease}>Request to End Lease</button>
-          </div>
-          {error && <div className="error-banner">{error}</div>}
-        </>
-      )}
-
+    
+      <div className="manage-lease-dates">
+        <p>
+          <h6>Lease Started:</h6>{" "}
+          {leaseData?.leaseStarted ? new Date(leaseData?.leaseStarted).toLocaleDateString() : "No Lease Start Found"}
+        </p>
+        <p>
+          <h6>Lease Expiry:</h6>{" "}
+          {leaseData?.leaseExpiry ? new Date(leaseData?.leaseExpiry).toLocaleDateString() : "No Lease End Found"}
+        </p>
+      </div>
+      <p>
+        <h6>Subject:</h6>{" "}
+        {leaseData?.currentLeaseDoc?.subject ? leaseData?.currentLeaseDoc?.subject : " "}
+      </p>
+      <div className="manage-lease-actions">
+        <button onClick={handleViewLease}>View Lease</button>
+        <button onClick={handleRequestEndLease}>Request to End Lease</button>
+      </div>
+      
       {previewLease && (
         <div className='preview-lease-overlay'>
             <div className='preview-lease-modal'>

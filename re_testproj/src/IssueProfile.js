@@ -25,7 +25,7 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
     
             const data = await response.json();
             
-            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            const cleanedBase64 = data.fileContent.replace(/^(data.*base64,?|dataimage\/[a-z]+base64,?)/i, "");
             console.log("Here's the doc", data);
             console.log("Here's the cleanedBased", cleanedBase64);
 

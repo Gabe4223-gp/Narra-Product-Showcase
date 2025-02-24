@@ -7,6 +7,7 @@ const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { sequelize } = require('../models'); 
 
 // Import models – note Files is our reintroduced model
 const { Tenant, Files } = require('../models');
@@ -124,7 +125,7 @@ router.post('/generate', async (req, res) => {
 
     // Create a record in Files table
     const newFileRecord = await Files.create({
-      filename: pdfFileName,
+      fileName: pdfFileName,
       fileType: 'pdf',
       url: fileURL,
       subject,
@@ -167,24 +168,34 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
 
 // routes/sendBillRoutes.js (append these endpoints)
 
-// GET unfulfilled bills by propertyId
+// GET unfulfilled bills by propertyId (Raw Sequelize Query)
 router.get('/unfulfilled', async (req, res) => {
   try {
     const { propertyId } = req.query;
     if (!propertyId) {
       return res.status(400).json({ message: 'propertyId is required.' });
     }
-    // Filter files by propertyId and unpaid status (paid === false)
-    const files = await Files.findAll({
-      where: { propertyId, paid: false },
-      order: [['createdAt', 'DESC']]
+
+    // Raw SQL query to fetch unfulfilled bills by propertyId and paid === false
+    const query = `
+      SELECT *
+      FROM "Files"
+      WHERE "propertyId" = :propertyId AND "paid" = false
+      ORDER BY "createdAt" DESC
+    `;
+    
+    const [files] = await sequelize.query(query, {
+      replacements: { propertyId },
+      type: sequelize.QueryTypes.SELECT
     });
+
     return res.json(files);
   } catch (error) {
     console.error('Error fetching unfulfilled bills:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 // GET fulfilled bills by propertyId
 router.get('/fulfilled', async (req, res) => {
@@ -193,10 +204,17 @@ router.get('/fulfilled', async (req, res) => {
     if (!propertyId) {
       return res.status(400).json({ message: 'propertyId is required.' });
     }
-    // Filter files by propertyId and paid status (paid === true)
-    const files = await Files.findAll({
-      where: { propertyId, paid: true },
-      order: [['createdAt', 'DESC']]
+    // Raw SQL query to fetch unfulfilled bills by propertyId and paid === false
+    const query = `
+      SELECT *
+      FROM "Files"
+      WHERE "propertyId" = :propertyId AND "paid" = true
+      ORDER BY "createdAt" DESC
+    `;
+    
+    const [files] = await sequelize.query(query, {
+      replacements: { propertyId },
+      type: sequelize.QueryTypes.SELECT
     });
     return res.json(files);
   } catch (error) {

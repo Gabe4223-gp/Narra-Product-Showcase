@@ -121,7 +121,10 @@ function TenantSettings() {
 
   return (
     <div className="settings-container">
-      <h3>Account Settings</h3>
+      <div className='settings-header'>
+        <h3>Account Settings</h3>
+      </div>
+      
       
       {/* Personal Details Section */}
       <h4>Personal Details</h4>
@@ -234,38 +237,27 @@ function TenantSettings() {
 
       {/* Delete Confirmation Popup */}
       {showDeleteConfirmation && (
-      <div className="delete-confirmation-popup" style={popupStyle}>
-        <p>
-          Are you sure you want to delete your account?
-          <br />
-          You will be returned to the login page upon deleting.
-        </p>
-        <div style={{ marginTop: '10px' }}>
-          <button onClick={confirmDeleteAccount} style={{ marginRight: '10px' }}>
-            Yes, Delete
-          </button>
-          <button onClick={() => setShowDeleteConfirmation(false)}>
-            Cancel
-          </button>
+      <div className='overlay'>
+        <div className="modal">
+          <p>
+            Are you sure you want to delete your account?
+            <br />
+            You will be returned to the login page upon deleting.
+          </p>
+          <div style={{ marginTop: '10px' }}>
+            <button onClick={confirmDeleteAccount} style={{ marginRight: '10px' }}>
+              Yes, Delete
+            </button>
+            <button onClick={() => setShowDeleteConfirmation(false)}>
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
+      
     )}
     </div>
   );
 }
-
-// Inline style for the popup (purely front-end placeholder)
-const popupStyle = {
-  background: '#fff',
-  border: '1px solid #ddd',
-  padding: '20px',
-  position: 'fixed',
-  top: '30%',
-  left: '50%',
-  transform: 'translate(-50%, -30%)',
-  zIndex: 999,
-  borderRadius: '8px',
-  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-};
 
 export default TenantSettings;

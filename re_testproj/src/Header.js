@@ -45,7 +45,7 @@ function Header({toggleSidebar, isSidebarCollapsed}) {
       <div className="right-section">
         <nav className="navbar">
           <ul>
-            <li><a>Welcome {userProfile.name}!</a></li>
+            <li><a>Welcome {userProfile?.name}!</a></li>
           </ul>
         </nav>
         <nav className="account">

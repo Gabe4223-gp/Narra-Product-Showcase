@@ -38,7 +38,6 @@ function Units() {
   const {userProfile} = useUserProfile();
 
   const fetchProperties = async () => {
-
     try {
       const response = await fetch(`/properties?user_id=${userProfile.id}`, {
         method: "GET",
@@ -46,34 +45,34 @@ function Units() {
           "Content-Type": "application/json",
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch properties');
       }
       const data = await response.json();
-
-      // Check if the user previously had zero properties
+  
+      // Check if the saved selectedPropertyID exists in the fetched properties
       const savedPropertyId = localStorage.getItem('selectedPropertyIDUnit');
-
-      if (!savedPropertyId && data.length > 0) {
-          // Only set selectedPropertyID if there was no previous selection
-          setSelectedPropertyID(data[0].id);
-          localStorage.setItem('selectedPropertyIDUnit', data[0].id);
-          console.log("Setting selected property to first property:", data[0].id);
+      const propertyExists = data.some((property) => property.id === savedPropertyId);
+  
+      if (!propertyExists) {
+        // If the saved property doesn't exist, reset the selectedPropertyID
+        setSelectedPropertyID(data.length > 0 ? data[0].id : "");
+        localStorage.setItem('selectedPropertyIDUnit', data.length > 0 ? data[0].id : "");
+      } else {
+        // If the saved property exists, keep it as selected
+        setSelectedPropertyID(savedPropertyId);
       }
-
+  
       setProperties(data); // Set tenants fetched from the database
-      
-
     } catch (error) {
       console.error('Error fetching properties:', error);
       alert('Failed to load properties. Please try again.');
     }
-
   };
 
   const fetchUnits = async (unitIds) => {
 
+    console.log("function works sdfh");
 
     if (unitIds?.length === 0) {
       console.log("No unit IDs provided, exiting fetch.");
@@ -118,20 +117,23 @@ function Units() {
     fetchProperties(); // Fetch properties when component mounts or properties change
   }, []); // Empty dependency array ensures it only runs once
 
-  // Fetch tenants when selectedPropertyID changes
   useEffect(() => {
+    console.log("selectedPropertyID:", selectedPropertyID); // Check the value
 
+    // Proceed only if selectedPropertyID exists
     if (selectedPropertyID) {
       const selectedProperty = properties.find(
         (property) => property.id === selectedPropertyID
       );
 
+      console.log("aoisdfj", selectedProperty);
+
       if (selectedProperty) {
-        
-        fetchUnits(selectedProperty.units || []); // Fetch tenants based on the selected property’s tenants
+        console.log("We're here");  // Now this should log
+        fetchUnits(selectedProperty.units || []);  // Fetch tenants based on the selected property’s tenants
       }
     }
-  }, [selectedPropertyID, properties]);
+  }, [selectedPropertyID, properties]); // Ensure selectedPropertyID is being set correctly
 
   //Adding unit
   const handleAddUnitChange = (field, value) => {

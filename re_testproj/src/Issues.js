@@ -64,14 +64,17 @@ function Issues () {
             }
             const data = await response.json();
 
-            // Check if the user previously had zero properties
+            // Check if the saved selectedPropertyID exists in the fetched properties
             const savedPropertyId = localStorage.getItem('selectedPropertyIDIssue');
-
-            if (!savedPropertyId && data.length > 0) {
-                // Only set selectedPropertyID if there was no previous selection
-                setSelectedPropertyID(data[0].id);
-                localStorage.setItem('selectedPropertyIDIssue', data[0].id);
-                console.log("Setting selected property to first property:", data[0].id);
+            const propertyExists = data.some((property) => property.id === savedPropertyId);
+        
+            if (!propertyExists) {
+                // If the saved property doesn't exist, reset the selectedPropertyID
+                setSelectedPropertyID(data.length > 0 ? data[0].id : "");
+                localStorage.setItem('selectedPropertyIDIssue', data.length > 0 ? data[0].id : "");
+            } else {
+                // If the saved property exists, keep it as selected
+                setSelectedPropertyID(savedPropertyId);
             }
     
             setProperties(data); // Set tenants fetched from the database

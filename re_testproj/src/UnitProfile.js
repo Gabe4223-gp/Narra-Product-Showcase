@@ -215,8 +215,8 @@ function UnitProfile ({unitId, onBack}) {
                                     <tr key={index}>
                                         <td>{tenant.name}</td>
                                         <td>{tenant.phone}</td>
-                                        <td>{tenant.leaseStarted ? tenant.leaseStarted : ""}</td>
-                                        <td>{tenant.leaseExpiry ? tenant.leaseExpiry : ""}</td>
+                                        <td>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}</td>
+                                        <td>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}</td>
                                         <td>{tenant.billingDeadline}</td>
                                         <td>
                                             <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>

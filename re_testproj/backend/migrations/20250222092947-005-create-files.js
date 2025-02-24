@@ -9,7 +9,7 @@ module.exports = {
         defaultValue: Sequelize.literal('uuid_generate_v4()'),
         primaryKey: true
       },
-      filename: {
+      fileName: {
         type: Sequelize.STRING,
         allowNull: false
       },
@@ -44,11 +44,23 @@ module.exports = {
         // NEW: Store the tenant's email so that the endpoint can query correctly.
         type: Sequelize.STRING,
         allowNull: false,
-        field: 'tenantemail'
+      },
+      landlordEmail: {
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       landlordId: {
         type: Sequelize.UUID,
-        allowNull: true
+        allowNull: true,
+      },
+      signed: {
+        type: Sequelize.BOOLEAN,
+        allowedNull: true,
+      },
+      uploadedAt: {
+        allowNull: true,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       createdAt: {
         allowNull: false,

@@ -658,6 +658,8 @@ app.delete('/issues/delete-all', async (req, res) => {
 app.post('/units/byIds', async (req, res) => {
   const { unitIds } = req.body;
 
+  console.log("Unit Ids", unitIds)
+
 
   // Validate input
   if (!unitIds || !Array.isArray(unitIds)) {
@@ -1324,17 +1326,44 @@ app.get("/properties/:id", async (req, res) => {
     const unitCount = property.units.length;
     const tenantCount = property.tenants.length;
 
+    // Assuming each property has an array of unit IDs
+    const unitIds = property.units; // Array of unit IDs
+
+    // Create a variable called occupancy which counts the number of units without tenants
+    let occupancy = 0;
+
+    // Loop through each unit ID to fetch unit details
+    for (let unitId of unitIds) {
+      // Query to get the details of each unit by its ID
+      const unitQuery = `
+        SELECT *
+        FROM "Units"
+        WHERE "id" = :unitId
+      `;
+      
+      const [unit] = await sequelize.query(unitQuery, {
+        replacements: { unitId },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+      // Check if the unit's tenants array is empty or non-existent
+      if (!unit.tenants || unit.tenants.length === 0) {
+        occupancy++; // Increment occupancy if the unit has no tenants
+      }
+    }
 
     // Check if the tenant exists
     if (!property) {
       return res.status(404).json({ error: "Property not found." });
     }
 
+    console.log('Occupancy (number of units without tenants):', occupancy);
 
     res.status(200).json({
       property,
       unitCount,
-      tenantCount
+      tenantCount,
+      occupancy,
     });
 
 
@@ -2189,10 +2218,10 @@ app.delete('/tenants/delete-all', async (req, res) => {
   }
 });
 
-//Lease upload
+//Tenant lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { id, fileName, fileType, url, fileContent, landlordEmail, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject} = req.body; //Adjust based on frontend implementation
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
@@ -2211,8 +2240,8 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Files" (id, "fileName", url, "landlordEmail", "tenantEmail", "Signed")
-      VALUES (:id, :fileName, :url, :landlordEmail, :tenantEmail, :signed)
+      INSERT INTO "Files" (id, "fileName", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
+      VALUES (:id, :fileName, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
       RETURNING *;
     `
 
@@ -2221,37 +2250,57 @@ app.post('/tenants/upload-lease', async (req, res) => {
         id: id,                       // UUID passed from frontend
         fileName: fileName,           // UUID as fileName
         url: fileUrl,                 // URL from S3
-        landlordEmail: landlordEmail,
+        landlordId: landlordId,
         tenantEmail: tenantEmail,
         signed: signed,
+        subject: subject,
+        leaseStarted: leaseStartDate,
+        leaseExpiry: leaseEndDate,
       },
       type: sequelize.QueryTypes.INSERT, // Specify the query type
     });
-    
+
     // Store document reference in the database
     const updateQuery = `
-      UPDATE "Tenants"
-      SET
-        "leaseDocs" = array_append("leaseDocs", :fileId),
-        "leaseStarted" = :leaseStartDate,
-        "leaseExpiry" = :leaseEndDate
-      WHERE id = :tenantId
-      RETURNING *;
+    UPDATE "Tenants"
+    SET
+      "leaseDocs" = array_append("leaseDocs", :fileId)
+    WHERE id = :tenantId
+    RETURNING *;
     `;
 
-    const result = await sequelize.query(updateQuery, {
+    const result1 = await sequelize.query(updateQuery, {
       replacements: { 
         fileId: fileName, 
         tenantId: tenantId, 
-        leaseStartDate: leaseStartDate, 
-        leaseEndDate: leaseEndDate,
       },
       type: sequelize.QueryTypes.UPDATE,
     });
+    
+    if (signed) {
+      // Store document reference in the database
+      const updateQuery = `
+        UPDATE "Tenants"
+        SET
+          "leaseStarted" = :leaseStartDate,
+          "leaseExpiry" = :leaseEndDate
+        WHERE id = :tenantId
+        RETURNING *;
+      `;
+    
+      const result2 = await sequelize.query(updateQuery, {
+        replacements: { 
+          tenantId: tenantId, 
+          leaseStartDate: leaseStartDate, 
+          leaseEndDate: leaseEndDate,
+        },
+        type: sequelize.QueryTypes.UPDATE,
+      });
+    }
 
     console.log(result[0][0].leaseDocs);
 
-    res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result[0][0]?.leaseDocs})
+    res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result1[0][0]?.leaseDocs})
 
   } catch (error) {
     console.error('Error uploading invoice:', error);
@@ -2358,6 +2407,8 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
       }
     );
 
+    console.log("leasedocs", leaseDocs)
+
     // Convert leaseDocs array to a string formatted as an array literal
     const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
    
@@ -2366,7 +2417,7 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
       `SELECT *
        FROM "Files"
        WHERE "id" = ANY (:leaseDocs::UUID[])
-       AND "Signed" = false`,
+       AND "signed" = false`,
       {
         replacements: { leaseDocs: leaseDocsArray },
         type: sequelize.QueryTypes.SELECT
@@ -2382,7 +2433,7 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
 
 //Update an unsigned lease
 app.put('/tenants/update-lease', async (req, res) => {
-  const { id, fileName, fileContent, fileType } = req.body;
+  const { id, fileName, fileContent, fileType, tenantEmail, tenantId } = req.body;
 
   // Ensure you have the file content as base64 (strip base64 prefix if any)
   const bufferContent = Buffer.from(fileContent.split(',')[1], 'base64');  // Removing base64 prefix
@@ -2401,7 +2452,7 @@ app.put('/tenants/update-lease', async (req, res) => {
       // Raw query to update the file in the Files table
       const updateQuery = `
           UPDATE "Files"
-          SET "Signed" = true
+          SET "signed" = true
           WHERE "id" = :id
           RETURNING *;
       `;
@@ -2414,6 +2465,42 @@ app.put('/tenants/update-lease', async (req, res) => {
           type: sequelize.QueryTypes.SELECT,  // Since you're returning data, use SELECT
       });
 
+      // Retrieve all files
+      const fileQuery = `
+        SELECT * FROM "Files"
+        WHERE "tenantEmail" = :tenantEmail
+        ORDER BY "uploadedAt" DESC
+        LIMIT 1;
+      `;
+
+      const [latestFile] = await sequelize.query(fileQuery, {
+      replacements: {
+        tenantEmail: tenantEmail, // Email of the tenant
+      },
+      type: sequelize.QueryTypes.SELECT, // Since you're returning data, use SELECT
+      });
+
+      // Check if the current file is the most recent before updating the tenant's lease dates
+      if (latestFile && latestFile.id === id) {
+        const datesQuery = `
+          UPDATE "Tenants"
+          SET
+            "leaseStarted" = :leaseStartDate,
+            "leaseExpiry" = :leaseEndDate
+          WHERE user_id = :tenantId
+          RETURNING *;
+        `;
+
+        const result2 = await sequelize.query(datesQuery, {
+          replacements: {
+            tenantId: tenantId,
+            leaseStartDate: latestFile.leaseStarted,
+            leaseEndDate: latestFile.leaseExpiry,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+        });
+      }
+      
       if (updatedFile) {
           res.status(200).json({
               message: 'Document content updated successfully in S3 and database',
@@ -2459,7 +2546,7 @@ app.get('/current-lease/:tenantId', async (req, res) => {
       `SELECT *
        FROM "Files"
        WHERE "id" = ANY (:leaseDocs::UUID[])
-       AND "Signed" = true
+       AND "signed" = true
        ORDER BY "uploadedAt" DESC`,
       {
         replacements: { leaseDocs: leaseDocsArray },
@@ -2484,6 +2571,63 @@ app.get('/current-lease/:tenantId', async (req, res) => {
   } catch (err) {
     console.error('Error fetching lease data:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.delete('/leases/delete-all', async (req, res) => {
+  const { docIds, tenantId } = req.body;
+
+  // Validate input
+  if (!Array.isArray(docIds) || docIds.length === 0) {
+    return res.status(400).json({ error: "Invalid docIds array." });
+  }
+
+  try {
+    // Step 1: Delete all documents specified in docIds
+    const deleteDocsQuery = `DELETE FROM "Files" WHERE id = ANY(:docIds::uuid[])`;
+    await sequelize.query(deleteDocsQuery, {
+      replacements: { docIds: `{${docIds.join(',')}}` }, // Format docIds as a PostgreSQL array
+      type: sequelize.QueryTypes.DELETE,
+    });
+
+    // Step 2: Fetch the tenant by tenantId
+    const fetchTenantQuery = `SELECT * FROM "Tenants" WHERE id = :tenantId;`;
+    const [tenant] = await sequelize.query(fetchTenantQuery, {
+      replacements: { tenantId }, // Use tenantId directly
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    // Step 3: Update the tenant to remove deleted Lease Doc ids
+    const updatedLeaseDocs = tenant.leaseDocs.filter(
+      (fileId) => !docIds.includes(fileId)
+    );
+
+    // Format for PostgreSQL array: {1,2,3}
+    const formattedLeaseDocs = `{${updatedLeaseDocs.join(',')}}`;
+
+    const updateTenantQuery = `
+      UPDATE "Tenants"
+      SET "leaseDocs" = :formattedLeaseDocs
+      WHERE id = :tenantId;
+    `;
+
+    await sequelize.query(updateTenantQuery, {
+      replacements: {
+        formattedLeaseDocs,
+        tenantId,
+      },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    // Respond with success message
+    res.status(200).json({
+      message: "Leases deleted and properties updated successfully.",
+    });
+
+    console.log(`Successfully deleted leases with IDs ${docIds.join(', ')}`);
+  } catch (error) {
+    console.error("Error deleting leases and updating properties:", error);
+    res.status(500).json({ error: "Failed to delete leases and update properties." });
   }
 });
 

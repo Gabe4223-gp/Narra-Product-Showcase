@@ -4,11 +4,16 @@ import './RenewLease.css';
 import { useUserProfile } from "../UserProfileContext";
 import { ROWLOCK } from 'sequelize/lib/table-hints';
 
-function RenewLease() {
+function RenewLease({onUploadSignedLease}) {
+  // Generate last 10 years for selection
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [signedFile, setSignedFile] = useState(null);
-  const [unsignedFile, setUnsignedFile] = useState(null);
+  const [unsignedFiles, setUnsignedFiles] = useState(null);
   const [previewLease, setPreviewLease] = useState(null);
-  const [uploadLeaseModal, setUploadLeaseModal] = useState(null);
+  const [uploadLease, setUploadLeaseModal] = useState(null);
   const {userProfile} = useUserProfile();
 
   const tenantId = userProfile.id;
@@ -26,11 +31,8 @@ function RenewLease() {
       }
       const data = await response.json();
       console.log("leases", data);
-      // Assuming the array items have a timestamp field like 'uploadDate' or 'createdAt'
-      const mostRecentFile = data.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
-      console.log("most recent", mostRecentFile);
 
-      setUnsignedFile(mostRecentFile);
+      setUnsignedFiles(data);
     } catch (err) {
       console.error(err, 'Error fetching unsigned leases.');
     } 
@@ -40,10 +42,10 @@ function RenewLease() {
     fetchUnsignedLeases();
   }, []);
 
-  const handleViewLease = async () => {
+  const handleViewLease = async (doc) => {
     try {
       // Use query parameters instead of body
-      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${unsignedFile.fileName}`, {
+      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${doc.fileName}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',
@@ -62,7 +64,7 @@ function RenewLease() {
 
       const loadedDoc = {
           fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
-          fileName: unsignedFile.fileName,  
+          fileName: doc.fileName,  
           fileType: data.fileType,
       };
 
@@ -76,61 +78,7 @@ function RenewLease() {
     
   }
 
-  // call GET /api/lease-proposal/:tenantId/view to open the proposal
-  const handleViewProposal = async () => {
-    try {
-      const res = await fetch(`/api/lease-proposal/${tenantId}/view`);
-      if (res.status === 404) {
-        alert("No Proposal Found");
-        return;
-      }
-      // If local: we might get the PDF directly. 
-      // If AWS: we might get { proposalUrl: "..."}
-      // So let's handle both:
-      if (res.headers.get('content-type')?.includes('application/json')) {
-        const data = await res.json();
-        if (data.proposalUrl) {
-          window.open(data.proposalUrl, '_blank');
-        } else {
-          alert(data.message || 'No Proposal Found');
-        }
-      } else {
-        // This means it's probably a direct PDF from local approach
-        // We can open it in a new window if we can convert to blob
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-      }
-    } catch (err) {
-      alert("Error retrieving proposal PDF");
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!signedFile) {
-      alert("Please choose a PDF file before uploading.");
-      return;
-    }
-    const formData = new FormData();
-    formData.append('signedLease', signedFile);
-
-    try {
-      const res = await fetch(`/api/lease-proposal/${tenantId}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || 'Error uploading signed lease');
-        return;
-      }
-      alert(data.message || 'Signed lease uploaded successfully');
-    } catch (err) {
-      alert('Error uploading signed lease');
-    }
-  };
-
-  const handleUploadSignedLease = async () => {
+  const handleUploadSignedLease = async (unsignedFile) => {
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];  // Example allowed types
 
@@ -157,12 +105,18 @@ function RenewLease() {
                       fileName: unsignedFile.id,  // This is the existing file's key (id in your case)
                       fileContent: fileContent,  // New content to update in S3
                       fileType: signedFile.type,  // Content type (PDF, image, etc.)
+                      tenantId: userProfile.id,
+                      tenantEmail: userProfile.email,
                   }),
               });
 
               const data = await response.json();
               if (response.ok) {
-                  console.log("Lease document content updated successfully:", data.url);
+                console.log("Lease document content updated successfully:", data.url);
+                setUploadLeaseModal(null);
+                setSignedFile(null);
+                onUploadSignedLease();
+                  
               } else {
                   console.error("Update failed:", data.message);
               }
@@ -170,7 +124,6 @@ function RenewLease() {
               console.error("Error updating lease document:", error);
           }
 
-          setUploadLeaseModal(false);
       };
 
       reader.readAsDataURL(signedFile);  // Convert the signedFile to base64 content
@@ -181,26 +134,79 @@ function RenewLease() {
   return (
     <div className="renew-lease">
       <div className='renew-lease-header'>
-        <h5>Renew Lease</h5>
+        <h5>Unsigned Leases</h5>
+        <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                      <span>Select Year:</span>
+                      <select
+                          style={{ fontSize: "12px"}}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                      >
+                          {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                          ))}
+                      </select>
+                  </label>
+              </div>
+          </div>
+        </div>
       </div>
       
-      {console.log(unsignedFile)}
-      {unsignedFile ? (
-        <div className="renew-lease-actions" style={{ display: 'flex', flexDirection: 'row', gap: '5%' }}>
-          <button onClick={() => handleViewLease()}>View Lease Proposal</button>
-          <button onClick={() => setUploadLeaseModal(true)}>Upload Signed Lease</button>
-        </div>
-      ) : (
-        <p>No unsigned lease proposal</p>
-      )}
+      {console.log(unsignedFiles)}
+
       
-      {uploadLeaseModal && (
+
+      <table>
+          <thead>
+              <tr>
+                  <th> </th>
+                  <th style={{width:'30%', textAlign: 'left'}}>Uploaded At</th>
+                  <th style={{width:'40%', textAlign: 'left'}}>Subject</th>
+                  <th style={{width:'15%', textAlign: 'left'}}> </th>
+                  <th style={{width:'15%', textAlign: 'left'}}> </th>
+              </tr>
+          </thead>
+          <tbody>
+              {unsignedFiles && unsignedFiles?.length > 0 ? (
+                  unsignedFiles
+                      .filter((doc) => new Date(doc.uploadedAt).getFullYear() === selectedYear) 
+                      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+                      .map((doc) => (
+                          <tr key={doc.id}>
+                              <td style={{width:'30%'}}>{new Date(doc.uploadedAt).toLocaleString()}</td>
+                              <td style={{width:'40%', textAlign: 'left'}}>{doc.subject}</td>
+                              <td style={{width:'15%'}}>
+                                  <button onClick={() => handleViewLease(doc)}>
+                                      View
+                                  </button>
+                              </td>
+                              <td style={{width:'15%'}}>
+                                  <button onClick={() => setUploadLeaseModal(doc)}>
+                                      Upload Signed
+                                  </button>
+                              </td>
+                          </tr>
+                      ))
+              ) : (
+                  <tr>
+                      <td colSpan="3" className="text-center py-2">
+                          No lease documents available.
+                      </td>
+                  </tr>
+              )}
+          </tbody>
+      </table>
+      
+      {uploadLease && (
             <div className="overlay">
               <div className="modal">
                 <label>Upload Signed Lease:</label>
                 <input type="file" accept=".pdf" onChange={handleFileChange} />
-                <button onClick={handleUploadSignedLease}>Upload</button>
-                <button onClick={() => setUploadLeaseModal(false)}>Cancel</button>
+                <button onClick={() => handleUploadSignedLease(uploadLease)}>Upload</button>
+                <button onClick={() => setUploadLeaseModal(null)}>Cancel</button>
               </div>
             </div>
           )}

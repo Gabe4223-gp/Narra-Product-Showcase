@@ -13,31 +13,52 @@ function Billings() {
   const [error, setError] = useState(null);
 
   // Fetch properties for the current landlord
-  useEffect(() => {
-    async function fetchProperties() {
-      if (!userProfile) return;
-      try {
-        const res = await fetch(`/api/properties?user_id=${userProfile.id}`);
-        const data = await res.json();
-        setProperties(data);
-        if (data.length > 0) {
-          setSelectedPropertyID(data[0].id);
-          localStorage.setItem('selectedPropertyID', data[0].id);
-        }
-      } catch (error) {
-        console.error(error);
-        setError('Failed to load properties.');
-      } finally {
-        setLoadingProperties(false);
+ 
+  const fetchProperties = async () => {
+    if (!userProfile) return;
+    try {
+      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      
+      // Check if the saved selectedPropertyID exists in the fetched properties
+      const savedPropertyId = localStorage.getItem('selectedPropertyIDBilling');
+      const propertyExists = data.some((property) => property.id === savedPropertyId);
+  
+      if (!propertyExists) {
+        // If the saved property doesn't exist, reset the selectedPropertyID
+        setSelectedPropertyID(data.length > 0 ? data[0].id : "");
+        localStorage.setItem('selectedPropertyIDBilling', data.length > 0 ? data[0].id : "");
+      } else {
+        // If the saved property exists, keep it as selected
+        setSelectedPropertyID(savedPropertyId);
       }
+
+
+      setProperties(data); // Set tenants fetched from the database
+
+    } catch (error) {
+      console.error(error);
+      setError('Failed to load properties.');
+    } finally {
+      setLoadingProperties(false);
     }
-    fetchProperties();
-  }, [userProfile]);
+  }
+
+  // UseEffect to fetch property
+  useEffect(() => {
+      fetchProperties();
+  }, []);
+  
 
   const handlePropertyChange = (e) => {
     const propertyId = e.target.value;
     setSelectedPropertyID(propertyId);
-    localStorage.setItem('selectedPropertyID', propertyId);
+    localStorage.setItem('selectedPropertyIDBilling', propertyId);
   };
 
   if (loadingProperties) {
@@ -51,8 +72,10 @@ function Billings() {
     <div className="billings-page">
       <div className="property-selector">
         <label>
-          Select Property:
-          <select value={selectedPropertyID} onChange={handlePropertyChange}>
+          <select value={selectedPropertyID || ""} onChange={handlePropertyChange}>
+            <option value="" disabled>
+              Select a property
+            </option>
             {properties.map((property) => (
               <option key={property.id} value={property.id}>
                 {property.propertyName}
@@ -61,6 +84,16 @@ function Billings() {
           </select>
         </label>
       </div>
+
+      <div>
+        <UnfulfilledBills
+          propertyId={selectedPropertyID}
+        />
+        <FulfilledBills
+          propertyId={selectedPropertyID}
+        />
+      </div>
+
     </div>
   );
 }

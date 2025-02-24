@@ -40,7 +40,10 @@ module.exports = (sequelize, DataTypes) => {
     tenantEmail: {
       type: DataTypes.STRING,
       allowNull: false,
-      field: 'tenantemail'  // maps JS attribute tenantEmail to DB column tenantemail
+    },
+    landlordEmail: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     landlordId: {
       type: DataTypes.UUID,
@@ -50,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    uploaded_at: {
+    uploadedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },

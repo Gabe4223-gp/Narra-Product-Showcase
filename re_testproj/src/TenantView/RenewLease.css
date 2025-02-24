@@ -13,12 +13,14 @@
 .renew-lease-header h5 {
   font-size: 14px;
   color: #333;
-  margin: 0;
-  margin-bottom: 10px;
+
 }
 
 .renew-lease-header {
-  border-bottom: 2px solid #ddd;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: -5%;
 }
 
 .renew-lease p {
@@ -28,18 +30,16 @@
 }
 
 .renew-lease button {
-  background-color: #007bff;
-  color: #fff;
+  background: none;
+  color: #333;
   border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
+  font-size: 12px;
   cursor: pointer;
-  margin-right: 10px;
-  margin-top: 10px;
+  transition: color 0.3s ease;
 }
 
 .renew-lease button:hover {
-  background-color: #0056b3;
+  color: #0056b3;
 }
 
 .renew-lease label {
@@ -55,3 +55,70 @@
   margin-bottom: 10px;
 }
 
+.renew-lease table {
+  width: 100%;
+  border-collapse: separate; /* Ensure rows have space between them */
+  border-spacing: 0 10px; /* Add space between rows */
+}
+
+.renew-lease tr {
+  background-color: white; /* Set the background for the "box" */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
+  border-radius: 8px; /* Round corners */
+  overflow: hidden; /* Ensure corners are rounded properly */
+}
+
+.renew-lease td {
+  padding: 10px 15px; /* Add padding for a spacious look */
+  font-size: 11px;
+}
+
+.renew-lease th {
+  text-align: left; /* Align headers to the left */
+  padding: 10px 15px;
+  background-color: #f5f5f5; /* Light gray background for headers */
+  border-bottom: 2px solid #ddd; /* Add bottom border for separation */
+  font-size: 12px;
+}
+
+.renew-lease tr:not(:last-child) {
+  margin-bottom: 10px; /* Add space between rows */
+}
+
+.renew-lease h5 {
+  font-size: 13px;
+  color: #333;
+  margin-left: 1%;
+}
+
+.renew-lease table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.renew-lease thead {
+position: sticky;
+top: 0;
+background: white; /* Keep headers visible */
+z-index: 10;
+}
+
+.renew-lease th,
+.renew-lease td {
+padding: 10px;
+border-bottom: 1px solid #ddd;
+text-align: left;
+}
+
+.renew-lease tbody {
+display: block;
+max-height: 300px; /* Ensure tbody is scrollable */
+overflow-y: auto;
+width: 100%;
+}
+
+.renew-lease tr {
+display: table;
+width: 100%;
+table-layout: fixed;
+}

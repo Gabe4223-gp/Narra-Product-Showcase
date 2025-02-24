@@ -46,7 +46,7 @@ function FulfilledBills({ propertyId }) {
     alert(`Delete selected bills: ${Array.from(selectedBillIds).join(', ')}`);
   };
 
-  const filteredBills = bills.filter((bill) => {
+  const filteredBills = bills?.filter((bill) => {
     const billedDate = new Date(bill.createdAt);
     return (
       billedDate.getFullYear() === selectedYear &&

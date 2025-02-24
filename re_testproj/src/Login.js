@@ -51,8 +51,8 @@ function Login() {
 
   return (
     <div className="login-container">
-      <h2> Narra </h2>
-      <p> Property Made Easy </p>
+      <h2> narra </h2>
+
       <button className="btn-login" onClick={handleLogin}>Log In</button>
 
       {/* 

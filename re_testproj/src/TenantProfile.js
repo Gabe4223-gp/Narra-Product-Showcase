@@ -345,12 +345,12 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
                   <p>Phone number: {tenantDetails?.phone ?? ""}</p>
                   <p>Nationality: {tenantDetails?.nationality ?? ""}</p>
                 </div>
-      
+                
                 <div className="right-tenant-details">
                   <p>Occupation: {tenantDetails?.occupation ?? ""}</p>
-                  <p>Lease Started: {tenantDetails?.leaseStarted ?? ""}</p>
-                  <p>Lease Expiry: {tenantDetails?.leaseExpiry ?? ""}</p>
-                  <p>Move In Date: {tenantDetails?.moveinDate ?? ""}</p>
+                  <p>Lease Started: {tenantDetails?.leaseStarted ? new Date(tenantDetails.leaseStarted).toLocaleString() : ""}</p>
+                  <p>Lease Expiry: {tenantDetails?.leaseExpiry ? new Date(tenantDetails.leaseExpiry).toLocaleString() : ""}</p>
+                  <p>Move In Date: {tenantDetails?.moveinDate ? new Date(tenantDetails.moveinDate).toLocaleString() : ""}</p>
                   {tenantDetails?.govid?.length > 0 ? (
                     <button
                       className="govid-button"
@@ -401,7 +401,6 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
       
           <div className="tenant-mid-section">
             <PaymentHistory />
-            <div></div>
           </div>
       
           <div className="tenant-bottom-section">

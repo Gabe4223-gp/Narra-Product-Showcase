@@ -10,6 +10,31 @@ import { useUserProfile } from '../UserProfileContext.js';
 
 const TenantHomepage = () => {
   const { userProfile } = useUserProfile();
+  const tenantId = userProfile.id;
+
+  const [leaseData, setLeaseData] = useState({
+      leaseStarted: null,
+      leaseExpiry: null,
+      currentLeaseDoc: null,
+    });
+
+  const fetchLeaseData = async () => {
+    
+      try {
+        const res = await fetch(`/current-lease/${tenantId}`);
+        const data = await res.json();
+        console.log("data ha", data);
+        setLeaseData(data);
+      } catch (err) {
+        console.error("Error fetching lease data:", err);
+      } 
+  }
+  
+  useEffect(() => {
+      
+    fetchLeaseData();
+    
+  }, []);
 
   // Wait until the profile is loaded
   if (!userProfile) {
@@ -25,10 +50,13 @@ const TenantHomepage = () => {
       </header>
       {/* You can let ManageBilling fetch files; no need for duplicate fetch here */}
       <ManageBilling tenantEmail={tenantEmail} />
-      <div className="additional-containers">
-        <RenewLease />
-        <ManageLease />
-        <RenewLease />
+      <div className="additional-containers" style={{display:"flex",flexDirection:'column', gap:'15px'}}>
+        <ManageLease 
+          leaseData={leaseData}
+        />
+        <RenewLease 
+          onUploadSignedLease={fetchLeaseData}
+        />
         <ManagePaymentMethods />
       </div>
     </div>

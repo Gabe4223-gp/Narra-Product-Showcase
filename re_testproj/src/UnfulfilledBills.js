@@ -50,7 +50,7 @@ function UnfulfilledBills({ propertyId }) {
     alert(`Mark selected bills as paid: ${Array.from(selectedBillIds).join(', ')}`);
   };
 
-  const filteredBills = bills.filter((bill) => {
+  const filteredBills = bills?.filter((bill) => {
     const billedDate = new Date(bill.createdAt);
     return (
       billedDate.getFullYear() === selectedYear &&

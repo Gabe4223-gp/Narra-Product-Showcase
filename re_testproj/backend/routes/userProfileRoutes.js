@@ -164,6 +164,21 @@ router.post('/welcome', async (req, res) => {
       password,
     });
 
+    // Update the corresponding tenant's user_id if email matches
+    const [updatedTenant] = await sequelize.query(
+      `
+      UPDATE "Tenants"
+      SET user_id = :userId
+      WHERE email = :email
+      RETURNING *;
+      `,
+      {
+        replacements: { userId: newProfile.id, email },
+        type: sequelize.QueryTypes.UPDATE,
+      }
+    );
+
+
     res.status(201).json({ message: "Profile created successfully", userProfile: newProfile });
   } catch (error) {
     console.error("Error creating profile:", error);

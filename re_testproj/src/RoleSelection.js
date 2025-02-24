@@ -53,22 +53,20 @@ function RoleSelection({ setRole }) {
 
   return (
     <div className="role-selection-container">
-      <h2>Select Your Role</h2>
-      <p>Please choose whether you are a tenant or a landlord.</p>
-
-      <button className="btn-role" onClick={() => handleRoleSelection('tenant')}>
-        Tenant
-      </button>
       <button
         className="btn-role"
         onClick={() => handleRoleSelection('landlord')}
       >
-        Landlord
+        Manager
       </button>
-
+      <button className="btn-role" onClick={() => handleRoleSelection('tenant')}>
+        Tenant
+      </button>
       <button className="btn-role" onClick={handleLogout}>
         back to Login
       </button>
+ 
+      
     </div>
   );
 }

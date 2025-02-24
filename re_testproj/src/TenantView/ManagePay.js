@@ -43,7 +43,7 @@ function ManagePay({ onSave, onClose, initialData, availableTypes }) {
   };
 
   return (
-    <div className="modal-overlay">
+    <div className="overlay">
       <div className="modal">
         <h3>Manage Pay</h3>
         <form onSubmit={handleSubmit}>

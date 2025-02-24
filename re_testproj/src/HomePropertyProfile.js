@@ -13,6 +13,7 @@ function HomePropertyProfile({ property, onBack }) {
   const [unitCount, setUnitCount] = useState(0);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [tenantCount, setTenantCount] = useState(0);
+  const [unoccupied, setUnoccupied] = useState(0);
   const [editedProperty, setEditedProperty] = useState({
     ...property,
   });
@@ -38,11 +39,12 @@ function HomePropertyProfile({ property, onBack }) {
 
       const data = await response.json();
 
+      console.log("Homeprofile data", data)
+
 
       setUnitCount(data.unitCount);
       setTenantCount(data.tenantCount);
-
-
+      setUnoccupied(data.occupancy);
       setEditedProperty(data.property);
 
 
@@ -281,9 +283,7 @@ function HomePropertyProfile({ property, onBack }) {
                   <p>Address: {editedProperty?.address ?? ""}</p>
                   <p>Tenant Count: {tenantCount}</p>
                   <p>Unit Count: {unitCount}</p>
-                  <p>Occupancy: {editedProperty?.tenantCount && property?.unitCount
-                  ? `${((editedProperty.tenantCount / editedProperty.unitCount) * 100).toFixed(2)}%`
-                  : ""}</p>
+                  <p>Unoccupied: {unoccupied}</p>
                 </div>
               </div>
           )}

@@ -45,7 +45,7 @@ function Sidebar({ isCollapsed, role }) {
               <li>
                 <NavLink to="/applications" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <AiOutlineForm className="sidebar-icon" />
-                  {!isCollapsed && <span>Applications (In Development...)</span>}
+                  {!isCollapsed && <span>Applications</span>}
                 </NavLink>
               </li>
               <li>
