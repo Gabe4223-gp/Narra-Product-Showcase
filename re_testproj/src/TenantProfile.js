@@ -11,7 +11,7 @@ import { useAuth0 } from '@auth0/auth0-react';
   
 
 
-function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
+function TenantProfile({tenantId, onBack, propertyId}) {
     const defaultImage = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
     const [tenantDetails, setTenantDetails] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -488,7 +488,7 @@ function TenantProfile({tenantId, onBack, propertyId, landlordUserProfileId}) {
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
               tenantEmail={tenantDetails.email}
-              landlordId={landlordUserProfileId}
+              landlordId={userProfile.id}
               propertyId={propertyId}
             />
           )}

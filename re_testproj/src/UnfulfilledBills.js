@@ -1,8 +1,10 @@
 // src/UnfulfilledBills.js
 import React, { useState, useEffect } from 'react';
 
-function UnfulfilledBills({ propertyId }) {
+function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
+  console.log("propertyid", propertyId);
   const [bills, setBills] = useState([]);
+  const [tenantBills, setTenantBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
   const [error, setError] = useState(null);
   // Month/year filter state
@@ -14,13 +16,16 @@ function UnfulfilledBills({ propertyId }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedBillIds, setSelectedBillIds] = useState(new Set());
+   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     async function fetchBills() {
       try {
         const res = await fetch(`/api/sendBill/unfulfilled?propertyId=${propertyId}`);
         const data = await res.json();
+        
         setBills(data);
+        console.log("00", bills);
         setError(null);
       } catch (err) {
         console.error(err);
@@ -32,7 +37,10 @@ function UnfulfilledBills({ propertyId }) {
     if (propertyId) {
       fetchBills();
     }
-  }, [propertyId]);
+
+    console.log("01", bills);
+
+  }, [propertyId, refresh]);
 
   const handleCheckboxChange = (billId) => {
     setSelectedBillIds((prev) => {
@@ -42,14 +50,69 @@ function UnfulfilledBills({ propertyId }) {
     });
   };
 
-  const handleDeleteSelected = () => {
-    alert(`Delete selected bills: ${Array.from(selectedBillIds).join(', ')}`);
+  const handleDeleteSelected = async () => {
+    if (selectedBillIds.size === 0) {
+      console.error("No bills selected for deletion.");
+      return;
+    }
+    console.log("Selectedbullids", selectedBillIds);
+    try {
+        // Make a DELETE request to the backend with the propertyId
+        const response = await fetch(`/api/sendBill/delete-all`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bills: Array.from(selectedBillIds), propertyId: propertyId}), 
+        });
+
+        if (!response.ok) {
+            console.error("Failed to delete bills:", response.statusText);
+            return;
+        }
+
+        // Optionally handle the backend response
+        const data = await response.json();
+        console.log("Bills deleted successfully:", data);
+
+        onMarkPaid();
+        setShowDeleteModal(false);
+
+    } catch (error) {
+        console.error("Error deleting tenant:", error);
+    }
   };
 
-  const handleMarkAsPaid = () => {
+  const handleMarkAsPaid = async () => {
+    // Show an alert with the selected bills' IDs
     alert(`Mark selected bills as paid: ${Array.from(selectedBillIds).join(', ')}`);
+    
+    try {
+      // Make the API call to update the status of the selected bills
+      const res = await fetch('/api/sendBill/markAsPaid', {
+        method: 'PUT', // or 'PUT' depending on your backend design
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          billIds: Array.from(selectedBillIds), // Convert Set to Array
+        }),
+      });
+  
+      // Check if the response is successful
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Successfully marked the selected bills as paid.`);
+        onMarkPaid();
+      } else {
+        throw new Error('Failed to mark bills as paid.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error marking bills as paid.');
+    }
   };
-
+  
   const filteredBills = bills?.filter((bill) => {
     const billedDate = new Date(bill.createdAt);
     return (
@@ -97,9 +160,10 @@ function UnfulfilledBills({ propertyId }) {
               <th></th>
               <th>Tenant Name</th>
               <th>Subject</th>
-              <th>Paid</th>
               <th>Total Amount</th>
               <th>Date Billed</th>
+              <th>Deadline</th>
+              <th>Status</th>
               <th>Invoice</th>
             </tr>
           </thead>
@@ -118,9 +182,16 @@ function UnfulfilledBills({ propertyId }) {
                     </td>
                     <td>{bill.tenantName || '-'}</td>
                     <td>{bill.subject}</td>
-                    <td>{bill.paid ? 'Yes' : 'No'}</td>
                     <td>{bill.totalAmount?.toFixed(2)}</td>
                     <td>{dateBilled}</td>
+                    <td>{bill.deadline ? new Date(bill.deadline).toLocaleString() : ""}</td>
+                    <td>
+                      {bill.deadline
+                        ? new Date() > new Date(bill.deadline)
+                          ? 'Late'
+                          : `${Math.ceil((new Date(bill.deadline) - new Date()) / (1000 * 60 * 60 * 24))} days before deadline`
+                        : 'N/A'}
+                    </td>
                     <td>
                       <a href={bill.url} target="_blank" rel="noopener noreferrer">
                         View Invoice
@@ -139,14 +210,25 @@ function UnfulfilledBills({ propertyId }) {
           </tbody>
         </table>
         <div className="actions">
-          <button className="action-link" onClick={handleDeleteSelected} disabled={selectedBillIds.size === 0}>
+          <button onClick={() => setShowDeleteModal(true)} disabled={selectedBillIds.size === 0}>
             Delete Selected
           </button>
-          <button className="action-link" onClick={handleMarkAsPaid} disabled={selectedBillIds.size === 0}>
+          <button onClick={handleMarkAsPaid} disabled={selectedBillIds.size === 0}>
             Mark Selected as Paid
           </button>
         </div>
       </div>
+      {showDeleteModal && (
+        <div className='overlay'>
+          <div className='modal'>
+              <div>
+                  Are you sure you want to delete these bills?
+              </div>
+              <button onClick={handleDeleteSelected}>Confirm</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

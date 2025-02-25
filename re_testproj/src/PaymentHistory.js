@@ -14,6 +14,7 @@ function PaymentHistory({ BaseURL }) {
 
   // Fetch initial payments
   useEffect(() => {
+    console.log("fetch works");
     const fetchInitialPayments = async () => {
       try {
         const token = await getAccessTokenSilently({
@@ -21,15 +22,20 @@ function PaymentHistory({ BaseURL }) {
           scope: 'openid read:payments write:payments offline_access',
         });
 
-        const response = await fetch(`${BaseURL}/api/payments?page=${currentPage}&limit=${entriesPerPage}`, {
+        const response = await fetch(`/api/payments?page=${currentPage}&limit=${entriesPerPage}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const data = await response.json();
+
+        console.log("the dataasjdf", data);
 
         if (!response.ok) {
           throw new Error('Failed to fetch payment history.');
         }
 
-        const data = await response.json();
+        
+
+        
         setPaymentHistory(data.payments);
         setHasMore(currentPage < data.totalPages);
       } catch (err) {

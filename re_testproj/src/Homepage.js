@@ -9,7 +9,7 @@ function HomePage({ onLogout }) {
   const [properties, setProperties] = useState([]); // Handle property list
   const [selectedPropertyIndex, setSelectedPropertyIndex] = useState(null); // Track selected property index
   const [uploadedImage, setUploadedImage] = useState(null);
-  const {userProfile} = useUserProfile();
+  const {userProfile, refreshUserProfile} = useUserProfile();
 
 
   const fetchProperties = async () => {
@@ -34,10 +34,17 @@ function HomePage({ onLogout }) {
     }
   };
 
-  // useEffect to initially fetch tenants
+  // Fetch user profile initially
   useEffect(() => {
-    fetchProperties(); // Fetch tenants when component mounts
-  }, []);
+    refreshUserProfile();
+  }, [refreshUserProfile]);
+
+  // Once userProfile is available, fetch properties
+  useEffect(() => {
+    if (userProfile) {
+      fetchProperties();
+    }
+  }, [userProfile]);
 
 
   const handleImageUpload = (event) => {
@@ -49,6 +56,13 @@ function HomePage({ onLogout }) {
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
+
+    console.log("User profile in form submit:", userProfile);
+
+    if (!userProfile || !userProfile.id) {
+      alert("User profile not loaded. Please try again.");
+      return;
+    }
   
     // Get input values
     const companyName = document.getElementById("company-name").value;
@@ -63,7 +77,7 @@ function HomePage({ onLogout }) {
     // Create a new property object
     const newProperty = {
       id: uuidv4(),
-      user_id: userProfile.id,
+      user_id: userProfile?.id,
       companyName,
       propertyName,
       address: propertyAddress,

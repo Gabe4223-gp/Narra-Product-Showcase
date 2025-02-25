@@ -143,14 +143,7 @@ app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/uploads', express.static('uploads'));
 
 
-
-
-
-
-
 //Sequelize Connection
-
-
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
@@ -649,8 +642,6 @@ app.delete('/issues/delete-all', async (req, res) => {
     res.status(500).json({ error: "Failed to delete issues and update units." });
   }
 });
-
-//Delete selected
 
 //Unit functions////////////////////////////////////////////////////////////////////////////////
 
@@ -2028,36 +2019,6 @@ app.post("/tenants/import", async (req, res) => {
   }
 });
 
-/**
- * POST /files/associate-landlord-tenant
- * Request body: { tenantId, landlordUserProfileId }
- * Behavior:
- *  1. Finds the tenant's email from the tenant table (by tenantId).
- *  2. Finds the landlord's email from userProfile (by landlordUserProfileId).
- *  3. Inserts a row into the files table with tenantemail, landlordemail, plus optional filename/url
- */
-// POST /files/associate-landlord-tenant
-app.post('/files/associate-landlord-tenant', async (req, res) => {
-  try {
-    const { tenantemail, landlordemail } = req.body;
-    if (!tenantemail || !landlordemail) {
-      return res.status(400).json({ message: 'Missing tenantemail or landlordemail.' });
-    }
-
-    // Create a new row in "files" table
-    const newRecord = await File.create({
-      tenantemail,
-      landlordemail,
-      // optionally store a filename, url, etc. if needed
-    });
-
-    return res.json({ message: 'Emails associated successfully.', fileRecord: newRecord });
-  } catch (error) {
-    console.error('Error creating file record:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
 //Delete in TenantProfile
 app.delete('/tenants/delete', async (req, res) => {
   const { tenantId, propertyId } = req.body; // Assuming tenantId is passed in the request body
@@ -2240,7 +2201,7 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Files" (id, "fileName", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
+      INSERT INTO "Leases" (id, "fileName", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
       VALUES (:id, :fileName, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
       RETURNING *;
     `
@@ -2375,7 +2336,7 @@ app.get('/tenants/:tenantId/leaseDocs', async (req, res) => {
 
        // Step 2: Get files matching the leaseDocs IDs
        const files = await sequelize.query(
-           `SELECT * FROM "Files" WHERE "id" = ANY(:leaseDocs::UUID[])`,
+           `SELECT * FROM "Leases" WHERE "id" = ANY(:leaseDocs::UUID[])`,
            {
                replacements: { leaseDocs: leaseDocsArray },
                type: sequelize.QueryTypes.SELECT,
@@ -2415,7 +2376,7 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
     // Step 2: Get files where the id matches any value in leaseDocs and signed is false
     const files = await sequelize.query(
       `SELECT *
-       FROM "Files"
+       FROM "Leases"
        WHERE "id" = ANY (:leaseDocs::UUID[])
        AND "signed" = false`,
       {
@@ -2451,7 +2412,7 @@ app.put('/tenants/update-lease', async (req, res) => {
 
       // Raw query to update the file in the Files table
       const updateQuery = `
-          UPDATE "Files"
+          UPDATE "Leases"
           SET "signed" = true
           WHERE "id" = :id
           RETURNING *;
@@ -2467,7 +2428,7 @@ app.put('/tenants/update-lease', async (req, res) => {
 
       // Retrieve all files
       const fileQuery = `
-        SELECT * FROM "Files"
+        SELECT * FROM "Leases"
         WHERE "tenantEmail" = :tenantEmail
         ORDER BY "uploadedAt" DESC
         LIMIT 1;
@@ -2544,7 +2505,7 @@ app.get('/current-lease/:tenantId', async (req, res) => {
     // Raw query to fetch lease documents for the tenant
     const leaseDocs = await sequelize.query(
       `SELECT *
-       FROM "Files"
+       FROM "Leases"
        WHERE "id" = ANY (:leaseDocs::UUID[])
        AND "signed" = true
        ORDER BY "uploadedAt" DESC`,
@@ -2584,7 +2545,7 @@ app.delete('/leases/delete-all', async (req, res) => {
 
   try {
     // Step 1: Delete all documents specified in docIds
-    const deleteDocsQuery = `DELETE FROM "Files" WHERE id = ANY(:docIds::uuid[])`;
+    const deleteDocsQuery = `DELETE FROM "Leases" WHERE id = ANY(:docIds::uuid[])`;
     await sequelize.query(deleteDocsQuery, {
       replacements: { docIds: `{${docIds.join(',')}}` }, // Format docIds as a PostgreSQL array
       type: sequelize.QueryTypes.DELETE,
@@ -2649,6 +2610,7 @@ app.get('/api/payments', async (req, res) => {
   }
 
   const clientId = req.user?.sub;
+  console.log("heyo", [clientId, req.user?.sub]);
   if (!clientId || !/^auth0\|/.test(clientId)) {
     return res.status(401).json({ error: 'Invalid or missing client ID. User not authenticated.' });
   }

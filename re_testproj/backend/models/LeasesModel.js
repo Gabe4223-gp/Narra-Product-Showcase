@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Files = sequelize.define('Files', {
+  const Leases = sequelize.define('Leases', {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -12,7 +12,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     fileType: {
       type: DataTypes.STRING,
-      defaultValue: 'pdf',
       allowNull: false
     },
     url: {
@@ -23,48 +22,57 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    totalAmount: {
-      type: DataTypes.FLOAT,
-      defaultValue: 0,
-      allowNull: false
-    },
-    paid: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
-    },
     propertyId: {
       type: DataTypes.UUID,
       allowNull: true
     },
     tenantEmail: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
     landlordEmail: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: true
     },
     landlordId: {
       type: DataTypes.UUID,
       allowNull: true
     },
-    deadline: {
-      allowNull: true,
-      type: DataTypes.DATE, 
+    signed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true
+    },
+    leaseStarted: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    leaseExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     uploadedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      allowNull: true
     },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: false
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: false
+    }
   }, {
-    tableName: 'Files',
+    tableName: 'Leases',
     freezeTableName: true
   });
 
-  Files.associate = function(models) {
-    // Define associations if needed.
+  Leases.associate = function(models) {
+    // Define associations here if needed in the future
   };
 
-  return Files;
+  return Leases;
 };

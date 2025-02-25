@@ -8,9 +8,13 @@ import { useUserProfile } from './UserProfileContext';
 function Billings() {
   const { userProfile } = useUserProfile();
   const [properties, setProperties] = useState([]);
-  const [selectedPropertyID, setSelectedPropertyID] = useState('');
+  const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
+      console.log("Selected Property", localStorage.getItem('selectedPropertyIDBilling'));
+      return localStorage.getItem('selectedPropertyIDBilling') || "";
+    });
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [error, setError] = useState(null);
+  const [refresh, setRefresh] = useState(false);
 
   // Fetch properties for the current landlord
  
@@ -54,7 +58,6 @@ function Billings() {
       fetchProperties();
   }, []);
   
-
   const handlePropertyChange = (e) => {
     const propertyId = e.target.value;
     setSelectedPropertyID(propertyId);
@@ -67,6 +70,10 @@ function Billings() {
   if (error) {
     return <div>Error: {error}</div>;
   }
+
+   const handleRefresh = () => {
+    setRefresh((prev) => !prev);
+   }
 
   return (
     <div className="billings-page">
@@ -88,9 +95,13 @@ function Billings() {
       <div>
         <UnfulfilledBills
           propertyId={selectedPropertyID}
+          onMarkPaid={handleRefresh}
+          refresh={refresh}
         />
         <FulfilledBills
           propertyId={selectedPropertyID}
+          onMarkUnpaid={handleRefresh}
+          refresh={refresh}
         />
       </div>
 

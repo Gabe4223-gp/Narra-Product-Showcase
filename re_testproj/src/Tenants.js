@@ -424,6 +424,7 @@ function Tenants() {
         tenantId={selectedTenant.id}
         onBack={handleBackToList}
         propertyId={selectedPropertyID}
+        
       />
     );
   }

@@ -4,6 +4,7 @@ import axios from 'axios';
 import './SendBillPopup.css';
 
 function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
+  console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
   const [utilityFees, setUtilityFees] = useState([{ name: '', amount: '' }]);

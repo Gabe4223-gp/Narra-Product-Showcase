@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Files', {
+    await queryInterface.createTable('Leases', {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.literal('uuid_generate_v4()'),
@@ -16,7 +16,6 @@ module.exports = {
       fileType: {
         type: Sequelize.STRING,
         allowNull: false,
-        defaultValue: 'pdf'
       },
       url: {
         type: Sequelize.STRING,
@@ -25,16 +24,6 @@ module.exports = {
       subject: {
         type: Sequelize.STRING,
         allowNull: false
-      },
-      totalAmount: {
-        type: Sequelize.FLOAT,
-        allowNull: false,
-        defaultValue: 0
-      },
-      paid: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
       },
       propertyId: {
         type: Sequelize.UUID,
@@ -53,7 +42,15 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
       },
-      deadline: {
+      signed: {
+        type: Sequelize.BOOLEAN,
+        allowedNull: true,
+      },
+      leaseStarted: {
+        allowNull: true,
+        type: Sequelize.DATE,
+      },
+      leaseExpiry: {
         allowNull: true,
         type: Sequelize.DATE,
       },
@@ -76,6 +73,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Files');
+    await queryInterface.dropTable('Leases');
   }
 };
