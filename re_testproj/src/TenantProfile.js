@@ -386,14 +386,12 @@ function TenantProfile({tenantId, onBack, propertyId}) {
               <h5>Billing Details</h5>
               <div className="billing-details-row">
                 <div className="left-billing-details">
-                  <p>eWallet Name: {tenantDetails?.eWalletName ?? ""}</p>
-                  <p>Bank Name: {tenantDetails?.bankName ?? ""}</p>
-                  <p>Credit Card Name: {tenantDetails?.creditcardName ?? ""}</p>
+                  <p>eWallet Name: {tenantDetails?.eWalletName ?? "NA"}</p>
+                  <p>Bank Name: {tenantDetails?.bankName ?? "NA"}</p>
+                  <p>Credit Card Name: {tenantDetails?.creditcardName ?? "NA"}</p>
                 </div>
                 <div className="right-billing-details">
-                  <p>
-                    Primary Payment Method: {tenantDetails?.primaryPaymentMethod ?? ""}
-                  </p>
+                  
                 </div>
               </div>
             </div>

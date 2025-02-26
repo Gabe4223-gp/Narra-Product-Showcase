@@ -6,7 +6,7 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 40%;
+  width: 50%;
   max-width: 900px;
 }
 
@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-top: -5%;
+  margin-top: -3%;
 }
 
 .renew-lease p {
@@ -83,12 +83,6 @@
 
 .renew-lease tr:not(:last-child) {
   margin-bottom: 10px; /* Add space between rows */
-}
-
-.renew-lease h5 {
-  font-size: 13px;
-  color: #333;
-  margin-left: 1%;
 }
 
 .renew-lease table {

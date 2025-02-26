@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback} from 'react';
 import './Homepage.css';
 import HomePropertyProfile from "./HomePropertyProfile";
 import { v4 as uuidv4 } from 'uuid';
@@ -11,10 +11,17 @@ function HomePage({ onLogout }) {
   const [uploadedImage, setUploadedImage] = useState(null);
   const {userProfile, refreshUserProfile} = useUserProfile();
 
+  // ✅ Fetch user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      await refreshUserProfile();
+    };
+    fetchProfile();
+  }, []);
 
-  const fetchProperties = async () => {
-
-    console.log("user Profile", userProfile);
+  // ✅ Fetch properties once userProfile is available
+  const fetchProperties = useCallback(async () => {
+    if (!userProfile?.id) return;
     try {
       const response = await fetch(`/properties?user_id=${userProfile.id}`, {
         method: "GET",
@@ -32,20 +39,13 @@ function HomePage({ onLogout }) {
       console.error('Error fetching properties:', error);
       alert('Failed to load properties. Please try again.');
     }
-  };
+  }, [userProfile?.id]);
 
-  // Fetch user profile initially
   useEffect(() => {
-    refreshUserProfile();
-  }, [refreshUserProfile]);
-
-  // Once userProfile is available, fetch properties
-  useEffect(() => {
-    if (userProfile) {
+    if (userProfile?.id) {
       fetchProperties();
     }
-  }, [userProfile]);
-
+  }, [userProfile?.id, fetchProperties]);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];

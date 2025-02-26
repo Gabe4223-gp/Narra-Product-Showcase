@@ -116,6 +116,7 @@ function RenewLease({onUploadSignedLease}) {
                 setUploadLeaseModal(null);
                 setSignedFile(null);
                 onUploadSignedLease();
+                fetchUnsignedLeases();
                   
               } else {
                   console.error("Update failed:", data.message);
@@ -154,10 +155,6 @@ function RenewLease({onUploadSignedLease}) {
           </div>
         </div>
       </div>
-      
-      {console.log(unsignedFiles)}
-
-      
 
       <table>
           <thead>

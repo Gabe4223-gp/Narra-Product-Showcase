@@ -1888,6 +1888,20 @@ app.post('/tenants/update', async (req, res) => {
       type: sequelize.QueryTypes.UPDATE,
     });
 
+    //Update the user_id if email is changed
+    const userQuery = `
+      UPDATE "Tenants"
+      SET "user_id" = u.id
+      FROM "userProfile" u
+      WHERE "Tenants"."email" = u."email"
+        AND u."email" = :email
+    `;
+
+    await sequelize.query(userQuery, {
+      replacements: { email: tenant.email }, 
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
     const updateUnitQuery = `
       UPDATE "Units"
       SET tenants = array_remove(tenants, :tenantId)
@@ -1972,6 +1986,21 @@ app.post("/tenants/import", async (req, res) => {
       const [result] = await sequelize.query(query, {
         replacements: values,
         type: sequelize.QueryTypes.INSERT,
+      });
+      
+      // Update user_id after insertion based on matching email
+      const userIdUpdateQuery = `
+        UPDATE "Tenants"
+        SET "user_id" = u.id
+        FROM "userProfile" u
+        WHERE "Tenants"."email" = u."email"
+          AND u."email" = :email
+          AND "Tenants"."id" = :tenantId;
+      `;
+
+      await sequelize.query(userIdUpdateQuery, {
+        replacements: { email: tenant.email, tenantId: tenant.id },
+        type: sequelize.QueryTypes.UPDATE,
       });
 
 
@@ -2201,15 +2230,16 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Leases" (id, "fileName", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
-      VALUES (:id, :fileName, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
+      INSERT INTO "Leases" (id, "fileName", "fileType", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
+      VALUES (:id, :fileName, :fileType, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
       RETURNING *;
     `
 
     const fileUpload = await sequelize.query(fileQuery, {
       replacements: {
         id: id,                       // UUID passed from frontend
-        fileName: fileName,           // UUID as fileName
+        fileName: fileName,   
+        fileType: fileType,        // UUID as fileName
         url: fileUrl,                 // URL from S3
         landlordId: landlordId,
         tenantEmail: tenantEmail,
@@ -2592,8 +2622,6 @@ app.delete('/leases/delete-all', async (req, res) => {
   }
 });
 
-
-
 //Billings.js AND Tenant.js PAYMENT API ENDPOINTS
 // Paginated Payments API (Checking Payment History)
 app.get('/api/payments', async (req, res) => {
@@ -2616,6 +2644,7 @@ app.get('/api/payments', async (req, res) => {
   }
 
   const cacheKey = `payments:${clientId}:page:${page}:limit:${limit}`;
+  console.log("laskjdflkajsdf", cacheKey);
 
   try {
     // Check Redis cache

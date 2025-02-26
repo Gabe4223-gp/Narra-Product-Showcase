@@ -454,12 +454,12 @@ function Tenants() {
           <thead>
             <tr>
               <th style={{ width: "5%" }}> </th>
-              <th style={{ width: "15%" }}>Name</th>
-              <th style={{ width: "10%" }}>Unit Number</th>
+              <th style={{ width: "10%" }}>Name</th>
+              <th style={{ width: "10%" }}>Unit No.</th>
               <th style={{ width: "20%" }}>Email</th>
+              <th style={{ width: "15%" }}>Phone No.</th>
               <th style={{ width: "15%" }}>Lease Started</th>
               <th style={{ width: "15%" }}>Lease Expiry</th>
-              <th style={{ width: "10%" }}>Billing Deadline</th>
               <th style={{ width: "10%" }}>Actions</th>
             </tr>
           </thead>
@@ -476,7 +476,7 @@ function Tenants() {
                         onChange={() => handleCheckboxChange(tenant.id)}
                       />
                     </td>
-                    <td style={{ width: "15%" }}>{tenant.name}</td>
+                    <td style={{ width: "10%" }}>{tenant.name}</td>
                     <td style={{ width: "10%" }}>{tenant.unit}</td>
                     <td
                       style={{
@@ -488,13 +488,13 @@ function Tenants() {
                     >
                       {tenant.email}
                     </td>
+                    <td style={{ width: "15%" }}>{tenant.phone}</td>
                     <td style={{ width: "15%" }}>
                       {tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}
                     </td>
                     <td style={{ width: "15%" }}>
                       {tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}
                     </td>
-                    <td style={{ width: "10%" }}>{tenant.billingDeadline}</td>
                     <td style={{ width: "10%" }}>
                       <button onClick={() => handleViewProfile(tenant)}>View</button>
                     </td>

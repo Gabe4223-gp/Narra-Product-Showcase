@@ -57,7 +57,7 @@ router.get('/payment-methods', async (req, res) => {
   }
 });
 
-// PUT endpoint to update payment method data
+// PUT endpoint to update payment method data with raw queries only for Tenants
 router.put('/payment-method', async (req, res) => {
   try {
     const { userProfileId, paymentType, data } = req.body;
@@ -73,28 +73,62 @@ router.put('/payment-method', async (req, res) => {
       return res.status(404).json({ message: 'User profile not found.' });
     }
 
-    // Overwrite columns based on paymentType
+    const [tenant] = await sequelize.query(
+      'SELECT * FROM "Tenants" WHERE user_id = :userProfileId',
+      {
+        replacements: { userProfileId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found.' });
+    }
+
     if (paymentType === 'Debit/Credit Card') {
-      const {
-        cardholderName, billingAddress, billingZipCode
-      } = data;
-      // validate more if needed
+      const { cardholderName, billingAddress, billingZipCode } = data;
       userProfile.cardholderName = cardholderName;
       userProfile.billingAddress = billingAddress;
       userProfile.cardNumber = data.cardNumber;
-      userProfile.expiryDate = data.expiryDate; // store it as text or date (Month+Year)
+      userProfile.expiryDate = data.expiryDate;
       userProfile.cvv = data.cvv;
       userProfile.billingZipCode = billingZipCode;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "creditCardName" = :cardholderName WHERE user_id = :userProfileId',
+        {
+          replacements: { cardholderName, userProfileId },
+        }
+      );
     } else if (paymentType === 'Bank Transfer') {
       const { bank, accountNumber, accountName } = data;
       userProfile.bank = bank;
       userProfile.accountNumber = accountNumber;
       userProfile.accountName = accountName;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "bankName" = :bank WHERE user_id = :userProfileId',
+        {
+          replacements: { bank, userProfileId },
+        }
+      );
     } else if (paymentType === 'GCash') {
       userProfile.gcashMobileNumber = data.gcashMobileNumber;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "eWalletName" = :gcashMobileNumber WHERE user_id = :userProfileId',
+        {
+          replacements: { gcashMobileNumber: "GCash", userProfileId }, //set to GCash until we offer multiple ewallet methods
+        }
+      );
     }
 
-    await userProfile.save();
     return res.json({ message: 'Payment method updated successfully.' });
   } catch (error) {
     console.error('Error updating payment method:', error);
@@ -102,7 +136,7 @@ router.put('/payment-method', async (req, res) => {
   }
 });
 
-// delete endpoint to remove payment method data
+// DELETE endpoint to remove payment method data with raw queries only for Tenants
 router.delete('/payment-method', async (req, res) => {
   console.log('delete payment method was hit!');
   try {
@@ -127,17 +161,43 @@ router.delete('/payment-method', async (req, res) => {
       userProfile.expiryDate = null;
       userProfile.cvv = null;
       userProfile.billingZipCode = null;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "creditCardName" = NULL WHERE user_id = :userProfileId',
+        {
+          replacements: { userProfileId },
+        }
+      );
     } else if (paymentType === 'Bank Transfer') {
       userProfile.bank = null;
       userProfile.accountNumber = null;
       userProfile.accountName = null;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "bankName" = NULL WHERE user_id = :userProfileId',
+        {
+          replacements: { userProfileId },
+        }
+      );
     } else if (paymentType === 'GCash') {
       userProfile.gcashMobileNumber = null;
+
+      await userProfile.save();
+
+      await sequelize.query(
+        'UPDATE "Tenants" SET "eWalletName" = NULL WHERE user_id = :userProfileId',
+        {
+          replacements: { userProfileId },
+        }
+      );
     } else {
       return res.status(400).json({ message: 'Invalid payment type.' });
     }
 
-    await userProfile.save();
     res.json({ message: 'Payment method removed successfully.' });
   } catch (error) {
     console.error('Error removing payment method:', error);

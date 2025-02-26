@@ -5,6 +5,11 @@ import axios from 'axios';
 import './ManageBilling.css';
 
 const ManageBilling = ({ tenantEmail }) => {
+  // Generate last 10 years for selection
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [error, setError] = useState(null);
@@ -58,7 +63,28 @@ const ManageBilling = ({ tenantEmail }) => {
 
   return (
     <div className="manage-billing">
-      <h3>Manage Billing</h3>
+      <div className='manage-billing-header'>
+        <h5>Manage Billing</h5>
+        <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                      <span>Select Year:</span>
+                      <select
+                          style={{ fontSize: "12px"}}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                      >
+                          {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                          ))}
+                      </select>
+                  </label>
+              </div>
+          </div>
+        </div>
+      </div>
+      
       {loadingFiles ? (
         <p>Loading bills...</p>
       ) : error ? (
@@ -75,7 +101,7 @@ const ManageBilling = ({ tenantEmail }) => {
                 <th>Subject</th>
                 <th>Date Billed</th>
                 <th>Invoice</th>
-                <th>Pay</th>
+                <th> </th>
               </tr>
             </thead>
             <tbody>
@@ -90,10 +116,14 @@ const ManageBilling = ({ tenantEmail }) => {
                     <td>{file.subject}</td>
                     <td>{dateBilled}</td>
                     <td>
-                      <a href={file.url} target="_blank" rel="noreferrer">View PDF</a>
+                      <a href={file.url} target="_blank" rel="noreferrer">
+                        View PDF
+                      </a>
                     </td>
                     <td>
-                      <button onClick={() => handlePayClick(file)}>Pay</button>
+                      {!file.paid && (
+                        <button onClick={() => handlePayClick(file)}>Pay</button>
+                      )}
                     </td>
                   </tr>
                 );

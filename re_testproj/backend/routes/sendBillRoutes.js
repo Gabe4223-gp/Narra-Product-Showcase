@@ -129,7 +129,7 @@ router.post('/generate', async (req, res) => {
     const [newFileRecord] = await sequelize.query(
       `
       INSERT INTO "Files" 
-        ("fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", "tenantEmail", "landlordId", "deadline")
+        ("fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", "tenantEmail", "landlordId", "deadline", "updatedAt")
       VALUES 
         (:fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, :tenantEmail, :landlordId, :deadline)
       RETURNING *;
@@ -146,6 +146,7 @@ router.post('/generate', async (req, res) => {
           tenantEmail: tenantEmail,
           landlordId: landlordId,
           deadline: deadline,
+          updatedAt: null,
         },
         type: sequelize.QueryTypes.INSERT,
       }

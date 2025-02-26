@@ -1,5 +1,5 @@
 /* src/OutstandingInvoice.css */
-.outstanding-invoice {
+.invoice-chart-container {
     flex: 1; /* Make both containers take up equal width */
     background-color: #ffffff;
     padding: 20px;
@@ -9,7 +9,6 @@
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    max-width: 50%;
 }
   
 .outstanding-invoice .header {

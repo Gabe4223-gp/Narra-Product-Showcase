@@ -106,7 +106,7 @@ const Pay = ({ bill, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay">
+    <div className="overlay">
       <div className="modal">
         <h3>Pay</h3>
         <div className="payment-methods">
