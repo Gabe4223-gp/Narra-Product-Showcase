@@ -57,6 +57,10 @@ module.exports = {
         allowNull: true,
         type: Sequelize.DATE,
       },
+      proof: {
+        allowNull: true,
+        type: Sequelize.TEXT,
+      },
       uploadedAt: {
         allowNull: true,
         type: Sequelize.DATE,
@@ -68,9 +72,8 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       updatedAt: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
   },
