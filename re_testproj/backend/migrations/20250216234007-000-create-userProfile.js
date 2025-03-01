@@ -70,6 +70,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      routingNumber: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       accountName: {
         type: Sequelize.STRING,
         allowNull: true,

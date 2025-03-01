@@ -1,5 +1,5 @@
 // backend/server.js
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 const { v4: uuidv4 } = require('uuid');
 
 const bodyParser = require('body-parser');
@@ -21,6 +21,7 @@ const sendBillRoutes = require('./routes/sendBillRoutes');
 const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
+const paymentsRoutes = require('./routes/paymentsRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
@@ -127,6 +128,7 @@ app.use('/api/properties', propertiesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
+app.use('/api/payments', paymentsRoutes);
 app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);

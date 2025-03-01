@@ -61,6 +61,42 @@ module.exports = {
         allowNull: true,
         type: Sequelize.TEXT,
       },
+      landlordCardholderName: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      landlordBillingAddress: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      landlordCardNumber: {
+        type: Sequelize.STRING(19),
+        allowNull: true,
+      },
+      landlordExpiryDate: {
+        type: Sequelize.STRING(7),
+        allowNull: true,
+      },
+      landlordCvv: {
+        type: Sequelize.STRING(3),
+        allowNull: true,
+      },
+      landlordBankName: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      landlordAccountNumber: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      landlordAccountName: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      landlordRoutingNumber: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       uploadedAt: {
         allowNull: true,
         type: Sequelize.DATE,
@@ -75,6 +111,8 @@ module.exports = {
         allowNull: true,
         type: Sequelize.DATE,
       }
+    }, {
+      timestamps: true
     });
   },
 

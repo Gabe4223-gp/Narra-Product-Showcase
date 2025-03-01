@@ -30,6 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     bank: DataTypes.STRING,
     accountNumber: DataTypes.STRING,
     accountName: DataTypes.STRING,
+    routingNumber: DataTypes.STRING,
     gcashMobileNumber: {
       type: DataTypes.STRING,
       allowNull: true,

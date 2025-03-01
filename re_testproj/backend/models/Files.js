@@ -53,13 +53,62 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       type: DataTypes.DATE, 
     },
+    proof: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordCardholderName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordBillingAddress: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordCardNumber: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordExpiryDate: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordCvv: {
+      type: DataTypes.STRING(3),
+      allowNull: true
+    },
+    landlordBankName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordAccountNumber: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordAccountName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    landlordRoutingNumber: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     uploadedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    }
   }, {
     tableName: 'Files',
-    freezeTableName: true
+    freezeTableName: true,
+    timestamps: true
   });
 
   Files.associate = function(models) {
