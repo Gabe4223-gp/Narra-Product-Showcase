@@ -22,6 +22,7 @@ const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
 const paymentsRoutes = require('./routes/paymentsRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
@@ -122,6 +123,7 @@ app.use('/api/applications', tenantApplicationRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
+app.use('/api/team', teamRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
 app.use('/api/properties', propertiesRoutes);
@@ -2386,8 +2388,6 @@ app.get('/tenants/:tenantId/leaseDocs', async (req, res) => {
 app.get('/unsigned-leases/:tenantId', async (req, res) => {
   const { tenantId } = req.params;
 
-  console.log("tenantid", tenantId);
-
   try {
     // Step 1: Get leaseDocs for the tenant
     const [leaseDocs] = await sequelize.query(
@@ -2399,8 +2399,6 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
         type: sequelize.QueryTypes.SELECT
       }
     );
-
-    console.log("leasedocs", leaseDocs)
 
     // Convert leaseDocs array to a string formatted as an array literal
     const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;

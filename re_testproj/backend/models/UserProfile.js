@@ -1,48 +1,24 @@
-// models/userProfile.js
 'use strict';
 module.exports = (sequelize, DataTypes) => {
   const UserProfile = sequelize.define('UserProfile', {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
+    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     name: DataTypes.STRING,
     phoneNumber: DataTypes.STRING,
     dateofBirth: DataTypes.DATE,
     email: DataTypes.STRING,
     password: DataTypes.STRING,
-    // CHANGED TO ARRAY OF UUID
     units: DataTypes.ARRAY(DataTypes.UUID),
-
-    cardholderName: DataTypes.STRING,
-    billingAddress: DataTypes.STRING,
-    cardNumber: { 
-      type: DataTypes.STRING(19),
-      allowNull: true,
-    },
-    expiryDate: {
-      type: DataTypes.STRING(7),
-      allowNull: true,
-    },
-    cvv: DataTypes.INTEGER,
-    billingZipCode: DataTypes.STRING,
-    bank: DataTypes.STRING,
-    accountNumber: DataTypes.STRING,
-    accountName: DataTypes.STRING,
-    routingNumber: DataTypes.STRING,
-    gcashMobileNumber: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    gcashTransactionId: DataTypes.STRING,
-    gcashPaymentTime: DataTypes.DATE,
+    storedPaymentMethods: { type: DataTypes.JSONB, allowNull: true }, // Stores multiple PaymentMethod IDs
+    preferredPaymentMethod: { type: DataTypes.STRING, allowNull: true }, // Tenant's preferred PaymentMethod ID
+    landlordBankId: { type: DataTypes.STRING, allowNull: true }, // Landlord's securely stored Bank ID
+    bankName: { type: DataTypes.STRING, allowNull: true }, // Stores the selected bank name
+    gcashMobileNumber: { type: DataTypes.STRING, allowNull: true },
+    gcashTransactionId: { type: DataTypes.STRING, allowNull: true },
+    gcashPaymentTime: { type: DataTypes.DATE, allowNull: true },
   }, {
     tableName: 'userProfile',
     freezeTableName: true,
   });
-  UserProfile.associate = function(models) {
-    // associations if needed
-  };
+
   return UserProfile;
 };

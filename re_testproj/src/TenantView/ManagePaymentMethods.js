@@ -1,203 +1,168 @@
-// src/ManagePaymentMethods.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ManagePay from "./ManagePay";
 import "./ManagePaymentMethods.css";
 import { useUserProfile } from "../UserProfileContext";
 
-const allPaymentTypes = ["Debit/Credit Card", "Bank Transfer", "GCash"];
-
-function ManagePaymentMethods() {
-  const { userProfile } = useUserProfile(); // Access userProfile from context
+const ManagePaymentMethods = () => {
+  const { userProfile, refreshUserProfile } = useUserProfile();
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMethod, setEditingMethod] = useState(null);
   const [modalInitialData, setModalInitialData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Fetch existing payment methods on mount
+  // Fetch Payment Methods on Component Mount
   useEffect(() => {
+    if (!userProfile || !userProfile.id) return;
+
     async function fetchPaymentMethods() {
-      if (!userProfile || !userProfile.id) return;
       try {
         const res = await axios.get("/api/user-profile/payment-methods", {
           params: { userProfileId: userProfile.id },
         });
-        setPaymentMethods(res.data.paymentMethods || []);
+
+        if (res.data.paymentMethods.length === 0) {
+          setPaymentMethods([]); // No payments set up
+        } else {
+          setPaymentMethods(res.data.paymentMethods || []);
+        }
       } catch (error) {
         console.error("Error fetching payment methods:", error);
+      } finally {
+        setLoading(false);
       }
     }
+
     fetchPaymentMethods();
   }, [userProfile]);
 
-  const usedTypes = paymentMethods.map((method) => method.type);
-  const availableTypes =
-    editingMethod !== null
-      ? allPaymentTypes
-      : allPaymentTypes.filter((type) => !usedTypes.includes(type));
-
-  // Handler for "Add Payment Method"
-  function handleAdd() {
-    if (paymentMethods.length === allPaymentTypes.length) {
-      alert("All Payment Methods are set up already");
+  // Open Modal to Add or Edit Payment Method
+  const handleAdd = () => {
+    const hasBankAndCard = paymentMethods.some((method) => method.type === "Bank & Card");
+    const hasGcash = paymentMethods.some((method) => method.type === "GCash");
+  
+    if (hasBankAndCard && hasGcash) {
+      alert("Your information is already set.");
       return;
     }
+  
     setEditingMethod(null);
-    setModalInitialData({});
+    setModalInitialData({ type: hasBankAndCard ? "GCash" : "Bank & Card" }); // Auto-select the remaining method
     setIsModalOpen(true);
-  }
+  };
+  
 
-  // Basic validation
-  function validateData(data) {
-    if (!data.type) return "Payment type is required.";
-    if (data.type === "Debit/Credit Card") {
-      if (!data.cardholderName) return "Please provide a valid Name on Card.";
-      if (!data.cardNumber) return "Please provide a valid Card Number.";
-      if (!/^\d{4}-?\d{4}-?\d{4}-?\d{4}$/.test(data.cardNumber)) {
-        return "Invalid card number format.";
-      }
-      if (!data.expiryDate) return "Please provide an Expiry Date.";
-      if (!/^\d{2}-\d{4}$/.test(data.expiryDate)) {
-        return "Expiry date must be in MM-YYYY format.";
-      }
-      if (!data.cvv) return "Please provide a CVV.";
-    } else if (data.type === "Bank Transfer") {
-      if (!data.bank) return "Please provide your Bank name.";
-      if (!data.accountNumber) return "Please provide your Account Number.";
-    } else if (data.type === "GCash") {
-      if (!data.gcashMobileNumber) return "Please provide a GCash Mobile Number.";
-    }
-    return null;
-  }
+  // Handle Edit
+  const handleEdit = (index) => {
+    const method = paymentMethods[index];
+    setEditingMethod(index);
+    setModalInitialData(method);
+    setIsModalOpen(true);
+  };
 
-  // Save
-  async function handleSave(data) {
+  // Save Payment Method (Bank & Card or GCash)
+  const handleSave = async (data) => {
     try {
       if (!userProfile || !userProfile.id) {
         alert("User profile not set up. Please update your settings first.");
         return;
       }
-      const errorMsg = validateData(data);
-      if (errorMsg) {
-        alert(errorMsg);
-        return;
+  
+      if (data.type === "Bank & Card") {
+        await axios.put("/api/user-profile/payment-method", {
+          userProfileId: userProfile.id,
+          paymentType: "Bank & Card",
+          data,
+        });
+  
+        alert("Bank & Card information saved successfully!");
+      } else if (data.type === "GCash") {
+        await axios.put("/api/user-profile/payment-method", {
+          userProfileId: userProfile.id,
+          paymentType: "GCash",
+          data: { gcashMobileNumber: data.gcashMobileNumber },
+        });
+  
+        alert("GCash information saved successfully!");
       }
-      await axios.put("/api/user-profile/payment-method", {
-        userProfileId: userProfile.id,
-        paymentType: data.type,
-        data,
-      });
-
-      // If editing, update local array; else push new method
-      if (editingMethod !== null) {
-        const updatedMethods = [...paymentMethods];
-        updatedMethods[editingMethod] = data;
-        setPaymentMethods(updatedMethods);
-      } else {
-        // remove existing method of the same type if we only store 1 per type
-        // (optional) 
-        // or just push if we allow duplicates
-        setPaymentMethods([...paymentMethods, data]);
-      }
-
+  
+      refreshUserProfile();
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving payment method:", error);
-      const message =
-        error.response?.data?.message || "Error saving payment method.";
-      alert(message);
+      alert(error.response?.data?.message || "Error saving payment method.");
     }
-  }
+  };
 
-  // Edit
-  async function handleEdit(index) {
-    const method = paymentMethods[index];
+  // Remove Payment Method (Bank & Card or GCash)
+  const handleRemove = async (index) => {
     try {
-      // If you want to re-fetch from backend, you could do:
-      // const response = await axios.get("/api/user-profile/payment-method", {
-      //   params: {
-      //     userProfileId: userProfile.id,
-      //     paymentType: method.type,
-      //   },
-      // });
-      // const { paymentData } = response.data;
-
-      // For simplicity, we use local data
-      const paymentData = method;
-      const initialData = { type: method.type, ...paymentData };
-      setEditingMethod(index);
-      setModalInitialData(initialData);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error("Error fetching payment method data:", error);
-      const message =
-        error.response?.data?.message || "Error fetching payment data.";
-      alert(message);
-    }
-  }
-
-  async function handleRemove(index) {
-    const method = paymentMethods[index];
-    try {
+      const method = paymentMethods[index];
+  
       if (!userProfile || !userProfile.id) {
         alert("User profile not set up. Please update your settings first.");
         return;
       }
-      // Call DELETE endpoint
+  
+      const confirmDelete = window.confirm(`Are you sure you want to delete ${method.type}?`);
+      if (!confirmDelete) return;
+  
       await axios.delete("/api/user-profile/payment-method", {
-        data: {
-          userProfileId: userProfile.id,
-          paymentType: method.type,
-        }
+        data: { userProfileId: userProfile.id, paymentType: method.type },
       });
   
-      // Remove from local state
-      const updatedMethods = [...paymentMethods];
-      updatedMethods.splice(index, 1);
-      setPaymentMethods(updatedMethods);
+      alert(`${method.type} removed successfully!`);
+      setPaymentMethods(paymentMethods.filter((_, i) => i !== index));
     } catch (error) {
       console.error("Error removing payment method:", error);
-      const message =
-        error.response?.data?.message || "Error removing payment method.";
-      alert(message);
+      alert(error.response?.data?.message || "Error removing payment method.");
     }
-  }
+  };
 
   return (
     <div className="manage-payment-methods">
       <div className="payment-method-header">
         <h5>Payment Methods</h5>
       </div>
-      
-      {paymentMethods.length > 0 ? (
+  
+      {loading ? (
+        <p>Loading payment methods...</p>
+      ) : paymentMethods.length === 0 ? (
+        <p>No payments set up.</p>
+      ) : (
         <ul>
           {paymentMethods.map((method, index) => (
             <li key={index}>
               <span>{method.type}</span>
               <div className="button-group">
                 <button onClick={() => handleEdit(index)}>Edit</button>
-                <button onClick={() => handleRemove(index)}>Remove</button>
+                <button onClick={() => handleRemove(index)} className="delete-btn">
+                  Delete
+                </button>
               </div>
             </li>
           ))}
         </ul>
-      ) : (
-        <p>No payment methods added yet.</p>
       )}
+  
       <button className="add-payment-method-btn" onClick={handleAdd}>
-        Add Payment Method
+        Add Your Information
       </button>
-
+  
       {isModalOpen && (
         <ManagePay
-          onSave={handleSave}
+          onSave={(data) => {
+            handleSave(data);
+            setIsModalOpen(false);
+            refreshUserProfile();
+          }}
           onClose={() => setIsModalOpen(false)}
           initialData={modalInitialData}
-          availableTypes={availableTypes}
         />
       )}
     </div>
-  );
-}
+  );  
+};
 
 export default ManagePaymentMethods;

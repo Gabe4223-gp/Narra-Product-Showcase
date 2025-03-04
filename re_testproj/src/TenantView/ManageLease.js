@@ -4,10 +4,11 @@ import axios from 'axios';
 import './ManageLease.css';
 import { useUserProfile } from "../UserProfileContext";
 
-const ManageLease = ({leaseData}) => {
-  const {userProfile} = useUserProfile();
+const ManageLease = ({ leaseData }) => {
+  const { userProfile } = useUserProfile();
   const [previewLease, setPreviewLease] = useState(null);
-  
+  const [isFetched, setIsFetched] = useState(false); // Prevents repeated fetching
+
   const tenantId = userProfile.id;
 
   // Fetch lease agreement information from the backend
@@ -36,41 +37,45 @@ const ManageLease = ({leaseData}) => {
     console.log("ManageLease received new leaseData:", leaseData); // Debugging line
   }, [leaseData]);
 
-  const handleViewLease = async () => {
+  useEffect(() => {
+    if (!isFetched && leaseData?.currentLeaseDoc) {
+      fetchLeaseDocument();
+      setIsFetched(true);
+    }
+  }, [isFetched, leaseData]);
+
+  const fetchLeaseDocument = async () => {
     try {
-      // Use query parameters instead of body
+      console.log("Fetching lease document...");
       const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
-          method: 'GET',
-          headers: {
-              'Content-Type': 'application/json',
-          },
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-          throw new Error(`Retrieval failed: ${response.statusText}`);
+        throw new Error(`Retrieval failed: ${response.statusText}`);
       }
 
       const data = await response.json();
-      
       const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+      
       console.log("Here's the doc", data);
-      console.log("Here's the cleanedBased", cleanedBase64);
 
       const loadedDoc = {
-          fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
-          fileName: leaseData.currentLeaseDoc.fileName,  
-          fileType: data.fileType,
+        fileContent: `data:${data.fileType};base64,${cleanedBase64}`,
+        fileName: leaseData.currentLeaseDoc.fileName,
+        fileType: data.fileType,
       };
 
       console.log("Here's the loadedDoc", loadedDoc);
-
       setPreviewLease(loadedDoc);
 
     } catch (error) {
-        console.error("Error retrieving lease:", error);
+      console.error("Error retrieving lease:", error);
     }
-    
-  }
+  };
 
   const handleRequestEndLease = async () => {
     const inputEmail = window.prompt("Enter your email to request lease end:");
@@ -91,7 +96,6 @@ const ManageLease = ({leaseData}) => {
   };
 
   return (
-    
     <div className="manage-lease">
       <div className="manage-lease-header">
         <h5>Manage Lease</h5>
@@ -112,7 +116,7 @@ const ManageLease = ({leaseData}) => {
         {leaseData?.currentLeaseDoc?.subject ? leaseData?.currentLeaseDoc?.subject : " "}
       </p>
       <div className="manage-lease-actions">
-        <button onClick={handleViewLease}>View Lease</button>
+        <button onClick={fetchLeaseDocument}>View Lease</button>
         <button onClick={handleRequestEndLease}>Request to End Lease</button>
       </div>
       
@@ -157,7 +161,6 @@ const ManageLease = ({leaseData}) => {
       )}
     </div>
   );
-  
 };
 
 export default ManageLease;

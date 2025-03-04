@@ -1,67 +1,143 @@
-/* ManageBilling.css */
+/* General Container Styling */
 .manage-billing {
-    display: flex;
-    flex-direction: column; /* Stack items vertically */
-    padding: 20px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    width: 50%;
-    max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 900px;
+  margin: auto;
 }
-  
+
+/* Header Styling */
 .manage-billing h5 {
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: bold;
   color: #333;
-  margin-top: 0;
-  margin-bottom: 0;
+  margin-bottom: 15px;
 }
 
 .manage-billing-header {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: 3%;
-}
-
-
-.manage-billing ul {
-  list-style: none;
-  padding: 0;
-}
-
-.manage-billing li {
-  padding: 10px;
-  border: 1px solid #ddd;
-  margin-bottom: 10px;
-  display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
 }
 
+/* Dropdown Selector */
+.manage-billing select {
+  padding: 5px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* Table Styling */
+.manage-billing table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Table Headers */
+.manage-billing thead {
+  background-color: #f5f5f5;
+}
+
+.manage-billing th {
+  text-align: left;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+/* Table Body Styling */
+.manage-billing tbody tr {
+  background-color: white;
+  transition: all 0.2s ease-in-out;
+}
+
+.manage-billing tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Table Data Cells */
+.manage-billing td {
+  padding: 12px;
+  font-size: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Invoice Link */
 .manage-billing a {
   color: #007bff;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .manage-billing a:hover {
   text-decoration: underline;
 }
 
-/* Pagination styles */
+/* Pay Button */
+.manage-billing button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #28a745;
+  color: white;
+  transition: all 0.2s ease-in-out;
+}
+
+.manage-billing button:hover {
+  background-color: #218838;
+}
+
+/* Disabled Pay Button */
+.manage-billing button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Error Banner */
+.error-banner {
+  color: red;
+  font-weight: bold;
+  padding: 8px;
+  background-color: #ffe5e5;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+/* Pagination Styles */
 .manage-billing .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .manage-billing .pagination button {
   margin: 0 5px;
-  padding: 5px 10px;
+  padding: 6px 10px;
+  font-size: 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  transition: background 0.2s ease-in-out;
+}
+
+.manage-billing .pagination button:hover {
+  background-color: #0056b3;
 }
 
 .manage-billing .pagination button:disabled {
@@ -69,73 +145,20 @@
   cursor: default;
 }
 
-/* Error banner for file fetch issues */
-.error-banner {
-  color: red;
-  font-weight: bold;
-  margin-bottom: 10px;
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .manage-billing {
+      width: 95%;
+  }
+
+  .manage-billing th,
+  .manage-billing td {
+      padding: 10px;
+      font-size: 11px;
+  }
+
+  .manage-billing button {
+      font-size: 10px;
+      padding: 5px 8px;
+  }
 }
-
-
-.manage-billing table {
-  width: 100%;
-  border-collapse: separate; /* Ensure rows have space between them */
-  border-spacing: 0 10px; /* Add space between rows */
-}
-
-.manage-billing tr {
-  background-color: white; /* Set the background for the "box" */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
-  border-radius: 8px; /* Round corners */
-  overflow: hidden; /* Ensure corners are rounded properly */
-}
-
-.manage-billing td {
-  padding: 10px 15px; /* Add padding for a spacious look */
-  font-size: 11px;
-}
-
-.manage-billing th {
-  text-align: left; /* Align headers to the left */
-  padding: 10px 15px;
-  background-color: #f5f5f5; /* Light gray background for headers */
-  border-bottom: 2px solid #ddd; /* Add bottom border for separation */
-  font-size: 12px;
-}
-
-.manage-billing tr:not(:last-child) {
-  margin-bottom: 10px; /* Add space between rows */
-}
-
-.manage-billing table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.manage-billing thead {
-position: sticky;
-top: 0;
-background: white; /* Keep headers visible */
-z-index: 10;
-}
-
-.manage-billing th,
-.manage-billing td {
-padding: 10px;
-border-bottom: 1px solid #ddd;
-text-align: left;
-}
-
-.manage-billing tbody {
-display: block;
-max-height: 300px; /* Ensure tbody is scrollable */
-overflow-y: auto;
-width: 100%;
-}
-
-.manage-billing tr {
-display: table;
-width: 100%;
-table-layout: fixed;
-}
-

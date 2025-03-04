@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
+function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordEmail }) {
   console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
@@ -13,41 +13,48 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
   const [deadline, setDeadline] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
   const [errors, setErrors] = useState({});
+  const [landlordBankId, setLandlordBankId] = useState(null);
+  const [bankName, setBankName] = useState(null);
+  const [loadingBankInfo, setLoadingBankInfo] = useState(true);
 
   useEffect(() => {
+    const fetchLandlordBankDetails = async () => {
+      try {
+        const res = await axios.get(`/api/sendBill/get-landlord-payment/${landlordId}`);
+        if (res.data) {
+          setLandlordBankId(res.data.landlordBankId);
+          setBankName(res.data.bankName);
+        } else {
+          setLandlordBankId(null);
+          setBankName(null);
+        }
+      } catch (error) {
+        console.error('Error fetching landlord payment details:', error);
+        setLandlordBankId(null);
+        setBankName(null);
+      } finally {
+        setLoadingBankInfo(false);
+      }
+    };
+
+    if (landlordId) fetchLandlordBankDetails();
+
     const rental = parseFloat(rentalAmount) || 0;
-    const utilities = utilityFees.reduce(
-      (sum, fee) => sum + (parseFloat(fee.amount) || 0),
-      0
-    );
-    const others = otherFees.reduce(
-      (sum, fee) => sum + (parseFloat(fee.amount) || 0),
-      0
-    );
+    const utilities = utilityFees.reduce((sum, fee) => sum + (parseFloat(fee.amount) || 0), 0);
+    const others = otherFees.reduce((sum, fee) => sum + (parseFloat(fee.amount) || 0), 0);
     const taxMultiplier = (parseFloat(taxRate) || 0) / 100;
     const subtotal = rental + utilities + others;
     const tax = subtotal * taxMultiplier;
     setTotalAmount(subtotal + tax);
-  }, [rentalAmount, utilityFees, otherFees, taxRate]);
+  }, [rentalAmount, utilityFees, otherFees, taxRate, landlordId]);
 
   const validateFields = () => {
     const newErrors = {};
-    if (!tenantEmail) {
-      newErrors.tenantEmail = 'Tenant email is required.';
-    }
-    if (!subject.trim()) {
-      newErrors.subject = 'Please provide a subject.';
-    }
-    if (!deadline) {
-      newErrors.deadline = 'A payment deadline is required.';
-    }
-    if (!rentalAmount || parseFloat(rentalAmount) <= 0) {
-      newErrors.rentalAmount = 'Please enter a valid rental amount.';
-    }
-    const parsedTax = parseFloat(taxRate);
-    if (isNaN(parsedTax) || parsedTax < 0 || parsedTax > 100) {
-      newErrors.taxRate = 'Tax rate must be between 0 and 100.';
-    }
+    if (!tenantEmail) newErrors.tenantEmail = 'Tenant email is required.';
+    if (!subject.trim()) newErrors.subject = 'Please provide a subject.';
+    if (!deadline) newErrors.deadline = 'A payment deadline is required.';
+    if (!rentalAmount || parseFloat(rentalAmount) <= 0) newErrors.rentalAmount = 'Please enter a valid rental amount.';
+    if (isNaN(parseFloat(taxRate)) || parseFloat(taxRate) < 0 || parseFloat(taxRate) > 100) newErrors.taxRate = 'Tax rate must be between 0 and 100.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -57,10 +64,17 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
       console.log("Validation failed", errors);
       return;
     }
+
+    if (!landlordBankId) {
+      alert("Landlord has not set up their bank account. Please ask them to update it in Settings.");
+      return;
+    }
+
     const billData = {
       tenantEmail,
       propertyId,
       landlordId,
+      landlordEmail,
       subject,
       rentalAmount,
       utilityFees,
@@ -68,16 +82,16 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
       taxRate,
       deadline,
       totalAmount,
+      landlordBankId
     };
 
     console.log("Sending billData:", billData);
     try {
-      const res = await axios.post('/api/sendBill/generate', billData);
-      console.log("API response:", res.data);
-      alert(res.data.message || 'Bill generated successfully.');
+      await axios.post('/api/sendBill/generate', billData);
+      alert('Bill sent successfully.');
     } catch (error) {
       console.error('Error generating bill:', error);
-      alert('Failed to send the bill. Please try again.');
+      alert('Failed to send the bill.');
     }
     onClose();
   };
@@ -86,24 +100,21 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
     <div className="send-bill-popup">
       <div className="popup-content">
         <h2>Send Bill</h2>
+
+        {!loadingBankInfo && !landlordBankId && (
+          <div className="error-banner">
+            ⚠️ No Bank Details Found. Landlord must set up their bank account in "Settings".
+          </div>
+        )}
+
         <label>
           Subject:
-          <input
-            type="text"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Enter bill subject"
-          />
+          <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Enter bill subject" />
           {errors.subject && <span className="error">{errors.subject}</span>}
         </label>
         <label>
           Rental Amount (PHP):
-          <input
-            type="number"
-            value={rentalAmount}
-            onChange={(e) => setRentalAmount(e.target.value)}
-            placeholder="100.00"
-          />
+          <input type="number" value={rentalAmount} onChange={(e) => setRentalAmount(e.target.value)} placeholder="100.00" />
           {errors.rentalAmount && <span className="error">{errors.rentalAmount}</span>}
         </label>
         <div className="dynamic-fields">
@@ -115,9 +126,11 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                 placeholder="e.g., Water"
                 value={fee.name}
                 onChange={(e) => {
-                  const updated = [...utilityFees];
-                  updated[index].name = e.target.value;
-                  setUtilityFees(updated);
+                  setUtilityFees(prevFees => {
+                    const updated = [...prevFees];
+                    updated[index] = { ...updated[index], name: e.target.value };
+                    return updated;
+                  });
                 }}
               />
               <input
@@ -125,15 +138,20 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                 placeholder="Amount"
                 value={fee.amount}
                 onChange={(e) => {
-                  const updated = [...utilityFees];
-                  updated[index].amount = e.target.value;
-                  setUtilityFees(updated);
+                  setUtilityFees(prevFees => {
+                    const updated = [...prevFees];
+                    updated[index] = { ...updated[index], amount: e.target.value };
+                    return updated;
+                  });
                 }}
               />
+              <button onClick={() => setUtilityFees(prevFees => prevFees.filter((_, i) => i !== index))}>
+                ❌
+              </button>
             </div>
           ))}
-          <button onClick={() => setUtilityFees([...utilityFees, { name: '', amount: '' }])}>
-            Add Utility Fee
+          <button onClick={() => setUtilityFees(prevFees => [...prevFees, { name: '', amount: '' }])}>
+            ➕ Add Utility Fee
           </button>
         </div>
         <div className="dynamic-fields">
@@ -145,9 +163,11 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                 placeholder="e.g., Repairs"
                 value={fee.name}
                 onChange={(e) => {
-                  const updated = [...otherFees];
-                  updated[index].name = e.target.value;
-                  setOtherFees(updated);
+                  setOtherFees(prevFees => {
+                    const updated = [...prevFees];
+                    updated[index] = { ...updated[index], name: e.target.value };
+                    return updated;
+                  });
                 }}
               />
               <input
@@ -155,38 +175,37 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                 placeholder="Amount"
                 value={fee.amount}
                 onChange={(e) => {
-                  const updated = [...otherFees];
-                  updated[index].amount = e.target.value;
-                  setOtherFees(updated);
+                  setOtherFees(prevFees => {
+                    const updated = [...prevFees];
+                    updated[index] = { ...updated[index], amount: e.target.value };
+                    return updated;
+                  });
                 }}
               />
+              <button onClick={() => setOtherFees(prevFees => prevFees.filter((_, i) => i !== index))}>
+                ❌
+              </button>
             </div>
           ))}
-          <button onClick={() => setOtherFees([...otherFees, { name: '', amount: '' }])}>
-            Add Other Fee
+          <button onClick={() => setOtherFees(prevFees => [...prevFees, { name: '', amount: '' }])}>
+            ➕ Add Other Fee
           </button>
         </div>
         <label>
           Tax Rate (%):
-          <input
-            type="number"
-            value={taxRate}
-            onChange={(e) => setTaxRate(e.target.value)}
-            placeholder="0-100"
-          />
+          <input type="number" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} placeholder="0-100" />
           {errors.taxRate && <span className="error">{errors.taxRate}</span>}
         </label>
+
         <label>
           Deadline:
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           {errors.deadline && <span className="error">{errors.deadline}</span>}
         </label>
+
+        <h4>Your Bank: {bankName || '❌ Not Registered'}</h4>
         <div className="total-amount">
-          <h3>Total Amount: PHP {totalAmount.toFixed(2)}</h3>
+          <h3>Total Amount: PHP {isNaN(totalAmount) ? '0.00' : totalAmount.toFixed(2)}</h3>
         </div>
         <div className="popup-actions">
           <button onClick={onClose} className="cancel-button">Cancel</button>

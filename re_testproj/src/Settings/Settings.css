@@ -7,7 +7,8 @@
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     margin-top: 20px;
-    width: 50%;
+    width: 70%; /* Increased width for better visibility */
+    max-width: 900px;
     margin: auto;
     font-size: 13px;
     display: flex;
@@ -16,7 +17,7 @@
 
 /* Section Headers */
 .settings-header h3 {
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .settings-header {
@@ -25,7 +26,7 @@
 }
 
 .settings-container h4 {
-    font-size: 14px;
+    font-size: 16px;
     margin-top: 30px;
     margin-bottom: 2%;
 }
@@ -87,10 +88,11 @@
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 5px 10px;
+    padding: 10px 15px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    margin-top: 10px;
 }
 
 .edit-btn:hover,
@@ -129,4 +131,108 @@
 
 .settings-container a:hover {
     text-decoration: underline;
+}
+
+/* Bank and Card Details Section */
+.bank-card-section {
+    margin-top: 20px;
+}
+
+.bank-card-section h4 {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.bank-card-section .link-btn {
+    margin-top: 5px;
+    display: inline-block;
+}
+
+/* Overlay Background */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Popup Modal */
+.modal {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 500px;
+    max-width: 90%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Header */
+.modal h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+/* Fields inside the Popup */
+.modal label {
+    font-size: 14px;
+    display: block;
+    margin-top: 10px;
+}
+
+.modal input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 3px;
+}
+
+/* Popup Actions (Buttons) */
+.popup-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.popup-actions button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    border: none;
+}
+
+.popup-actions button:first-child {
+    background: #dc3545;
+    color: white;
+}
+
+.popup-actions button:first-child:hover {
+    background: #b52b27;
+}
+
+.popup-actions button:last-child {
+    background: #007bff;
+    color: white;
+}
+
+.popup-actions button:last-child:hover {
+    background: #0056b3;
+}
+
+/* Warning/Error Banner */
+.error-banner {
+    background-color: #ffdddd;
+    color: #b52b27;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-size: 14px;
+    border: 1px solid #b52b27;
 }

@@ -8,9 +8,10 @@ const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sequelize } = require('../models'); 
+const { Op } = require('sequelize');
 
 // Import models – note Files is our reintroduced model
-const { Tenant, Files } = require('../models');
+const { Tenant, Files, UserProfile } = require('../models');
 
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
@@ -68,42 +69,45 @@ router.post('/generate', async (req, res) => {
       tenantEmail,
       propertyId,
       landlordId,
+      landlordEmail,
       subject,
       rentalAmount,
       utilityFees,
       otherFees,
       taxRate,
       deadline,
-      totalAmount,
+      totalAmount
     } = req.body;
 
-    console.log('Request body:', req.body);
-
-
     if (!tenantEmail || !subject || !deadline) {
-      return res.status(400).json({ message: 'Missing required fields (tenantEmail, subject, or deadline).' });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
+    // Fetch landlord's bank ID to store in Files table
+    const landlord = await UserProfile.findOne({
+      where: { id: landlordId },
+      attributes: ['landlordBankId']
+    });
+
+    if (!landlord || !landlord.landlordBankId) {
+      return res.status(400).json({ message: "Landlord's bank details are missing. Please update settings." });
+    }
+
+    // Generate PDF invoice
     const safeSubject = subject.replace(/[^\w\d-]/g, '_');
     const pdfFileName = `${safeSubject}.pdf`;
-
     const localDir = path.join(__dirname, '..', 'lease_bills');
     if (!fs.existsSync(localDir)) fs.mkdirSync(localDir);
     const localPDFPath = path.join(localDir, pdfFileName);
 
     await generatePDF({ subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount }, localPDFPath);
 
+    // Store file on local server or AWS S3
     let fileURL;
     if (STORAGE_TYPE === 'local') {
       fileURL = `http://localhost:5000/lease_bills/${encodeURIComponent(pdfFileName)}`;
     } else {
       const fileData = fs.readFileSync(localPDFPath);
-      try {
-        await s3.headObject({ Bucket: S3_BUCKET_NAME, Key: pdfFileName }).promise();
-        await s3.deleteObject({ Bucket: S3_BUCKET_NAME, Key: pdfFileName }).promise();
-      } catch (err) {
-        // Ignore if not found
-      }
       await s3.putObject({
         Bucket: S3_BUCKET_NAME,
         Key: pdfFileName,
@@ -111,59 +115,35 @@ router.post('/generate', async (req, res) => {
         ContentType: 'application/pdf',
       }).promise();
       fs.unlinkSync(localPDFPath);
-      fileURL = s3.getSignedUrl('getObject', {
-        Bucket: S3_BUCKET_NAME,
-        Key: pdfFileName,
-        Expires: 3600,
-      });
+      fileURL = s3.getSignedUrl('getObject', { Bucket: S3_BUCKET_NAME, Key: pdfFileName, Expires: 3600 });
     }
 
-    // Update the Tenant's billingDeadline based on tenantEmail
-    const tenantRecord = await Tenant.findOne({ where: { email: tenantEmail } });
-    if (tenantRecord) {
-      await tenantRecord.update({ billingDeadline: deadline });
-    } else {
-      console.log(`Tenant with email ${tenantEmail} not found.`);
-    }
-
-    const [newFileRecord] = await sequelize.query(
-      `
-      INSERT INTO "Files" 
-        ("fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", "tenantEmail", "landlordId", "deadline", "updatedAt")
-      VALUES 
-        (:fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, :tenantEmail, :landlordId, :deadline)
-      RETURNING *;
-      `,
-      {
-        replacements: {
-          fileName: pdfFileName,
-          fileType: 'pdf',
-          url: fileURL,
-          subject: subject,
-          totalAmount: totalAmount,
-          paid: false,
-          propertyId: propertyId,
-          tenantEmail: tenantEmail,
-          landlordId: landlordId,
-          deadline: deadline,
-          updatedAt: null,
-        },
-        type: sequelize.QueryTypes.INSERT,
-      }
-    );
-    
-    console.log("Bill generated. File record:", newFileRecord);
-
-    return res.json({
-      message: 'Bill generated successfully.',
-      pdfURL: fileURL,
-      fileRecord: newFileRecord,
+    // Save bill to database (storing only `landlordBankId`)
+    const newFile = await Files.create({
+      fileName: pdfFileName,
+      fileType: 'pdf',
+      url: fileURL,
+      subject,
+      totalAmount,
+      paid: false,
+      propertyId,
+      tenantEmail,
+      landlordId,
+      landlordEmail,
+      deadline,
+      landlordBankId: landlord.landlordBankId,
     });
+
+    console.log("Bill generated:", newFile);
+
+    return res.json({ message: 'Bill generated successfully.', fileRecord: newFile });
+
   } catch (error) {
     console.error('Error generating bill:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 router.get('/tenant/:tenantEmail/files', async (req, res) => {
   try {
@@ -171,10 +151,16 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
     if (!tenantEmail) {
       return res.status(400).json({ message: 'tenantEmail is required.' });
     }
+
     const files = await Files.findAll({
-      where: { tenantEmail },
-      order: [['createdAt', 'DESC']]
+      where: { tenantEmail, fileType: 'pdf', url: { [Op.ne]: null } }, // Fetch only PDFs with URLs
+      order: [['createdAt', 'DESC']],
+      attributes: [
+        'id', 'tenantEmail', 'landlordId', 'totalAmount', 'paid', 'fileType',
+        'url', 'createdAt', 'subject', 'landlordBankId'
+      ]
     });
+
     return res.json({ files });
   } catch (error) {
     console.error('Error fetching tenant files:', error);
@@ -248,6 +234,24 @@ router.get('/fulfilled', async (req, res) => {
   } catch (error) {
     console.error('Error fetching fulfilled bills:', error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/get-landlord-payment/:landlordId', async (req, res) => {
+  try {
+    const landlord = await UserProfile.findOne({
+      where: { id: req.params.landlordId },
+      attributes: ['landlordBankId', 'bankName']
+    });
+
+    if (!landlord) {
+      return res.status(404).json({ message: 'Landlord not found' });
+    }
+
+    res.json(landlord);
+  } catch (error) {
+    console.error('Error fetching landlord bank details:', error);
+    res.status(500).json({ message: 'Error retrieving landlord bank details' });
   }
 });
 

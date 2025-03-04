@@ -17,7 +17,7 @@ const TenantHomepage = () => {
       currentLeaseDoc: null,
     });
 
-  // ✅ Fetch user profile once on mount (no dependency)
+  // Fetch user profile once on mount (no dependency)
   useEffect(() => {
     const fetchProfileAndLease = async () => {
       await refreshUserProfile(); // Wait for profile to load
@@ -25,7 +25,7 @@ const TenantHomepage = () => {
     fetchProfileAndLease();
   }, []); // Empty dependency to run only once
 
-  // ✅ fetchLeaseData accesses userProfile internally
+  // fetchLeaseData accesses userProfile internally
   const fetchLeaseData = useCallback(async () => {
     if (!userProfile?.id) return;
     try {
@@ -38,7 +38,7 @@ const TenantHomepage = () => {
     }
   }, [userProfile?.id]);
 
-  // ✅ Fetch lease data once userProfile is available
+  // Fetch lease data once userProfile is available
   useEffect(() => {
     if (userProfile?.id) {
       fetchLeaseData();

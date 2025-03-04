@@ -1,15 +1,20 @@
 // src/ManageBilling.js
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Pay from './Pay';
 import axios from 'axios';
 import './ManageBilling.css';
+import { useUserProfile } from '../UserProfileContext';
 
 const ManageBilling = ({ tenantEmail }) => {
+  const { userProfile } = useUserProfile();
+
   // Generate last 10 years for selection
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedStatus, setSelectedStatus] = useState('unpaid'); // Default to unpaid bills
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [error, setError] = useState(null);
@@ -17,12 +22,40 @@ const ManageBilling = ({ tenantEmail }) => {
   const filesPerPage = 5;
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
+  const [validPaymentMethod, setValidPaymentMethod] = useState(false);
+  const [searchParams] = useSearchParams();
+  const status = searchParams.get('status');
+  const billId = searchParams.get('billId');
 
+  // Fetch stored payment methods for the tenant
+  useEffect(() => {
+    async function checkPaymentMethod() {
+      try {
+        const res = await axios.get('/api/user-profile/payment-methods', {
+          params: { userProfileId: userProfile.id },
+        });
+        setValidPaymentMethod(res.data.paymentMethods.length > 0);
+      } catch (error) {
+        console.error('Error fetching payment methods:', error);
+      }
+    }
+
+    if (userProfile?.id) {
+      checkPaymentMethod();
+    }
+  }, [userProfile]);
+
+  // Fetch valid files (PDFs with URLs)
   useEffect(() => {
     async function fetchFiles() {
       try {
         const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
-        setFiles(res.data.files || []);
+        const filteredFiles = res.data.files
+          .filter(file => file.fileType === 'pdf' && file.url) // Only PDFs with valid URLs
+          .filter(file => new Date(file.createdAt).getFullYear() === selectedYear) // Filter by year
+          .filter(file => selectedStatus === 'all' || (selectedStatus === 'unpaid' ? !file.paid : file.paid)); // Filter by paid/unpaid status
+
+        setFiles(filteredFiles);
         setError(null);
       } catch (err) {
         console.error('Error fetching files:', err);
@@ -31,12 +64,23 @@ const ManageBilling = ({ tenantEmail }) => {
         setLoadingFiles(false);
       }
     }
+
     if (tenantEmail) {
       fetchFiles();
     } else {
       setLoadingFiles(false);
     }
-  }, [tenantEmail]);
+  }, [tenantEmail, selectedYear, selectedStatus]);
+
+  useEffect(() => {
+    if (status === "success" && selectedBill) {
+      alert(`Payment for bill ${billId} was successful!`);
+      setShowPayModal(false);
+      setSelectedBill(null);
+    } else if (status === "failed") {
+      alert(`Payment for bill ${billId} failed. Please try again.`);
+    }
+  }, [status, billId]);
 
   const indexOfLastFile = currentPage * filesPerPage;
   const indexOfFirstFile = indexOfLastFile - filesPerPage;
@@ -63,32 +107,39 @@ const ManageBilling = ({ tenantEmail }) => {
 
   return (
     <div className="manage-billing">
-      <div className='manage-billing-header'>
+      <div className="manage-billing-header">
         <h5>Manage Billing</h5>
-        <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
-                      <span>Select Year:</span>
-                      <select
-                          style={{ fontSize: "12px"}}
-                          value={selectedYear}
-                          onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
-                      >
-                          {years.map(year => (
-                              <option key={year} value={year}>{year}</option>
-                          ))}
-                      </select>
-                  </label>
-              </div>
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
+          {/* Year Selection */}
+          <div>
+            <label>
+              Select Year:
+              <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label>
+              Status:
+              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid">Paid</option>
+                <option value="all">All</option>
+              </select>
+            </label>
           </div>
         </div>
       </div>
-      
+
       {loadingFiles ? (
         <p>Loading bills...</p>
       ) : error ? (
-        <div className="error-banner" style={{ color: 'red' }}>{error}</div>
+        <div className="error-banner">{error}</div>
       ) : files.length === 0 ? (
         <p>No bills found.</p>
       ) : (
@@ -101,14 +152,12 @@ const ManageBilling = ({ tenantEmail }) => {
                 <th>Subject</th>
                 <th>Date Billed</th>
                 <th>Invoice</th>
-                <th> </th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {currentFiles.map((file) => {
-                const dateBilled = file.createdAt
-                  ? new Date(file.createdAt).toLocaleString()
-                  : 'N/A';
+                const dateBilled = file.createdAt ? new Date(file.createdAt).toLocaleString() : 'N/A';
                 return (
                   <tr key={file.id}>
                     <td>{file.paid ? 'Yes' : 'No'}</td>
@@ -116,12 +165,10 @@ const ManageBilling = ({ tenantEmail }) => {
                     <td>{file.subject}</td>
                     <td>{dateBilled}</td>
                     <td>
-                      <a href={file.url} target="_blank" rel="noreferrer">
-                        View PDF
-                      </a>
+                      <a href={file.url} target="_blank" rel="noreferrer">View PDF</a>
                     </td>
                     <td>
-                      {!file.paid && (
+                      {!file.paid && validPaymentMethod && (
                         <button onClick={() => handlePayClick(file)}>Pay</button>
                       )}
                     </td>
@@ -130,6 +177,7 @@ const ManageBilling = ({ tenantEmail }) => {
               })}
             </tbody>
           </table>
+
           {totalPages > 1 && (
             <div className="pagination">
               <button onClick={prevPage} disabled={currentPage === 1}>Previous</button>
