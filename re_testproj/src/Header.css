@@ -128,3 +128,18 @@
   padding-right: 5%;
   padding-left: 5%;
 }
+
+.bell-icon:hover,
+.bell-icon:active {
+  color: #4a6385; /* Blue when hovered */
+}
+
+.bell-icon {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  transition: color 0.2s ease-in-out;
+  position: relative;
+}
+

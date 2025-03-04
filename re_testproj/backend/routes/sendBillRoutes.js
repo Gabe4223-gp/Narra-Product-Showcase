@@ -8,9 +8,11 @@ const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sequelize } = require('../models'); 
+const { v4: uuidv4 } = require('uuid');
 
 // Import models – note Files is our reintroduced model
 const { Tenant, Files } = require('../models');
+const { UUIDV4 } = require('sequelize');
 
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
@@ -25,42 +27,138 @@ if (STORAGE_TYPE === 's3') {
 }
 
 function generatePDF(data, outputPath) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
+  return new Promise( async (resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50 });
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
 
-    doc.fontSize(20).text(`Bill Subject: ${data.subject}`, { underline: true });
-    doc.moveDown();
-    doc.fontSize(14).text(`Rental Amount: PHP ${data.rentalAmount}`);
-    doc.moveDown();
+    // Convert numeric values
+    const rentalAmount = Number(data.rentalAmount) || 0;
+    const taxRate = Number(data.taxRate) || 0;
+    const totalAmount = Number(data.totalAmount) || 0;
 
-    doc.text(`Utility Fees:`);
-    (data.utilityFees || []).forEach((fee) => {
-      doc.text(` - ${fee.name}: PHP ${fee.amount}`);
-    });
-    doc.moveDown();
+    // Calculate Tax Amount
+    const taxableAmount =
+      rentalAmount +
+      (data.utilityFees || []).reduce((sum, fee) => sum + Number(fee.amount), 0) +
+      (data.otherFees || []).reduce((sum, fee) => sum + Number(fee.amount), 0);
+    const taxAmount = (taxableAmount * taxRate) / 100;
 
-    doc.text(`Other Fees:`);
-    (data.otherFees || []).forEach((fee) => {
-      doc.text(` - ${fee.name}: PHP ${fee.amount}`);
-    });
-    doc.moveDown();
+    try {
+      // === QUERY DATABASE TO GET PROPERTY DETAILS ===
+      const query = 'SELECT * FROM "Properties" WHERE id = :propertyId';
+      const [results] = await sequelize.query(query, {
+        replacements: { propertyId: data.propertyId },
+        type: sequelize.QueryTypes.SELECT,
+      });
 
-    doc.text(`Tax Rate: ${data.taxRate}%`);
-    doc.moveDown();
-    doc.text(`Total Amount: PHP ${data.totalAmount.toFixed(2)}`);
-    doc.moveDown();
-    doc.text(`Deadline: ${data.deadline}`);
+      const property = results || {};
+      const propertyName = property.propertyName || "Unknown Property";
+      const propertyAddress = property.address || "No Address Available";
+      const companyName = property.companyName || "No Company Name";
 
-    // IDs are not printed on the PDF
+      // === PROPERTY DETAILS ===
+      doc.fontSize(10).fillColor("#666666").text("PROPERTY DETAILS", 50, 50);
+      doc.fillColor("black").text(`Name: ${propertyName}`, 50, 65);
+      doc.text(`Address: ${propertyAddress}`, 50, 80);
+      doc.text(`Company: ${companyName}`, 50, 95);
 
-    doc.end();
+      // === RIGHT HEADER DETAILS ===
+      const headerX = 400;
+      const headerStartY = 50;
+      doc.fillColor("#666666").fontSize(10).text("INVOICE", headerX, headerStartY);
+      doc.fillColor("black").text(data.pdfId.substring(0, 5), headerX + 80, headerStartY);
+      doc.fillColor("#666666").text("DATE", headerX, headerStartY + 15);
+      doc.fillColor("black").text(new Date().toLocaleDateString(), headerX + 80, headerStartY + 15);
+      doc.fillColor("#666666").text("TERMS", headerX, headerStartY + 30);
+      doc.fillColor("black").text("Due on receipt", headerX + 80, headerStartY + 30);
+      doc.fillColor("#666666").text("DUE DATE", headerX, headerStartY + 45);
+      doc.fillColor("black").text(data.deadline || "N/A", headerX + 80, headerStartY + 45);
 
-    stream.on('finish', () => resolve(outputPath));
-    stream.on('error', reject);
+      // === MAIN INVOICE HEADER ===
+      doc.fontSize(20).fillColor("#0096D6").text("INVOICE", 50, 160);
+      let yPosition = 190; // Adjusted for better spacing
+
+      // === TABLE HEADERS ===
+      doc.fillColor("white").rect(50, yPosition, 500, 20).fill("#6699CC");
+      doc.fillColor("white").fontSize(10).text("DATE", 60, yPosition + 5);
+      doc.text("DESCRIPTION", 160, yPosition + 5);
+      doc.text("AMOUNT", 450, yPosition + 5);
+      doc.fillColor("black");
+      yPosition += 25;
+
+      // === RENTAL AMOUNT ===
+      doc.fontSize(10).text(data.deadline || "N/A", 60, yPosition);
+      doc.text("Rental", 160, yPosition);
+      doc.text(`PHP ${rentalAmount.toFixed(2)}`, 450, yPosition);
+      yPosition += 20;
+
+      // === UTILITY FEES ===
+      if (data.utilityFees?.length) {
+        data.utilityFees.forEach((fee) => {
+          doc.fontSize(10).text(new Date(fee.date).toLocaleDateString() || "N/A", 60, yPosition);
+          doc.text(fee.name, 160, yPosition);
+          doc.text(`PHP ${Number(fee.amount).toFixed(2)}`, 450, yPosition);
+          yPosition += 20;
+        });
+      }
+
+      // === OTHER FEES ===
+      if (data.otherFees?.length) {
+        data.otherFees.forEach((fee) => {
+          doc.fontSize(10).text(new Date(fee.date).toLocaleDateString() || "N/A", 60, yPosition);
+          doc.text(fee.name, 160, yPosition);
+          doc.text(`PHP ${Number(fee.amount).toFixed(2)}`, 450, yPosition);
+          yPosition += 20;
+        });
+      }
+
+      // === TAX SECTION ===
+      yPosition += 15;
+      doc.fontSize(10).text(`Tax Rate: ${taxRate}%`, 160, yPosition);
+      doc.text(`PHP ${taxAmount.toFixed(2)}`, 450, yPosition);
+      yPosition += 20;
+
+      // === TOTAL AMOUNT ===
+      yPosition += 20;
+      doc.moveTo(50, yPosition).lineTo(550, yPosition).stroke();
+      yPosition += 5;
+      doc.fontSize(12).text("BALANCE DUE", 60, yPosition);
+      doc.text(`PHP ${totalAmount.toFixed(2)}`, 450, yPosition);
+
+      // === FOOTER ===
+      yPosition += 40;
+      doc.fontSize(8).fillColor("#666666").text("Thank you for your prompt payment.", 50, yPosition);
+      yPosition += 12; // Adjust spacing
+
+      if (data.notes) {
+        const noteLines = data.notes.split("\n"); // Split text into lines
+        noteLines.forEach((line) => {
+          doc.text(line, 50, yPosition, { width: 500, align: "left" });
+          yPosition += 12; // Maintain line spacing
+        });
+      }
+
+      // === Place "Powered by Narra. Visit narra-ph.com" at the bottom center of the page ===
+      const pageHeight = doc.page.height - doc.page.margins.top - doc.page.margins.bottom;  // Total height of the page excluding margins
+      const footerY = pageHeight - 10;  // 20 is a little gap from the very bottom of the page
+
+      // Place footer at the bottom center of the page
+      doc.font("Helvetica")
+        .fontSize(10)
+        .fillColor("#000000")
+        .text("Powered by Narra. Visit narra-ph.com", 0, footerY, { align: "center", width: 600 });
+
+      doc.end();
+      stream.on("finish", () => resolve(outputPath));
+      stream.on("error", reject);
+    } catch (error) {
+      reject(error);
+    }
   });
 }
+
+
 
 router.post('/generate', async (req, res) => {
   try {
@@ -75,9 +173,13 @@ router.post('/generate', async (req, res) => {
       taxRate,
       deadline,
       totalAmount,
+      user_id,
+      notes
     } = req.body;
 
     console.log('Request body:', req.body);
+
+    const pdfId = uuidv4();
 
 
     if (!tenantEmail || !subject || !deadline) {
@@ -91,7 +193,7 @@ router.post('/generate', async (req, res) => {
     if (!fs.existsSync(localDir)) fs.mkdirSync(localDir);
     const localPDFPath = path.join(localDir, pdfFileName);
 
-    await generatePDF({ subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount }, localPDFPath);
+    await generatePDF({ pdfId, subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount, propertyId, landlordId, notes }, localPDFPath);
 
     let fileURL;
     if (STORAGE_TYPE === 'local') {
@@ -129,13 +231,15 @@ router.post('/generate', async (req, res) => {
     const [newFileRecord] = await sequelize.query(
       `
       INSERT INTO "Files" 
-        ("fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", "tenantEmail", "landlordId", "deadline", "updatedAt")
+        ("id", "fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", 
+        "tenantEmail", "landlordId", "deadline", "updatedAt")
       VALUES 
-        (:fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, :tenantEmail, :landlordId, :deadline)
+        (:id, :fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, :tenantEmail, :landlordId, :deadline, :updatedAt)
       RETURNING *;
       `,
       {
         replacements: {
+          id: pdfId,
           fileName: pdfFileName,
           fileType: 'pdf',
           url: fileURL,
@@ -146,13 +250,37 @@ router.post('/generate', async (req, res) => {
           tenantEmail: tenantEmail,
           landlordId: landlordId,
           deadline: deadline,
-          updatedAt: null,
+          updatedAt: null, //set to null cuz this attribute will be set when bill is paid
         },
         type: sequelize.QueryTypes.INSERT,
       }
     );
     
     console.log("Bill generated. File record:", newFileRecord);
+    
+    //used currency P
+    const notificationQuery = `
+      INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+      SELECT 
+        gen_random_uuid(), 
+        :user_id,  
+        CONCAT(up."name", ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
+        'lease', 
+        NOW()
+      FROM "userProfile" up
+      WHERE up.id = :landlordId  
+      RETURNING *;
+    `;
+
+    const notifications = await sequelize.query(notificationQuery, {
+      replacements: { 
+        user_id: user_id, // The user_id to send the notification to
+        deadline: deadline,
+        totalAmount: totalAmount,
+        landlordId: landlordId,
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
 
     return res.json({
       message: 'Bill generated successfully.',
@@ -216,7 +344,6 @@ router.get('/unfulfilled', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 // GET fulfilled bills by propertyId
 router.get('/fulfilled', async (req, res) => {

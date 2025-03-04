@@ -115,10 +115,13 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   
   const filteredBills = bills?.filter((bill) => {
     const billedDate = new Date(bill.createdAt);
+    const billYear = billedDate.getFullYear();
+    const billMonth = billedDate.getMonth();
     return (
-      billedDate.getFullYear() === selectedYear &&
-      billedDate.getMonth() === selectedMonth &&
-      bill.paid === false
+      ((billYear === selectedYear && billMonth === selectedMonth) ||
+       (billYear === selectedYear && billMonth < selectedMonth) ||
+       (billYear < selectedYear))
+      && bill.paid === false
     );
   });
 

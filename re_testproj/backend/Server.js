@@ -2211,7 +2211,9 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Tenant lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, 
+    landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, 
+    signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
@@ -2230,8 +2232,8 @@ app.post('/tenants/upload-lease', async (req, res) => {
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Leases" (id, "fileName", "fileType", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
-      VALUES (:id, :fileName, :fileType, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
+      INSERT INTO "Leases" (id, "fileName", "fileType", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry", "propertyId")
+      VALUES (:id, :fileName, :fileType, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry, :propertyId)
       RETURNING *;
     `
 
@@ -2247,6 +2249,7 @@ app.post('/tenants/upload-lease', async (req, res) => {
         subject: subject,
         leaseStarted: leaseStartDate,
         leaseExpiry: leaseEndDate,
+        propertyId: propertyId,
       },
       type: sequelize.QueryTypes.INSERT, // Specify the query type
     });
@@ -2289,7 +2292,28 @@ app.post('/tenants/upload-lease', async (req, res) => {
       });
     }
 
-    console.log(result[0][0].leaseDocs);
+     // Send Notification to User (passed in body as user_id)
+     const notificationQuery = `
+     INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+      SELECT 
+        gen_random_uuid(), 
+        :user_id,  
+        CONCAT(up."name", ' has sent you a lease for signing'), 
+        'lease', 
+        NOW()
+      FROM "Properties" p
+      JOIN "userProfile" up ON up.id = p."user_id"  
+      WHERE p."id" = :propertyId
+      RETURNING *;
+    `;
+   
+    const notifications = await sequelize.query(notificationQuery, {
+      replacements: { 
+        user_id: user_id, // The user_id to send the notification to
+        propertyId: propertyId // The property_id to match the owner
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
 
     res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result1[0][0]?.leaseDocs})
 
@@ -2491,6 +2515,28 @@ app.put('/tenants/update-lease', async (req, res) => {
           type: sequelize.QueryTypes.UPDATE,
         });
       }
+
+      const notificationQuery = `
+        INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+        SELECT 
+            gen_random_uuid(), 
+            p."user_id", 
+            CONCAT(up."name", ' has signed your lease - ', l."subject", ', lease started ', l."leaseStarted", ' and ends at ', l."leaseExpiry"), 
+            'lease', 
+            NOW()
+        FROM "Properties" p
+        JOIN "Leases" l ON p."id" = l."propertyId"
+        JOIN "userProfile" up ON up."email" = l."tenantEmail" 
+        WHERE l."id" = :id
+        RETURNING *;
+      `;
+
+      const result3 = await sequelize.query(notificationQuery, {
+        replacements: { id: id },
+        type: sequelize.QueryTypes.INSERT,
+      });
+
+      console.log("laksjdf", result3);
       
       if (updatedFile) {
           res.status(200).json({
@@ -2622,8 +2668,179 @@ app.delete('/leases/delete-all', async (req, res) => {
   }
 });
 
+//Readings/Utilities////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// DELETE endpoint for removing readings by ID from multiple attributes (arrays)
+app.delete('/readings/delete-all', async (req, res) => {
+  const { readingIds, unitId } = req.body;
+
+  if (!readingIds || readingIds.length === 0) {
+      return res.status(400).json({ error: 'No reading IDs provided.' });
+  }
+
+  try {
+      // Construct the raw SQL query for updating the readings on each Unit
+      const query = `
+        UPDATE "Units"
+        SET 
+            "waterLastReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("waterLastReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "waterCurrentReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("waterCurrentReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "electricityLastReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("electricityLastReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "electricityCurrentReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("electricityCurrentReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb)
+        WHERE id = :unitId;
+    `;
+      // Execute the query with the parameters
+      const result = await sequelize.query(query, {
+          replacements: {
+              readingIds: readingIds,
+              unitId: unitId,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+      });
+
+      if (result[1] > 0) { // Check if any rows were affected (deleted readings)
+          return res.json({ success: true, message: 'Readings deleted successfully' });
+      } else {
+          return res.status(404).json({ error: 'No readings found or could not be deleted.' });
+      }
+
+  } catch (error) {
+      console.error('Error deleting readings:', error);
+      return res.status(500).json({ error: 'An error occurred while deleting readings.' });
+  }
+});
+
+// Notifications //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/api/notifications/:user_id', async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Raw SQL query to fetch notifications
+    const notifications = await sequelize.query(
+      `SELECT * FROM "Notifications" WHERE "user_id" = :user_id`, 
+      {
+        replacements: { user_id }, // Safely replace the user_id in the query
+        type: sequelize.QueryTypes.SELECT // Ensures the query returns rows
+      }
+    );
+
+    // Send notifications as response
+    res.json(notifications); // Directly returning the result
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/notify-paid', async (req, res) => {
+  const { user_id, totalAmount, deadline, tenantEmail } = req.body;  // Extract values from the request body
+  
+  try {
+    // Raw SQL query to insert a notification
+    const notificationQuery = `
+    INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+    SELECT 
+      gen_random_uuid(), 
+      :user_id,  
+      CONCAT(up."name", ' has paid ', :totalAmount, ' on the bill due ', :deadline), 
+      'bill', 
+      NOW()
+    FROM "userProfile" up
+    WHERE up."email" = :tenantEmail  
+    RETURNING *;
+  `;
+
+    // Execute the raw query with the necessary replacements
+    const result = await sequelize.query(notificationQuery, {
+      replacements: {
+        user_id,           // The user_id (landlord's user ID)
+        totalAmount,       // The total bill amount
+        deadline,
+        tenantEmail,          // The bill due date
+      },
+      type: sequelize.QueryTypes.INSERT, // Insert operation
+    });
+
+    // Respond with the notification data if successful
+    res.json({
+      message: 'Notification sent successfully',
+      notification: result[0],  // result[0] contains the inserted notification
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post("/api/notifications/:userId/mark-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const query = `
+      UPDATE "Notifications"
+      SET is_read = TRUE
+      WHERE user_id = :userId AND is_read = FALSE
+    `;
+
+    const [result] = await sequelize.query(query, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    res.status(200).json({ message: "Notifications marked as read", affectedRows: result });
+  } catch (error) {
+    console.error("Error updating notifications:", error);
+    res.status(500).json({ error: "Failed to update notifications" });
+  }
+});
+
+
+
+//Billing//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/api/payments/:tenantEmail', async (req, res) => {
+  
+  const { tenantEmail } = req.params;
+  console.log('Query Params:', tenantEmail);
+
+  try {
+    const query = `
+      SELECT * FROM "Files"
+      WHERE "tenantEmail" = :tenantEmail
+    `;
+
+    const response = await sequelize.query(query, {
+      replacements: { tenantEmail},
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    res.json({ message: "Tenant's bills", payments: response });
+
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    res.status(500).json({ message: 'Unable to load payment history.', error: error.message });
+  }
+});
+
+
 //Billings.js AND Tenant.js PAYMENT API ENDPOINTS
 // Paginated Payments API (Checking Payment History)
+/*
 app.get('/api/payments', async (req, res) => {
   console.log('Query Params:', req.query);
   const page = Number.parseInt(req.query.page, 10);
@@ -2700,7 +2917,7 @@ app.get('/api/payments', async (req, res) => {
     console.error('Error fetching payment history:', error);
     res.status(500).json({ message: 'Unable to load payment history.', error: error.message });
   }
-});
+});*/
 
 //Saves Payment History with Billings.js Format to PostgreSQL
 app.post('/save-payment-history', async (req, res) => {

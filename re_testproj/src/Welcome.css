@@ -5,14 +5,15 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #272d2d;
-    font-family: Tahoma, Verdana, sans-serif;
+    background-color: #4a6385;
+    font-family: 'Montserrat';
   }
   
   .welcome-container h2 {
     margin-bottom: 10px;
     color: #edf5fc;
-    font-size: 50px;
+    font-size: 30px;
+    font-weight: normal;
   }
   
   .welcome-container p {
@@ -32,6 +33,7 @@
     flex-direction: column;
     color: #edf5fc;
     font-size: 16px;
+    font-weight: normal;
     margin-bottom: 5px;
   }
   
@@ -47,6 +49,7 @@
   
   .welcome-container .btn-role, .welcome-container .actions button {
     padding: 10px 20px;
+    font-size: 13px;
     background-color: #23ce6b;
     color: white;
     border: none;

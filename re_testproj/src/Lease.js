@@ -93,6 +93,8 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     leaseEndDate: leaseEndDate,
                     signed: signed,
                     subject: subject,
+                    propertyId: tenantDetails.propertyId,
+                    user_id: tenantDetails.user_id,
                 }),
             });
 
@@ -240,11 +242,11 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
             <table>
                 <thead>
                     <tr>
-                        <th> </th>
+                        <th style={{ width: "5%" }}> </th>
                         <th>Uploaded At</th>
                         <th>Subject</th>
-                        <th>Signed</th>
-                        <th>Action</th>
+                        <th style={{ width: "10%" }}>Signed</th>
+                        <th style={{ width: "10%" }}>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -263,8 +265,8 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                                     </td>
                                     <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
                                     <td>{doc.subject}</td>
-                                    <td>{doc.signed ? 'Signed' : 'Not Signed'}</td>
-                                    <td>
+                                    <td style={{ width: "10%" }}>{doc.signed ? 'Signed' : 'Not Signed'}</td>
+                                    <td style={{ width: "10%" }}>
                                         <button onClick={() => handleViewLease(tenantDetails?.id, doc.fileName)}>
                                             View
                                         </button>

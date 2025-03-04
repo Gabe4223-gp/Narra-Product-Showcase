@@ -4,7 +4,6 @@ import Utilities from './Utilities';
 import TenantProfile from './TenantProfile';
 
 function UnitProfile ({unitId, onBack}) {
-    const defaultImage = "https://via.placeholder.com/150";
     const [unitDetails, setUnitDetails] = useState(null);
     const [showEditUnitDetails, setshowEditUnitDetails] = useState(false);
     const [selectedTenant, setSelectedTenant] = useState(null);
@@ -205,7 +204,6 @@ function UnitProfile ({unitId, onBack}) {
                                     <th>Phone</th>
                                     <th>Lease Start Date</th>
                                     <th>Lease End Date</th>
-                                    <th>Billing Deadline</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -217,7 +215,6 @@ function UnitProfile ({unitId, onBack}) {
                                         <td>{tenant.phone}</td>
                                         <td>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}</td>
                                         <td>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}</td>
-                                        <td>{tenant.billingDeadline}</td>
                                         <td>
                                             <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>
                                         </td>

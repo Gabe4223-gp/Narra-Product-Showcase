@@ -94,6 +94,26 @@ const Pay = ({ bill, onClose }) => {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
+
+      // Send Notification to the landlord via fetch
+      const response = await fetch('/api/notify-paid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: bill.landlordId,  // Assuming landlordId is in the bill object
+          totalAmount: amountPaid,
+          deadline: bill.deadline,  // Assuming there's a dueDate field in the bill object
+          tenantEmail: bill.tenantEmail,
+        }),
+      });
+
+      const notification = await response.json();
+      if (!response.ok) {
+        throw new Error(notification.error || 'Failed to send notification');
+      }
+
       // On success, you may update the bill's "paid" amount in your backend.
       alert('Payment processed successfully!');
       onClose();

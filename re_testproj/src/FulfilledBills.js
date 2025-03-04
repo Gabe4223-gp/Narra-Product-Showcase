@@ -161,6 +161,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
               <th>Date Paid</th>
               <th>Status</th>
               <th>Invoice</th>
+              <th>Proof of Payment</th>
             </tr>
           </thead>
           <tbody>
@@ -191,7 +192,12 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
                     </td>
                     <td>
                       <a href={bill.url} target="_blank" rel="noopener noreferrer">
-                        View Invoice
+                        View 
+                      </a>
+                    </td>
+                    <td>
+                      <a href={bill.proof} target="_blank" rel="noopener noreferrer">
+                        View
                       </a>
                     </td>
                   </tr>

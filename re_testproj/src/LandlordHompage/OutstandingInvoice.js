@@ -20,6 +20,7 @@ function OutstandingInvoice({ propertyId }) {
         const res = await axios.get(`/api/invoices/${propertyId}`);
         console.log("THe invoices", res.data);
         setInvoiceData(res.data);
+        console.log("Billings", res.data);
       } catch (error) {
         console.error("Error fetching invoices:", error);
       } finally {
@@ -39,31 +40,75 @@ function OutstandingInvoice({ propertyId }) {
       Outstanding: 0,
     }));
   
+    // Initialize a variable to keep track of the cumulative Outstanding balance
+    let lastOutstanding = 0;
+  
+    // Step 1: Calculate the initial Outstanding balance for January
     invoiceData.forEach((invoice) => {
-      const updatedAt = new Date(invoice.updatedAt);
-      const year = updatedAt.getFullYear();
-      const monthIndex = updatedAt.getMonth();
-      
-      // Ensure invoice has a valid totalAmount field
-      const totalAmount = invoice.totalAmount;  // Make sure this field is correct
+      const createdAt = new Date(invoice.createdAt);
+      const year = createdAt.getFullYear();
+      const monthIndex = createdAt.getMonth();
+      const totalAmount = invoice.totalAmount;
   
       if (totalAmount !== undefined && totalAmount !== null) {
-        if (year === selectedYear) {
-          if (invoice.paid) {
-            monthlyData[monthIndex].Paid += totalAmount; // Sum the totalAmount for paid invoices
-          } else {
-            monthlyData[monthIndex].Outstanding += totalAmount; // Sum the totalAmount for outstanding invoices
-          }
+        // If the invoice is unpaid and was created before or on January of the selected year
+        if (
+          invoice.paid === false &&
+          (year < selectedYear || (year === selectedYear && monthIndex <= 0))
+        ) {
+          lastOutstanding += totalAmount; // Add to initial Outstanding balance for January
         }
-      } else {
-        console.error("Invoice missing totalAmount:", invoice); // Debugging if there's an issue with the invoice data
       }
+    });
+  
+    // Set January's Outstanding balance
+    monthlyData[0].Outstanding = lastOutstanding;
+  
+    // Step 2: Process invoices for each month of the selected year
+    invoiceData.forEach((invoice) => {
+      const createdAt = new Date(invoice.createdAt);
+      const updatedAt = invoice.updatedAt ? new Date(invoice.updatedAt) : null;
+      const year = createdAt.getFullYear();
+      const monthIndex = createdAt.getMonth();
+      const totalAmount = invoice.totalAmount;
+  
+      if (totalAmount !== undefined && totalAmount !== null && year === selectedYear) {
+        // Add invoices created in the current month to the Outstanding balance
+        monthlyData[monthIndex].Outstanding += totalAmount;
+  
+        // Subtract invoices paid in the current month from the Outstanding balance
+        if (updatedAt && updatedAt.getFullYear() === selectedYear) {
+          const paidMonthIndex = updatedAt.getMonth();
+          monthlyData[paidMonthIndex].Paid += totalAmount;
+  
+          // Subtract the paid amount from the Outstanding balance of the current month
+          monthlyData[paidMonthIndex].Outstanding -= totalAmount;
+        }
+      }
+    });
+    
+  
+    // Step 3: Calculate the cumulative Outstanding balance for each month
+    for (let i = 1; i < 12; i++) {
+      monthlyData[i].Outstanding += monthlyData[i - 1].Outstanding;
+    }
+
+    // Step 4: Set Outstanding to 0 for months after the current month
+    const currentMonthIndex = new Date().getMonth();
+    for (let i = currentMonthIndex + 1; i < 12; i++) {
+      monthlyData[i].Outstanding = 0;
+    }
+  
+    // Log the results for debugging
+    monthlyData.forEach((data) => {
+      console.log(`${data.month} -> Paid: ${data.Paid}, Outstanding: ${data.Outstanding}`);
     });
   
     return monthlyData;
   };
   
   const chartData = processChartData();
+  
 
   return (
     <div className="invoice-chart-container">

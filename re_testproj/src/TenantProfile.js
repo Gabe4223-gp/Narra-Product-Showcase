@@ -398,7 +398,9 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           </div>
       
           <div className="tenant-mid-section">
-            <PaymentHistory />
+            <PaymentHistory 
+              tenantDetails={tenantDetails}
+            />
           </div>
       
           <div className="tenant-bottom-section">
@@ -486,6 +488,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
               tenantEmail={tenantDetails.email}
+              user_id={tenantDetails.user_id}
               landlordId={userProfile.id}
               propertyId={propertyId}
             />

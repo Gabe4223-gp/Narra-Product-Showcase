@@ -60,8 +60,8 @@ function Welcome({ onProfileCreated }) {
 
   return (
     <div className="welcome-container">
-      <h2>Welcome to Narra!</h2>
-      <p>Let's set up your profile</p>
+      <h2>Welcome to Narra</h2>
+      <p>Set up your profile</p>
 
       {authUserInfo && (
         <div>

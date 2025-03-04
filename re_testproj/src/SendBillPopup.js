@@ -3,14 +3,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
+function SendBillPopup({ onClose, tenantEmail, user_id, propertyId, landlordId }) {
   console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
-  const [utilityFees, setUtilityFees] = useState([{ name: '', amount: '' }]);
-  const [otherFees, setOtherFees] = useState([{ name: '', amount: '' }]);
+  const [utilityFees, setUtilityFees] = useState([{ date: '', name: '', amount: '' }]);
+  const [otherFees, setOtherFees] = useState([{ date: '', name: '', amount: '' }]);
   const [taxRate, setTaxRate] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [notes, setNotes] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
   const [errors, setErrors] = useState({});
 
@@ -68,6 +69,8 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
       taxRate,
       deadline,
       totalAmount,
+      user_id,
+      notes,
     };
 
     console.log("Sending billData:", billData);
@@ -111,6 +114,16 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
           {utilityFees.map((fee, index) => (
             <div key={index} className="fee-row">
               <input
+                type="date"
+                placeholder="Bill Date"
+                value={fee.date}
+                onChange={(e) => {
+                  const updated = [...utilityFees];
+                  updated[index].date = e.target.value;
+                  setUtilityFees(updated);
+                }}
+              />
+              <input
                 type="text"
                 placeholder="e.g., Water"
                 value={fee.name}
@@ -130,6 +143,9 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                   setUtilityFees(updated);
                 }}
               />
+              <button onClick={() => setUtilityFees(utilityFees.filter((_, i) => i !== index))}>
+                Remove
+              </button>
             </div>
           ))}
           <button onClick={() => setUtilityFees([...utilityFees, { name: '', amount: '' }])}>
@@ -141,8 +157,18 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
           {otherFees.map((fee, index) => (
             <div key={index} className="fee-row">
               <input
+                type="date"
+                placeholder="Bill Date"
+                value={fee.date}
+                onChange={(e) => {
+                  const updated = [...otherFees];
+                  updated[index].date = e.target.value;
+                  setOtherFees(updated);
+                }}
+              />
+              <input
                 type="text"
-                placeholder="e.g., Repairs"
+                placeholder="e.g., Parking"
                 value={fee.name}
                 onChange={(e) => {
                   const updated = [...otherFees];
@@ -160,7 +186,11 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
                   setOtherFees(updated);
                 }}
               />
+              <button onClick={() => setOtherFees(otherFees.filter((_, i) => i !== index))}>
+                Remove
+              </button>
             </div>
+
           ))}
           <button onClick={() => setOtherFees([...otherFees, { name: '', amount: '' }])}>
             Add Other Fee
@@ -184,6 +214,16 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId }) {
             onChange={(e) => setDeadline(e.target.value)}
           />
           {errors.deadline && <span className="error">{errors.deadline}</span>}
+        </label>
+        <label>
+          Notes:
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4} // Adjust rows as needed
+            cols={50} // Adjust cols as needed
+            style={{ width: "100%" }} // Ensures full width
+          />
         </label>
         <div className="total-amount">
           <h3>Total Amount: PHP {totalAmount.toFixed(2)}</h3>

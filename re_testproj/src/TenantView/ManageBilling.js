@@ -100,34 +100,54 @@ const ManageBilling = ({ tenantEmail }) => {
                 <th>Full Amount</th>
                 <th>Subject</th>
                 <th>Date Billed</th>
+                <th>Deadline</th>
                 <th>Invoice</th>
                 <th> </th>
               </tr>
             </thead>
             <tbody>
-              {currentFiles.map((file) => {
-                const dateBilled = file.createdAt
-                  ? new Date(file.createdAt).toLocaleString()
-                  : 'N/A';
-                return (
-                  <tr key={file.id}>
-                    <td>{file.paid ? 'Yes' : 'No'}</td>
-                    <td>{file.totalAmount?.toFixed(2)}</td>
-                    <td>{file.subject}</td>
-                    <td>{dateBilled}</td>
-                    <td>
-                      <a href={file.url} target="_blank" rel="noreferrer">
-                        View PDF
-                      </a>
-                    </td>
-                    <td>
-                      {!file.paid && (
-                        <button onClick={() => handlePayClick(file)}>Pay</button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {currentFiles
+                .filter((file) => {
+                  const dateBilled = new Date(file.createdAt);
+                  return dateBilled.getFullYear() === selectedYear;
+                })
+                .length > 0 ? (
+                currentFiles
+                  .filter((file) => {
+                    const dateBilled = new Date(file.createdAt);
+                    return dateBilled.getFullYear() === selectedYear;
+                  })
+                  .map((file) => {
+                    const dateBilled = file.createdAt
+                      ? new Date(file.createdAt).toLocaleString()
+                      : 'N/A';
+                    return (
+                      <tr key={file.id}>
+                        <td>{file.paid ? 'Yes' : 'No'}</td>
+                        <td>{file.totalAmount?.toFixed(2)}</td>
+                        <td>{file.subject}</td>
+                        <td>{dateBilled}</td>
+                        <td>{file.deadline ? new Date(file.deadline).toLocaleDateString() : ""}</td>
+                        <td>
+                          <a href={file.url} target="_blank" rel="noreferrer">
+                            View PDF
+                          </a>
+                        </td>
+                        <td>
+                          {!file.paid && (
+                            <button onClick={() => handlePayClick(file)}>Pay</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+              ) : (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
+                    No bills found for the selected year.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           {totalPages > 1 && (

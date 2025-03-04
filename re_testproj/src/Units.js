@@ -13,7 +13,7 @@ function Units() {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState(new Set());
   const [showSizeUnitModal, setshowSizeUnitModal] = useState(false);
-  const [sizeUnits, setsizeUnits] = useState("sqft");
+  const [sizeUnits, setsizeUnits] = useState("");
   const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
       console.log("Selected Property", localStorage.getItem('selectedPropertyIDUnit'));
       return localStorage.getItem('selectedPropertyIDUnit') || "";
@@ -152,6 +152,7 @@ function Units() {
         const unitWithUUID = {
           ...newUnit,
           id: uuidv4(), // Generate UUID for id
+          sizeUnit: sizeUnits,
         };
    
         // Send tenant and selectedPropertyID to the backend
@@ -171,6 +172,8 @@ function Units() {
           console.error('Backend error:', errorMsg);
           throw new Error('Failed to create unit');
         }
+
+        console.log("alsjdfhlaksdhf", sizeUnits);
   
         // Clear the form
         setNewUnit({
@@ -179,7 +182,7 @@ function Units() {
           type: null,
           mode: null,
           sizeValue: null,
-          sizeUnit: "sqft",
+          sizeUnit: sizeUnits,
           petsAllowed: false,
           tenants: [],
           waterLastReading: [],
@@ -216,6 +219,7 @@ function Units() {
   };
 
   const saveSizeUnitChange = async () => {
+    console.log("size sldjfhalskdhf", sizeUnits);
     try {
  
       // Send tenant and selectedPropertyID to the backend
@@ -242,6 +246,7 @@ function Units() {
       fetchUnits(responseData.units);
 
       setsizeUnits(responseData.sizeUnits);
+      console.log("size units", sizeUnits);
 
       setshowSizeUnitModal(false);
     } catch (error) {
@@ -610,7 +615,7 @@ function Units() {
         <div className='overlay'>
           <div className='modal'>
               <div>
-                  Are you sure you want to delete these tenants?
+                  Are you sure you want to delete these units?
               </div>
               <button onClick={handleDeleteUnits}>Confirm</button>
               <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
