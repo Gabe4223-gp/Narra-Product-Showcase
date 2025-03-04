@@ -491,6 +491,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
               user_id={tenantDetails.user_id}
               landlordId={userProfile.id}
               propertyId={propertyId}
+              landlordEmail={userProfile.email}
             />
           )}
       

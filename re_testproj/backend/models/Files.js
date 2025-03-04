@@ -6,65 +6,27 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
-    fileName: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    fileType: {
-      type: DataTypes.STRING,
-      defaultValue: 'pdf',
-      allowNull: false
-    },
-    url: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    subject: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    totalAmount: {
-      type: DataTypes.FLOAT,
-      defaultValue: 0,
-      allowNull: false
-    },
-    paid: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
-    },
-    propertyId: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    tenantEmail: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    landlordEmail: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    landlordId: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    deadline: {
-      allowNull: true,
-      type: DataTypes.DATE, 
-    },
-    uploadedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
+    fileName: DataTypes.STRING,
+    fileType: { type: DataTypes.STRING, defaultValue: 'pdf' },
+    url: DataTypes.STRING,
+    subject: DataTypes.STRING,
+    totalAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    paid: { type: DataTypes.BOOLEAN, defaultValue: false },
+    propertyId: DataTypes.UUID,
+    tenantEmail: DataTypes.STRING,
+    landlordEmail: DataTypes.STRING,
+    landlordId: DataTypes.UUID,
+    deadline: DataTypes.DATE,
+    proof: DataTypes.STRING,
+    landlordBankId: { type: DataTypes.STRING, allowNull: true }, // Securely stored Bank ID
+    tenantPaymentMethodId: { type: DataTypes.STRING, allowNull: true }, // Securely stored Payment Method ID
+    teamsData: DataTypes.JSONB,
+    uploadedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'Files',
-    freezeTableName: true
+    freezeTableName: true,
+    timestamps: true
   });
-
-  Files.associate = function(models) {
-    // Define associations if needed.
-  };
 
   return Files;
 };

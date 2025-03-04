@@ -16,18 +16,31 @@ export function UserProfileProvider({ children }) {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
 
-  // Optional: fetch or create userProfile once the user is logged in
+  // Fetch user profile from API or local storage
   const fetchUserProfile = useCallback(async () => {
     if (!isAuthenticated || !user?.email) {
       setLoadingProfile(false);
       return;
     }
+
     try {
       setLoadingProfile(true);
-      // e.g., GET /api/userProfile/by-email/:email
+      
+      // First, check local storage
+      const storedProfile = localStorage.getItem('userProfile');
+      if (storedProfile) {
+        setUserProfile(JSON.parse(storedProfile));
+        setLoadingProfile(false);
+        return;
+      }
+
+      // Otherwise, fetch from API
       const res = await axios.get(`/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
-      // If no profile, you might set userProfile to null or route to Welcome.js, etc.
       setUserProfile(res.data.userProfile); 
+
+      // Store in local storage
+      localStorage.setItem('userProfile', JSON.stringify(res.data.userProfile));
+
       setError(null);
     } catch (err) {
       console.error("Error fetching userProfile:", err);
@@ -40,10 +53,12 @@ export function UserProfileProvider({ children }) {
   // Use effect to fetch the profile once on mount if the user is authenticated
   useEffect(() => {
     if (!isAuthenticated || !user?.email) {
-      setUserProfile(null); //Reset profile when user logs out
+      setUserProfile(null); // Reset profile when user logs out
+      localStorage.removeItem('userProfile'); // Remove from local storage
       setLoadingProfile(false);
       return;
     }
+
     fetchUserProfile();
   }, [fetchUserProfile, user?.email, isAuthenticated]);
 
@@ -55,6 +70,7 @@ export function UserProfileProvider({ children }) {
   // Method to manually update userProfile state if we get new data from an API response
   const updateUserProfile = (newProfile) => {
     setUserProfile(newProfile);
+    localStorage.setItem('userProfile', JSON.stringify(newProfile)); // Persist new profile data
   };
 
   const value = {

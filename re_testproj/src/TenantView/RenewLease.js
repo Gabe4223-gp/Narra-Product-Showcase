@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import './RenewLease.css';
 import { useUserProfile } from "../UserProfileContext";
-import { ROWLOCK } from 'sequelize/lib/table-hints';
 
 function RenewLease({onUploadSignedLease}) {
   // Generate last 10 years for selection
@@ -30,7 +29,7 @@ function RenewLease({onUploadSignedLease}) {
         throw new Error('Network response was not ok');
       }
       const data = await response.json();
-      console.log("leases", data);
+      //console.log("leases", data);
 
       setUnsignedFiles(data);
     } catch (err) {
@@ -39,8 +38,17 @@ function RenewLease({onUploadSignedLease}) {
   }
 
   useEffect(() => {
+    // Set up an interval that fetches the leases every 10 seconds (10,000 ms)
+    const interval = setInterval(() => {
+      fetchUnsignedLeases();
+    }, 10000);
+  
+    // Fetch immediately on component mount if desired
     fetchUnsignedLeases();
-  }, []);
+  
+    // Clear the interval when the component unmounts
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array ensures this runs only once  
 
   const handleViewLease = async (doc) => {
     try {
@@ -229,6 +237,7 @@ function RenewLease({onUploadSignedLease}) {
                         <iframe
                             id="pdfViewer"
                             src={previewLease?.fileContent}
+                            title="Preview Lease"
                             style={{
                                 width: "100%",
                                 height: "600px",

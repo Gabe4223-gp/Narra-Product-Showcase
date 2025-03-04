@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserProfile } from '../UserProfileContext'; // Adjust path as needed
 import axios from 'axios';
+import TeamSettings from './TeamSettings';
 import './Settings.css';
 
 function TenantSettings() {
@@ -12,6 +13,8 @@ function TenantSettings() {
     refreshUserProfile,
     updateUserProfile,
   } = useUserProfile();
+
+  const [showTeamSettings, setShowTeamSettings] = useState(false);
 
   // Locally store the form data
   const [formData, setFormData] = useState({
@@ -29,6 +32,12 @@ function TenantSettings() {
   // For the delete confirmation popup
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
+  // For Bank setup
+  const [bankFormData, setBankFormData] = useState({
+    bankName: '',
+    landlordBankId: ''
+  });
+
   // When userProfile changes, populate formData
   useEffect(() => {
     if (!userProfile) {
@@ -45,6 +54,10 @@ function TenantSettings() {
         email: userProfile.email || '',
         password: userProfile.password || '',
       });
+      setBankFormData({
+        bankName: userProfile.bank || '',
+        landlordBankId: userProfile.landlordBankId || '' // Securely stored bank token
+      });
     }
   }, [userProfile, refreshUserProfile]);
 
@@ -54,6 +67,13 @@ function TenantSettings() {
       [e.target.name]: e.target.value,
     }));
   };
+
+  const handleBankChange = (e) => {
+    setBankFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };  
 
   const handleChangePassword = () => {
     setShowPassword(!showPassword);
@@ -89,6 +109,33 @@ function TenantSettings() {
       setMessage('An error occurred while saving settings.');
     }
   };
+
+  const saveBankDetails = async () => {
+    try {
+      console.log("Sending API request to register bank:", {
+        userId: userProfile.id,
+        bankName: bankFormData.bankName
+      });
+  
+      const response = await axios.post('/api/user-profile/register-bank', {
+        userId: userProfile.id,
+        bankName: bankFormData.bankName
+      });
+  
+      console.log("API Response:", response);
+  
+      if (response.data.success) {
+        alert('Bank details registered successfully!');
+        refreshUserProfile(); // Refresh stored data
+      } else {
+        alert(response.data.message || 'Failed to register bank.');
+      }
+    } catch (error) {
+      console.error('Error registering bank details:', error.response ? error.response.data : error);
+      alert('Error registering bank.');
+    }
+  };
+   
 
   // Handle Delete Account (front-end only for now)
   const handleDeleteAccount = () => {
@@ -196,7 +243,34 @@ function TenantSettings() {
         <button type="submit" className="edit-btn">Save Changes</button>
       </form>
 
+      {/* Bank Information */}
+      <h4>Bank Information</h4>
+      <label>Bank Name:</label>
+      <input type="text" name="bankName" value={bankFormData.bankName} onChange={handleBankChange} />
+
+      <p><strong>Bank Registered:</strong> {bankFormData.landlordBankId ? '✔️ Registered' : '❌ Not Registered'}</p>
+      <p><strong>Current Bank:</strong> {userProfile.bankName ? userProfile.bankName : "None"}</p>
+
+      {/* Popup Buttons */}
+      <div className="popup-actions">
+        <button onClick={saveBankDetails}>Save</button>
+      </div>
+
       {message && <p>{message}</p>}
+      
+      {/* Team Settings Section */}
+      <h4>Team Settings</h4>
+      <button onClick={() => setShowTeamSettings(true)} className="link-btn">
+        View Team
+      </button>
+      
+      {showTeamSettings && (
+        <TeamSettings 
+          onClose={() => setShowTeamSettings(false)} 
+          userName={userProfile.name} 
+          userEmail={userProfile.email} 
+        />
+      )}
 
       {/* Language and Currency Section */}
       <h4>Language and Currency</h4>

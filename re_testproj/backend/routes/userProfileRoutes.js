@@ -1,54 +1,50 @@
 // routes/userProfileRoutes.js
 const express = require('express');
 const router = express.Router();
-const { sequelize, UserProfile } = require('../models');
+const { sequelize, UserProfile, Team } = require('../models');
+const { Op } = require('sequelize');
+const axios = require('axios'); // For Wise API calls
+require('dotenv').config();
+
+const WISE_API_URL = process.env.WISE_API_URL; // Wise API base URL
+const WISE_API_KEY = process.env.WISE_API_KEY; // API Key for authentication
 
 // GET endpoint to retrieve payment method details for editing
 router.get('/payment-methods', async (req, res) => {
   try {
     const { userProfileId } = req.query;
+
     if (!userProfileId) {
-      return res.status(400).json({ message: "userProfileId is required." });
+      return res.status(400).json({ message: "Missing required fields." });
     }
+
     const userProfile = await UserProfile.findByPk(userProfileId);
+
     if (!userProfile) {
       return res.status(404).json({ message: "User profile not found." });
     }
 
-    // We'll build an array of payment methods. If a specific set of fields is non-empty,
-    // we add it to the array as "Debit/Credit Card", "Bank Transfer", or "GCash".
+    // Fetch stored payment methods (Bank & Card)
+    const bankCardInfo = userProfile.storedPaymentMethods ? {
+      type: "Bank & Card",
+      nameOnAccount: userProfile.storedPaymentMethods.nameOnAccount || "",
+      accountNumber: userProfile.storedPaymentMethods.accountNumber || "",
+      routingNumber: userProfile.storedPaymentMethods.routingNumber || "",
+      cardholderName: userProfile.storedPaymentMethods.cardholderName || "",
+      billingAddress: userProfile.storedPaymentMethods.billingAddress || "",
+      billingZipCode: userProfile.storedPaymentMethods.billingZipCode || "",
+      bankName: userProfile.bankName || "",
+    } : null;
+
+    // Fetch GCash information separately
+    const gcashInfo = userProfile.gcashMobileNumber ? {
+      type: "GCash",
+      gcashMobileNumber: userProfile.gcashMobileNumber,
+    } : null;
+
     const paymentMethods = [];
-
-    // 1. Debit/Credit Card
-    if (userProfile.cardNumber || userProfile.cvv || userProfile.cardholderName) {
-      paymentMethods.push({
-        type: "Debit/Credit Card",
-        cardholderName: userProfile.cardholderName || "",
-        billingAddress: userProfile.billingAddress || "",
-        cardNumber: userProfile.cardNumber || "",
-        expiryDate: userProfile.expiryDate || "",
-        cvv: userProfile.cvv || "",
-        billingZipCode: userProfile.billingZipCode || "",
-      });
-    }
-
-    // 2. Bank Transfer
-    if (userProfile.bank || userProfile.accountNumber || userProfile.accountName) {
-      paymentMethods.push({
-        type: "Bank Transfer",
-        bank: userProfile.bank || "",
-        accountNumber: userProfile.accountNumber || "",
-        accountName: userProfile.accountName || "",
-      });
-    }
-
-    // 3. GCash
-    if (userProfile.gcashMobileNumber) {
-      paymentMethods.push({
-        type: "GCash",
-        gcashMobileNumber: userProfile.gcashMobileNumber || "",
-      });
-    }
+    if (bankCardInfo) paymentMethods.push(bankCardInfo);
+    if (gcashInfo) paymentMethods.push(gcashInfo);
 
     return res.json({ paymentMethods });
   } catch (error) {
@@ -58,14 +54,13 @@ router.get('/payment-methods', async (req, res) => {
 });
 
 // PUT endpoint to update payment method data with raw queries only for Tenants
+// PUT: Store Bank & Card information inside storedPaymentMethods
 router.put('/payment-method', async (req, res) => {
   try {
     const { userProfileId, paymentType, data } = req.body;
-    if (!userProfileId) {
-      return res.status(400).json({ message: 'UserProfile ID is required.' });
-    }
-    if (!paymentType || !data) {
-      return res.status(400).json({ message: 'Payment type and data are required.' });
+
+    if (!userProfileId || !paymentType || !data) {
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
     const userProfile = await UserProfile.findByPk(userProfileId);
@@ -73,63 +68,38 @@ router.put('/payment-method', async (req, res) => {
       return res.status(404).json({ message: 'User profile not found.' });
     }
 
-    const [tenant] = await sequelize.query(
-      'SELECT * FROM "Tenants" WHERE user_id = :userProfileId',
-      {
-        replacements: { userProfileId },
-        type: sequelize.QueryTypes.SELECT,
-      }
-    );
+    if (paymentType === "Bank & Card") {
+      const { nameOnAccount, accountNumber, bankName, routingNumber, cardholderName, billingAddress, billingZipCode } = data;
 
-    if (!tenant) {
-      return res.status(404).json({ message: 'Tenant not found.' });
+      // Store only necessary details securely
+      const storedPaymentMethods = {
+        nameOnAccount,
+        accountNumber,
+        routingNumber,
+        cardholderName,
+        billingAddress,
+        billingZipCode,
+      };
+
+      await userProfile.update({
+        storedPaymentMethods,
+        bankName, // Store separately
+      });
+
+      return res.json({ success: true, message: 'Bank & Card information updated successfully.' });
     }
 
-    if (paymentType === 'Debit/Credit Card') {
-      const { cardholderName, billingAddress, billingZipCode } = data;
-      userProfile.cardholderName = cardholderName;
-      userProfile.billingAddress = billingAddress;
-      userProfile.cardNumber = data.cardNumber;
-      userProfile.expiryDate = data.expiryDate;
-      userProfile.cvv = data.cvv;
-      userProfile.billingZipCode = billingZipCode;
+    if (paymentType === "GCash") {
+      const { gcashMobileNumber } = data;
 
-      await userProfile.save();
+      await userProfile.update({
+        gcashMobileNumber,
+      });
 
-      await sequelize.query(
-        'UPDATE "Tenants" SET "creditCardName" = :cardholderName WHERE user_id = :userProfileId',
-        {
-          replacements: { cardholderName, userProfileId },
-        }
-      );
-    } else if (paymentType === 'Bank Transfer') {
-      const { bank, accountNumber, accountName } = data;
-      userProfile.bank = bank;
-      userProfile.accountNumber = accountNumber;
-      userProfile.accountName = accountName;
-
-      await userProfile.save();
-
-      await sequelize.query(
-        'UPDATE "Tenants" SET "bankName" = :bank WHERE user_id = :userProfileId',
-        {
-          replacements: { bank, userProfileId },
-        }
-      );
-    } else if (paymentType === 'GCash') {
-      userProfile.gcashMobileNumber = data.gcashMobileNumber;
-
-      await userProfile.save();
-
-      await sequelize.query(
-        'UPDATE "Tenants" SET "eWalletName" = :gcashMobileNumber WHERE user_id = :userProfileId',
-        {
-          replacements: { gcashMobileNumber: "GCash", userProfileId }, //set to GCash until we offer multiple ewallet methods
-        }
-      );
+      return res.json({ success: true, message: 'GCash information updated successfully.' });
     }
 
-    return res.json({ message: 'Payment method updated successfully.' });
+    return res.status(400).json({ message: 'Invalid payment type.' });
   } catch (error) {
     console.error('Error updating payment method:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -138,70 +108,37 @@ router.put('/payment-method', async (req, res) => {
 
 // DELETE endpoint to remove payment method data with raw queries only for Tenants
 router.delete('/payment-method', async (req, res) => {
-  console.log('delete payment method was hit!');
   try {
     const { userProfileId, paymentType } = req.body;
-    if (!userProfileId) {
-      return res.status(400).json({ message: 'userProfileId is required.' });
-    }
-    if (!paymentType) {
-      return res.status(400).json({ message: 'Payment type is required.' });
+
+    if (!userProfileId || !paymentType) {
+      return res.status(400).json({ message: "Missing required fields." });
     }
 
     const userProfile = await UserProfile.findByPk(userProfileId);
+
     if (!userProfile) {
-      return res.status(404).json({ message: 'User profile not found.' });
+      return res.status(404).json({ message: "User profile not found." });
     }
 
-    // Clear columns based on paymentType
-    if (paymentType === 'Debit/Credit Card') {
-      userProfile.cardholderName = null;
-      userProfile.billingAddress = null;
-      userProfile.cardNumber = null;
-      userProfile.expiryDate = null;
-      userProfile.cvv = null;
-      userProfile.billingZipCode = null;
-
-      await userProfile.save();
-
-      await sequelize.query(
-        'UPDATE "Tenants" SET "creditCardName" = NULL WHERE user_id = :userProfileId',
-        {
-          replacements: { userProfileId },
-        }
+    if (paymentType === "Bank & Card") {
+      await UserProfile.update(
+        { storedPaymentMethods: null, bankName: null },
+        { where: { id: userProfileId } }
       );
-    } else if (paymentType === 'Bank Transfer') {
-      userProfile.bank = null;
-      userProfile.accountNumber = null;
-      userProfile.accountName = null;
-
-      await userProfile.save();
-
-      await sequelize.query(
-        'UPDATE "Tenants" SET "bankName" = NULL WHERE user_id = :userProfileId',
-        {
-          replacements: { userProfileId },
-        }
-      );
-    } else if (paymentType === 'GCash') {
-      userProfile.gcashMobileNumber = null;
-
-      await userProfile.save();
-
-      await sequelize.query(
-        'UPDATE "Tenants" SET "eWalletName" = NULL WHERE user_id = :userProfileId',
-        {
-          replacements: { userProfileId },
-        }
+    } else if (paymentType === "GCash") {
+      await UserProfile.update(
+        { gcashMobileNumber: null },
+        { where: { id: userProfileId } }
       );
     } else {
-      return res.status(400).json({ message: 'Invalid payment type.' });
+      return res.status(400).json({ message: "Invalid payment type." });
     }
 
-    res.json({ message: 'Payment method removed successfully.' });
+    res.json({ success: true, message: "Payment method removed successfully." });
   } catch (error) {
-    console.error('Error removing payment method:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error removing payment method:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -328,6 +265,12 @@ router.get('/by-email/:email', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid UUID format' });
+    }
+
     const profile = await UserProfile.findByPk(id);
     if (!profile) {
       return res.status(404).json({ message: 'UserProfile not found.' });
@@ -339,10 +282,101 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.get('/get-landlord-bank/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await UserProfile.findByPk(userId, {
+      attributes: ['landlordBankId', 'bankName'],
+    });
+
+    if (!user || !user.landlordBankId) {
+      return res.status(404).json({ message: 'Landlord bank details not found.' });
+    }
+
+    res.json({ landlordBankId: user.landlordBankId, bankName: user.bankName });
+  } catch (error) {
+    console.error('Error fetching landlord bank details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/register-bank', async (req, res) => {
+  try {
+    const { userId, bankName } = req.body;
+
+    if (!userId || !bankName) {
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    // Find the user's profile
+    const userProfile = await UserProfile.findByPk(userId);
+    if (!userProfile) {
+      return res.status(404).json({ message: 'User profile not found.' });
+    }
+
+    let landlordBankId;
+
+    if (WISE_API_URL && WISE_API_KEY) {
+      try {
+        // Call Wise API to create a secure bank account ID
+        const response = await axios.post(
+          `${WISE_API_URL}/v1/accounts`,
+          {
+            accountHolderName: userProfile.name,
+            currency: "PHP",
+            country: "PH",
+            type: "bank",
+            details: { bankName },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${WISE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        // Extract the secure bank account ID from Wise response
+        landlordBankId = response.data.id;
+        console.log('Successfully registered bank via Wise:', landlordBankId);
+      } catch (apiError) {
+        console.error('Wise API error:', apiError.response ? apiError.response.data : apiError);
+        return res.status(500).json({ message: 'Failed to register bank with Wise.' });
+      }
+    } else {
+      // Mock Wise API response (Fallback for local development)
+      landlordBankId = `bank_${Date.now()}`;
+      console.log('Using mock bank ID:', landlordBankId);
+    }
+
+    // Store the bank ID & name securely in UserProfile
+    await UserProfile.update(
+      { landlordBankId, bankName },
+      { where: { id: userId } }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Bank registered successfully!',
+      landlordBankId,
+    });
+  } catch (error) {
+    console.error('Error registering bank:', error);
+    return res.status(500).json({ message: 'Failed to register bank.' });
+  }
+});
+
 // PUT endpoint to update user profile by ID
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid UUID format' });
+    }
+
     const { name, phoneNumber, dateofBirth, email, password } = req.body;
 
     const profile = await UserProfile.findByPk(id);
@@ -369,6 +403,12 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid UUID format' });
+    }
+
     const profile = await UserProfile.findByPk(id);
 
     if (!profile) {
@@ -384,6 +424,32 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+router.delete('/remove-bank', async (req, res) => {
+  try {
+    const { userProfileId } = req.body;
+
+    if (!userProfileId) {
+      return res.status(400).json({ message: "UserProfile ID is required." });
+    }
+
+    const userProfile = await UserProfile.findByPk(userProfileId);
+    if (!userProfile) {
+      return res.status(404).json({ message: "User profile not found." });
+    }
+
+    await UserProfile.update(
+      { landlordBankId: null, bankName: null },
+      { where: { id: userProfileId } }
+    );
+
+    res.json({ message: "Bank details removed successfully." });
+  } catch (error) {
+    console.error("Error removing bank details:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 
 module.exports = router;

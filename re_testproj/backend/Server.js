@@ -1,5 +1,5 @@
 // backend/server.js
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 const { v4: uuidv4 } = require('uuid');
 
 const bodyParser = require('body-parser');
@@ -21,6 +21,8 @@ const sendBillRoutes = require('./routes/sendBillRoutes');
 const leaseProposalRoutes = require('./routes/leaseProposalRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
+const paymentsRoutes = require('./routes/paymentsRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
@@ -121,12 +123,14 @@ app.use('/api/applications', tenantApplicationRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
+app.use('/api/team', teamRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
+app.use('/api/payments', paymentsRoutes);
 app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
@@ -2408,8 +2412,6 @@ app.get('/tenants/:tenantId/leaseDocs', async (req, res) => {
 app.get('/unsigned-leases/:tenantId', async (req, res) => {
   const { tenantId } = req.params;
 
-  console.log("tenantid", tenantId);
-
   try {
     // Step 1: Get leaseDocs for the tenant
     const [leaseDocs] = await sequelize.query(
@@ -2421,8 +2423,6 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
         type: sequelize.QueryTypes.SELECT
       }
     );
-
-    console.log("leasedocs", leaseDocs)
 
     // Convert leaseDocs array to a string formatted as an array literal
     const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
