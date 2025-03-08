@@ -24,8 +24,8 @@ const ManageBilling = ({ tenantEmail }) => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [validPaymentMethod, setValidPaymentMethod] = useState(false);
   const [searchParams] = useSearchParams();
-  const status = searchParams.get('status');
-  const billId = searchParams.get('billId');
+  const paymentStatus = searchParams.get("paymentStatus"); // Get payment status from URL
+  const [statusMessage, setStatusMessage] = useState(null);
 
   // Fetch stored payment methods for the tenant
   useEffect(() => {
@@ -72,15 +72,21 @@ const ManageBilling = ({ tenantEmail }) => {
     }
   }, [tenantEmail, selectedYear, selectedStatus]);
 
+  //Show payment status message
   useEffect(() => {
-    if (status === "success" && selectedBill) {
-      alert(`Payment for bill ${billId} was successful!`);
-      setShowPayModal(false);
-      setSelectedBill(null);
-    } else if (status === "failed") {
-      alert(`Payment for bill ${billId} failed. Please try again.`);
+    if (paymentStatus) {
+      if (paymentStatus === "success") {
+        setStatusMessage("Payment successful!");
+      } else if (paymentStatus === "failed") {
+        setStatusMessage("Payment failed. Please try again.");
+      }
+
+      // Remove the status message after 5 seconds
+      setTimeout(() => {
+        setStatusMessage(null);
+      }, 5000);
     }
-  }, [status, billId]);
+  }, [paymentStatus]);
 
   const indexOfLastFile = currentPage * filesPerPage;
   const indexOfFirstFile = indexOfLastFile - filesPerPage;
@@ -107,6 +113,7 @@ const ManageBilling = ({ tenantEmail }) => {
 
   return (
     <div className="manage-billing">
+      {statusMessage && <div className="payment-status">{statusMessage}</div>}
       <div className="manage-billing-header">
         <h5>Manage Billing</h5>
         <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>

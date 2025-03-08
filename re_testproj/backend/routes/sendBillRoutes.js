@@ -83,10 +83,10 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Fetch landlord's bank ID to store in Files table
+    // Fetch landlord's bank ID + bank details
     const landlord = await UserProfile.findOne({
       where: { id: landlordId },
-      attributes: ['landlordBankId']
+      attributes: ['landlordBankId', 'landlordBankDetails']
     });
 
     if (!landlord || !landlord.landlordBankId) {
@@ -132,12 +132,12 @@ router.post('/generate', async (req, res) => {
       landlordEmail,
       deadline,
       landlordBankId: landlord.landlordBankId,
+      landlordBankDetails: landlord.landlordBankDetails
     });
 
     console.log("Bill generated:", newFile);
 
     return res.json({ message: 'Bill generated successfully.', fileRecord: newFile });
-
   } catch (error) {
     console.error('Error generating bill:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -153,11 +153,17 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
     }
 
     const files = await Files.findAll({
-      where: { tenantEmail, fileType: 'pdf', url: { [Op.ne]: null } }, // Fetch only PDFs with URLs
+      where: {
+        tenantEmail,
+        fileType: 'pdf',
+        url: { [Op.ne]: null }
+      },
       order: [['createdAt', 'DESC']],
       attributes: [
         'id', 'tenantEmail', 'landlordId', 'totalAmount', 'paid', 'fileType',
-        'url', 'createdAt', 'subject', 'landlordBankId'
+        'url', 'createdAt', 'subject', 'landlordBankId',
+        // NEW:
+        'landlordBankDetails'
       ]
     });
 
@@ -167,6 +173,7 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 // routes/sendBillRoutes.js (append these endpoints)
 
@@ -241,14 +248,19 @@ router.get('/get-landlord-payment/:landlordId', async (req, res) => {
   try {
     const landlord = await UserProfile.findOne({
       where: { id: req.params.landlordId },
-      attributes: ['landlordBankId', 'bankName']
+      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails']
     });
 
     if (!landlord) {
       return res.status(404).json({ message: 'Landlord not found' });
     }
 
-    res.json(landlord);
+    // Return all relevant fields
+    return res.json({
+      landlordBankId: landlord.landlordBankId,
+      bankName: landlord.bankName,
+      landlordBankDetails: landlord.landlordBankDetails
+    });
   } catch (error) {
     console.error('Error fetching landlord bank details:', error);
     res.status(500).json({ message: 'Error retrieving landlord bank details' });

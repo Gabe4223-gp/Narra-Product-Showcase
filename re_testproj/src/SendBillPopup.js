@@ -16,6 +16,7 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
   const [landlordBankId, setLandlordBankId] = useState(null);
   const [bankName, setBankName] = useState(null);
   const [loadingBankInfo, setLoadingBankInfo] = useState(true);
+  const [landlordBankDetails, setLandlordBankDetails] = useState(null);
 
   useEffect(() => {
     const fetchLandlordBankDetails = async () => {
@@ -24,14 +25,17 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
         if (res.data) {
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
+          setLandlordBankDetails(res.data.landlordBankDetails || null);
         } else {
           setLandlordBankId(null);
           setBankName(null);
+          setLandlordBankDetails(null);
         }
       } catch (error) {
         console.error('Error fetching landlord payment details:', error);
         setLandlordBankId(null);
         setBankName(null);
+        setLandlordBankDetails(null);
       } finally {
         setLoadingBankInfo(false);
       }
@@ -70,6 +74,11 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
       return;
     }
 
+    if (!landlordBankDetails) {
+      alert("Landlord has not set up their Bank Details. Please ask them to update it in Settings.");
+      return;
+    }
+
     const billData = {
       tenantEmail,
       propertyId,
@@ -101,7 +110,7 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
       <div className="popup-content">
         <h2>Send Bill</h2>
 
-        {!loadingBankInfo && !landlordBankId && (
+        {!loadingBankInfo && !landlordBankId && !landlordBankDetails && (
           <div className="error-banner">
             ⚠️ No Bank Details Found. Landlord must set up their bank account in "Settings".
           </div>
