@@ -1,6 +1,6 @@
 // src/TenantSettings.js
 import React, { useState, useEffect } from 'react';
-import { useUserProfile } from '../UserProfileContext'; // Adjust path as needed
+import { useUserProfile } from '../UserProfileContext';
 import axios from 'axios';
 import TeamSettings from './TeamSettings';
 import './Settings.css';
@@ -32,10 +32,17 @@ function TenantSettings() {
   // For the delete confirmation popup
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-  // For Bank setup
+  // Existing bank form data (for Bank Name, etc. – unchanged)
   const [bankFormData, setBankFormData] = useState({
     bankName: '',
     landlordBankId: ''
+  });
+
+  // For Bank details form
+  const [userBankDetails, setUserBankDetails] = useState({
+    accountNumber: '',
+    routingNumber: '',
+    swiftCode: '',
   });
 
   // When userProfile changes, populate formData
@@ -54,10 +61,20 @@ function TenantSettings() {
         email: userProfile.email || '',
         password: userProfile.password || '',
       });
+
       setBankFormData({
         bankName: userProfile.bank || '',
-        landlordBankId: userProfile.landlordBankId || '' // Securely stored bank token
+        landlordBankId: userProfile.landlordBankId || ''
       });
+
+      // Populate the bank details form
+      if (userProfile.landlordBankDetails) {
+        setUserBankDetails({
+          accountNumber: userProfile.landlordBankDetails.accountNumber || '',
+          routingNumber: userProfile.landlordBankDetails.routingNumber || '',
+          swiftCode: userProfile.landlordBankDetails.swiftCode || '',
+        });
+      }
     }
   }, [userProfile, refreshUserProfile]);
 
@@ -71,9 +88,18 @@ function TenantSettings() {
   const handleBankChange = (e) => {
     setBankFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
-  };  
+  };
+
+  // 3) Handler for changes in the bank details form
+  const handleUserBankDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setUserBankDetails((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleChangePassword = () => {
     setShowPassword(!showPassword);
@@ -82,7 +108,6 @@ function TenantSettings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // PUT request to update
       const res = await axios.put(`/api/user-profile/${formData.id}`, {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
@@ -91,18 +116,13 @@ function TenantSettings() {
         password: formData.password,
       });
       setMessage(res.data.message || 'Settings updated successfully.');
-
-      // Option 1: Re-fetch the profile from backend
-      // refreshUserProfile();
-
-      // Option 2: Manually update the context
       updateUserProfile({
         id: formData.id,
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
         email: formData.email,
-        password: formData.password, // consider hashing in production
+        password: formData.password,
       });
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -112,30 +132,106 @@ function TenantSettings() {
 
   const saveBankDetails = async () => {
     try {
-      console.log("Sending API request to register bank:", {
-        userId: userProfile.id,
-        bankName: bankFormData.bankName
-      });
-  
       const response = await axios.post('/api/user-profile/register-bank', {
         userId: userProfile.id,
         bankName: bankFormData.bankName
       });
-  
-      console.log("API Response:", response);
-  
       if (response.data.success) {
         alert('Bank details registered successfully!');
-        refreshUserProfile(); // Refresh stored data
+        refreshUserProfile();
       } else {
         alert(response.data.message || 'Failed to register bank.');
       }
     } catch (error) {
-      console.error('Error registering bank details:', error.response ? error.response.data : error);
+      console.error('Error registering bank details:', error);
       alert('Error registering bank.');
     }
   };
-   
+
+  // Save/Update userBankDetails in DB (landlordBankDetails column)
+  const saveUserBankDetails = async (e) => {
+    e.preventDefault();
+  
+    // -- Basic Validation --
+    if (!/^\d{6,20}$/.test(userBankDetails.accountNumber)) {
+      return alert('Please enter a valid account number (6-20 digits).');
+    }
+  
+    // For routing number: typically 9 digits for US banks, but may differ internationally
+    if (userBankDetails.routingNumber && !/^\d{5,12}$/.test(userBankDetails.routingNumber)) {
+      return alert('Please enter a valid routing number (5-12 digits), or leave blank if not applicable.');
+    }
+  
+    // Swift code: typically 8-11 alphanumeric characters.
+    if (
+      userBankDetails.swiftCode &&
+      !/^[A-Za-z0-9]{8,11}$/.test(userBankDetails.swiftCode)
+    ) {
+      return alert('Please enter a valid SWIFT code (8-11 letters/numbers) or leave blank.');
+    }
+    
+    try {
+      if (!userProfile?.id) {
+        return alert('No user ID found. Please log in again.');
+      }
+  
+      const response = await axios.post(
+        `/api/user-profile/${userProfile.id}/landlord-bank-details`,
+        { landlordBankDetails: userBankDetails }
+      );
+  
+      if (response.data.success) {
+        alert('User bank details saved successfully!');
+        refreshUserProfile();
+      } else {
+        alert(response.data.message || 'Failed to save user bank details.');
+      }
+    } catch (error) {
+      console.error('Error saving user bank details:', error);
+      alert('An error occurred while saving user bank details.');
+    }
+  };
+
+  // Delete bank info
+  const deleteBankInfo = async () => {
+    if (!window.confirm('Are you sure you want to delete your bank info?')) return;
+  
+    try {
+      // This route will clear userProfile.bank and userProfile.landlordBankId
+      const response = await axios.delete(
+        `/api/user-profile/${userProfile.id}/delete-bank-info`
+      );
+  
+      if (response.data.success) {
+        alert('Bank info deleted successfully.');
+        refreshUserProfile();  // to re-fetch updated userProfile
+      } else {
+        alert(response.data.message || 'Failed to delete bank info.');
+      }
+    } catch (error) {
+      console.error('Error deleting bank info:', error);
+      alert('An error occurred while deleting bank info.');
+    }
+  };
+
+  // Delete userBankDetails
+  const deleteUserBankDetails = async () => {
+    if (!window.confirm('Are you sure you want to delete these bank details?')) return;
+    try {
+      const response = await axios.delete(
+        `/api/user-profile/${userProfile.id}/landlord-bank-details`
+      );
+      if (response.data.success) {
+        alert('User bank details deleted successfully.');
+        refreshUserProfile();
+      } else {
+        alert(response.data.message || 'Failed to delete user bank details.');
+      }
+    } catch (error) {
+      console.error('Error deleting user bank details:', error);
+      alert('An error occurred while deleting user bank details.');
+    }
+  };
 
   // Handle Delete Account (front-end only for now)
   const handleDeleteAccount = () => {
@@ -144,24 +240,17 @@ function TenantSettings() {
 
   const confirmDeleteAccount = async () => {
     try {
-      // DELETE request to /api/user-profile/:id
       await axios.delete(`/api/user-profile/${formData.id}`);
-
-      // Close the confirmation popup
       setShowDeleteConfirmation(false);
-
-      // For example, redirect to login page
       window.location.href = '/login';
     } catch (error) {
       console.error('Error deleting account:', error);
-      // Optionally show a user-friendly error message
     }
   };
 
   if (loadingProfile) {
     return <div>Loading your profile...</div>;
   }
-
   if (error) {
     return <div>Error loading profile: {error}</div>;
   }
@@ -251,28 +340,85 @@ function TenantSettings() {
       <p><strong>Bank Registered:</strong> {bankFormData.landlordBankId ? '✔️ Registered' : '❌ Not Registered'}</p>
       <p><strong>Current Bank:</strong> {userProfile.bankName ? userProfile.bankName : "None"}</p>
 
-      {/* Popup Buttons */}
       <div className="popup-actions">
+        <button
+          className="link-btn danger"
+          style={{ marginLeft: '1rem' }}
+          onClick={deleteBankInfo}
+        >
+          Delete Bank Info
+        </button>
         <button onClick={saveBankDetails}>Save</button>
       </div>
 
-      {message && <p>{message}</p>}
+      {/* Bank Details Form */}
+      <hr />
+      <h4>User Bank Details</h4>
+      <form onSubmit={saveUserBankDetails}>
+        <div className="fields">
+          <label htmlFor="accountNumber">Account Number</label>
+          <input
+            id="accountNumber"
+            name="accountNumber"
+            type="text"
+            placeholder="ex. 1234567890"
+            value={userBankDetails.accountNumber}
+            onChange={handleUserBankDetailsChange}
+            required
+          />
+        </div>
+
+        <div className="fields">
+          <label htmlFor="routingNumber">Routing Number</label>
+          <input
+            id="routingNumber"
+            name="routingNumber"
+            type="text"
+            placeholder="ex. 987654321"
+            value={userBankDetails.routingNumber}
+            onChange={handleUserBankDetailsChange}
+          />
+        </div>
+
+        <div className="fields">
+          <label htmlFor="swiftCode">SWIFT Code (optional)</label>
+          <input
+            id="swiftCode"
+            name="swiftCode"
+            type="text"
+            placeholder="ex. ABC123XYZ"
+            value={userBankDetails.swiftCode}
+            onChange={handleUserBankDetailsChange}
+          />
+        </div>
+
+        <button type="submit" className="edit-btn">
+          Save User Bank Details
+        </button>
+      </form>
+
+      <button
+        type="button"
+        onClick={deleteUserBankDetails}
+        className="link-btn danger"
+        style={{ marginTop: '1rem' }}
+      >
+        Delete User Bank Details
+      </button>
       
-      {/* Team Settings Section */}
+      {/* ====================== Team Settings, Language & Currency, etc. ====================== */}
       <h4>Team Settings</h4>
       <button onClick={() => setShowTeamSettings(true)} className="link-btn">
         View Team
       </button>
-      
       {showTeamSettings && (
         <TeamSettings 
           onClose={() => setShowTeamSettings(false)} 
           userName={userProfile.name} 
-          userEmail={userProfile.email} 
+          userEmail={userProfile.email}
         />
       )}
 
-      {/* Language and Currency Section */}
       <h4>Language and Currency</h4>
       <p>
         Default Language: English{' '}
@@ -295,12 +441,12 @@ function TenantSettings() {
         </button>
       </p>
 
-      {/* Help Section */}
+      {/* ====================== Help Section ====================== */}
       <h4>Help</h4>
       <h5>Contact Support</h5>
-        <p>Company Email: admin@narra-ph.com</p>
+      <p>Company Email: admin@narra-ph.com</p>
 
-      {/* Delete Account Link */}
+      {/* ====================== Delete Account ====================== */}
       <button
         type="button"
         className="link-btn danger"
@@ -308,28 +454,27 @@ function TenantSettings() {
       >
         Delete Account
       </button>
-
-      {/* Delete Confirmation Popup */}
       {showDeleteConfirmation && (
-      <div className='overlay'>
-        <div className="modal">
-          <p>
-            Are you sure you want to delete your account?
-            <br />
-            You will be returned to the login page upon deleting.
-          </p>
-          <div style={{ marginTop: '10px' }}>
-            <button onClick={confirmDeleteAccount} style={{ marginRight: '10px' }}>
-              Yes, Delete
-            </button>
-            <button onClick={() => setShowDeleteConfirmation(false)}>
-              Cancel
-            </button>
+        <div className='overlay'>
+          <div className="modal">
+            <p>
+              Are you sure you want to delete your account?
+              <br />
+              You will be returned to the login page upon deleting.
+            </p>
+            <div style={{ marginTop: '10px' }}>
+              <button onClick={confirmDeleteAccount} style={{ marginRight: '10px' }}>
+                Yes, Delete
+              </button>
+              <button onClick={() => setShowDeleteConfirmation(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-    )}
+      {message && <p>{message}</p>}
     </div>
   );
 }

@@ -123,7 +123,7 @@ app.use('/api/applications', tenantApplicationRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
-app.use('/api/team', teamRoutes);
+app.use('/api/teams', teamRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
 app.use('/api/properties', propertiesRoutes);

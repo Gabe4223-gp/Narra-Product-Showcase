@@ -7,9 +7,12 @@ import ManagePaymentMethods from './ManagePaymentMethods';
 import ManageLease from './ManageLease';
 import RenewLease from './RenewLease';
 import { useUserProfile } from '../UserProfileContext.js';
+import { useSearchParams} from 'react-router-dom';
 
 const TenantHomepage = () => {
   const { userProfile, refreshUserProfile } = useUserProfile();
+  const [searchParams] = useSearchParams();
+  const redirected = searchParams.get("redirected");
 
   const [leaseData, setLeaseData] = useState({
       leaseStarted: null,
@@ -19,11 +22,15 @@ const TenantHomepage = () => {
 
   // Fetch user profile once on mount (no dependency)
   useEffect(() => {
+    if (redirected) {
+      refreshUserProfile();
+    }
+
     const fetchProfileAndLease = async () => {
       await refreshUserProfile(); // Wait for profile to load
     };
     fetchProfileAndLease();
-  }, []); // Empty dependency to run only once
+  }, [redirected]); // Empty dependency to run only once
 
   // fetchLeaseData accesses userProfile internally
   const fetchLeaseData = useCallback(async () => {

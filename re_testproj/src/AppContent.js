@@ -1,8 +1,11 @@
+// AppContent.js
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
-import { useUserProfile } from './UserProfileContext';
+import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useUserProfile } from './UserProfileContext';
+import { useTeamContext } from './TeamContext';
 import axios from 'axios';
+
 import Homepage from './Homepage';
 import Billings from './Billings';
 import Applications from './Applications/Applications';
@@ -14,112 +17,124 @@ import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
 import RoleSelection from './RoleSelection';
-
-// New Tenant view component:
 import TenantHomepage from './TenantView/TenantHomepage';
-
-// New "Welcome" component for setting up a profile if incomplete
 import Welcome from './Welcome';
 
 function AppContent() {
   const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
+  const { userProfile } = useUserProfile();
+
+  // Bring in TeamContext
+  const {
+    teams,
+    loadingTeams,
+    activeTeamId,
+    setActiveTeamId,
+    activeTeamMembership
+  } = useTeamContext();
+
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const redirected = searchParams.get("redirected");
+
   const [role, setRole] = useState(null);
-  const [permissions, setPermissions] = useState({});
-  const { userProfile, refreshUserProfile } = useUserProfile();
 
-  const redirected = searchParams.get('redirected'); // Detect if redirected from payment
-
-  // Fetch permissions on login
+  // If redirected after GCash Payment, go to tenant dash
   useEffect(() => {
-    if (user?.email) {
-      const fetchPermissions = async () => {
-        try {
-          const res = await axios.get(`/api/team/permissions?email=${encodeURIComponent(user.email)}`);
-          setPermissions(res.data);
-        } catch (error) {
-          console.warn("No team permissions found, defaulting to no access.");
-          setPermissions({});
-        }
-      };
-      fetchPermissions();
+    if (redirected) {
+      navigate("/tenant/dashboard", { replace: true });
     }
-
-    // Auto-login if user was redirected from payment
-    if (!isAuthenticated && redirected) {
+    if (!isAuthenticated && !isLoading && window.location.pathname !== "/") {
       loginWithRedirect();
     }
+  }, [redirected, isAuthenticated, isLoading, loginWithRedirect, navigate]);
 
-    // Refresh user profile after payment redirection
-    if (redirected) {
-      refreshUserProfile();
-    }
-
-  }, [user?.email, isAuthenticated, loginWithRedirect, redirected, refreshUserProfile]);
-
-  if (isLoading) {
+  // If loading from Auth0 or TeamContext, show loading
+  if (isLoading || loadingTeams) {
     return <div>Loading...</div>;
   }
 
+  // If not authenticated, show public routes
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  // At this point, TeamContext has loaded. 
+  // Because we auto-create a default team if none exists, 
+  // user always has at least 1 team by now (unless an error).
+
+  // If there's exactly one team but no activeTeamId, pick it
+  if (teams.length === 1 && !activeTeamId) {
+    setActiveTeamId(teams[0].id);
+  }
+
+  // If user has no role => show role selection
+  if (!role) {
+    return (
+      <Routes>
+        <Route path="/select-role" element={
+          <ProtectedRoute>
+            <RoleSelection setRole={setRole} />
+          </ProtectedRoute>
+        } />
+        <Route path="/welcome" element={
+          <ProtectedRoute>
+            <Welcome onProfileCreated={(selectedRole) => setRole(selectedRole)} />
+          </ProtectedRoute>
+        } />
+        <Route path="*" element={<Navigate to="/select-role" replace />} />
+      </Routes>
+    );
+  }
+
+  // Optional: multi-team switcher if teams.length > 1
+  function renderTeamSwitcher() {
+    if (teams.length <= 1) return null;
+    return (
+      <div style={{ padding: '8px', background: '#ddd' }}>
+        <label>Active Team:</label>
+        <select
+          value={activeTeamId || ''}
+          onChange={(e) => setActiveTeamId(e.target.value)}
+        >
+          <option value="">(none)</option>
+          {teams.map(t => (
+            <option key={t.id} value={t.id}>{t.teamName}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
   return (
-    <Routes>
-      {/* 1. Public Route for non-authenticated users */}
-      {!isAuthenticated && !redirected && (
-        <>
-          <Route path="/*" element={<Login />} />
-          <Route path="*" element={<Navigate to="/*" replace />} />
-        </>
-      )}
+    <>
+      {renderTeamSwitcher()}
 
-      {/* 2. Authenticated but no role chosen yet */}
-      {isAuthenticated && !role && (
-        <>
-          <Route path="/select-role" element={
-            <ProtectedRoute>
-              <RoleSelection setRole={setRole} setPermissions={setPermissions} />
-            </ProtectedRoute>
-          }/>
-          <Route path="/welcome" element={
-            <ProtectedRoute>
-              <Welcome onProfileCreated={(selectedRole) => setRole(selectedRole)} />
-            </ProtectedRoute>
-          }/>
-          <Route path="*" element={<Navigate to="/select-role" replace />} />
-        </>
-      )}
-
-      {/* 3. Redirect Handling After Payment */}
-      {isAuthenticated && redirected && (
-        <Route path="/" element={<ProtectedRoute><Layout role="tenant" /></ProtectedRoute>}>
-          <Route path="tenant/dashboard" element={<TenantHomepage />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/tenant/dashboard" replace />} />
-        </Route>
-      )}
-
-      {/* 4. Authenticated and role chosen */}
-      {isAuthenticated && role && (
+      <Routes>
         <Route path="/" element={
           <ProtectedRoute>
-            <Layout role={role} permissions={permissions} />
+            <Layout role={role} membership={activeTeamMembership} />
           </ProtectedRoute>
         }>
-          {/* Landlord Routes */}
           {role === 'landlord' && (
             <>
               <Route index element={<Homepage />} />
               <Route path="homepage" element={<Homepage />} />
-              {permissions.billings && <Route path="billing" element={<Billings />} />}
-              {permissions.applications && <Route path="applications" element={<Applications />} />}
-              {permissions.tenants && <Route path="tenant" element={<Tenants />} />}
-              {permissions.units && <Route path="unit" element={<Units />} />}
-              {permissions.issues && <Route path="issues" element={<Issues />} />}
+              {activeTeamMembership?.billings && <Route path="billing" element={<Billings />} />}
+              {activeTeamMembership?.applications && <Route path="applications" element={<Applications />} />}
+              {activeTeamMembership?.tenants && <Route path="tenant" element={<Tenants />} />}
+              {activeTeamMembership?.units && <Route path="unit" element={<Units />} />}
+              {activeTeamMembership?.issues && <Route path="issues" element={<Issues />} />}
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/homepage" replace />} />
             </>
           )}
 
-          {/* Tenant Routes */}
           {role === 'tenant' && (
             <>
               <Route path="tenant">
@@ -131,8 +146,8 @@ function AppContent() {
             </>
           )}
         </Route>
-      )}
-    </Routes>
+      </Routes>
+    </>
   );
 }
 

@@ -367,6 +367,34 @@ router.post('/register-bank', async (req, res) => {
   }
 });
 
+// Create or update the landlordBankDetails field in the UserProfile.
+router.post('/:id/landlord-bank-details', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { landlordBankDetails } = req.body; // { bankName, accountNumber, routingNumber, swiftCode }
+
+    // 1) Find the User Profile by ID
+    const profile = await UserProfile.findByPk(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 2) Save the landlordBankDetails to the profile
+    profile.landlordBankDetails = landlordBankDetails;
+    await profile.save();
+
+    // 3) Return success response
+    return res.json({
+      success: true,
+      message: 'User bank details saved successfully.',
+      landlordBankDetails: profile.landlordBankDetails,
+    });
+  } catch (err) {
+    console.error('Error saving user bank details:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // PUT endpoint to update user profile by ID
 router.put('/:id', async (req, res) => {
   try {
@@ -450,6 +478,52 @@ router.delete('/remove-bank', async (req, res) => {
   }
 });
 
+router.delete('/:id/delete-bank-info', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await UserProfile.findByPk(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
+    // Clear the bank name (assuming it’s stored in userProfile.bank or userProfile.bankName)
+    profile.bankName = null; // Or '' if you prefer
+    // Clear the landlordBankId as well
+    profile.landlordBankId = null;
+
+    await profile.save();
+
+    return res.json({ success: true, message: 'Bank info deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting bank info:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Remove (set to null) the landlordBankDetails in the UserProfile.
+router.delete('/:id/landlord-bank-details', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1) Find the User Profile by ID
+    const profile = await UserProfile.findByPk(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 2) Set landlordBankDetails to null
+    profile.landlordBankDetails = null;
+    await profile.save();
+
+    // 3) Return success response
+    return res.json({
+      success: true,
+      message: 'User bank details deleted successfully.',
+    });
+  } catch (err) {
+    console.error('Error deleting user bank details:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 module.exports = router;

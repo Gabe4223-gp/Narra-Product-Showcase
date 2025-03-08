@@ -19,8 +19,7 @@ module.exports = (sequelize, DataTypes) => {
     deadline: DataTypes.DATE,
     proof: DataTypes.STRING,
     landlordBankId: { type: DataTypes.STRING, allowNull: true }, // Securely stored Bank ID
-    tenantPaymentMethodId: { type: DataTypes.STRING, allowNull: true }, // Securely stored Payment Method ID
-    teamsData: DataTypes.JSONB,
+    landlordBankDetails: { type: DataTypes.JSONB, allowNull: true },
     uploadedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'Files',
