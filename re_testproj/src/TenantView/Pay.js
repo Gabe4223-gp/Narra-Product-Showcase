@@ -25,8 +25,18 @@ const Pay = ({ bill, onClose }) => {
   const [missingLandlordGcash, setMissingLandlordGcash] = useState(false);
   const [inputLandlordGcash, setInputLandlordGcash] = useState("");
 
-  // Landlord's Bank Info from the Files table (for Wise)
-  const [landlordBankDetails, setLandlordBankDetails] = useState(null);
+   // Landlord bank details (for Wise) are fetched from Files.landlordBankDetails.
+  // We also allow manual editing if some fields are missing.
+  const [landlordBankDetails, setLandlordBankDetails] = useState({
+    bankName: "",
+    accountName: "",
+    accountNumber: "",
+    routingNumber: "",
+    swiftCode: ""
+  });
+  const [originalBankDetails, setOriginalBankDetails] = useState(null);
+  const [editingBankDetails, setEditingBankDetails] = useState(null);
+  const [isEditingBankDetails, setIsEditingBankDetails] = useState(false);
 
   // UI / Error states
   const [loading, setLoading] = useState(true);
@@ -51,29 +61,19 @@ const Pay = ({ bill, onClose }) => {
       try {
         if (!userProfile || !bill) return;
 
-        // Tenant Payment Methods
+        // Fetch tenant payment methods
         const userPaymentRes = await axios.get(
           `/api/payments/user-payment-methods/${userProfile.id}`
         );
-        const {
-          storedPaymentMethods,
-          gcashMobileNumber,
-          bankName
-        } = userPaymentRes.data || {};
+        const { storedPaymentMethods, gcashMobileNumber, bankName } = userPaymentRes.data || {};
 
         setTenantBankInfo(storedPaymentMethods || null);
         setTenantBankName(bankName || null);
         setTenantGcashNumber(gcashMobileNumber || null);
 
-        // Landlord GCash from get-landlord-details
-        const landlordRes = await axios.get(
-          `/api/payments/get-landlord-details/${bill.landlordId}`
-        );
-        const {
-          landlordBankId,
-          landlordGcashMobileNumber
-        } = landlordRes.data || {};
-
+        // Fetch landlord basic details (for GCash)
+        const landlordRes = await axios.get(`/api/payments/get-landlord-details/${bill.landlordId}`);
+        const { landlordBankId, landlordGcashMobileNumber } = landlordRes.data || {};
         setLandlordGcashNumber(landlordGcashMobileNumber || null);
 
         // Determine available methods for user
@@ -110,20 +110,51 @@ const Pay = ({ bill, onClose }) => {
       try {
         const response = await axios.get(`/api/payments/get-landlord-bank/${bill.id}`);
         if (response.data && response.data.success) {
+          // Store fetched details in all three states
           setLandlordBankDetails(response.data.bankDetails);
+          setOriginalBankDetails(response.data.bankDetails);
+          setEditingBankDetails(response.data.bankDetails);
         } else {
-          setLandlordBankDetails(null);
+          const emptyDetails = { bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "" };
+          setLandlordBankDetails(emptyDetails);
+          setOriginalBankDetails(emptyDetails);
+          setEditingBankDetails(emptyDetails);
         }
       } catch (err) {
         console.error("Error fetching landlord bank from Files:", err);
-        setLandlordBankDetails(null);
+        const emptyDetails = { bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "" };
+        setLandlordBankDetails(emptyDetails);
+        setOriginalBankDetails(emptyDetails);
+        setEditingBankDetails(emptyDetails);
       }
     };
-
+  
     if (paymentMethod === "Bank & Card") {
       fetchLandlordBank();
     }
   }, [paymentMethod, bill.id]);
+
+  // Handler for toggling manual edit of bank details
+  const toggleEditBankDetails = () => {
+    setIsEditingBankDetails(!isEditingBankDetails);
+  };
+
+  const startEditing = () => {
+    setIsEditingBankDetails(true);
+  };
+  
+  const handleSaveBankDetails = () => {
+    // Update the displayed bank details with the edited values
+    setLandlordBankDetails(editingBankDetails);
+    setOriginalBankDetails(editingBankDetails);
+    setIsEditingBankDetails(false);
+  };
+  
+  const handleCancelEdit = () => {
+    // Revert editing copy to the original values
+    setEditingBankDetails(originalBankDetails);
+    setIsEditingBankDetails(false);
+  };  
 
   // Helper for card fields if we re-enable them later
   const handleChange = (e) => {
@@ -181,23 +212,48 @@ const Pay = ({ bill, onClose }) => {
 
       // Wise Flow => "Bank & Card"
       else if (paymentMethod === "Bank & Card") {
+        // For Wise, we require tenantBankInfo to exist (for the tenant's own info)
         if (!tenantBankInfo) {
           setError("You have no stored bank info. Please update Payment Settings.");
           return;
         }
-        if (!landlordBankDetails) {
-          setError("Landlord has not set up their Bank Info. Please check with them.");
+        // Ensure that landlordBankDetails is complete – if any field is missing, prompt for manual input.
+        const requiredFields = ["bankName", "accountName", "accountNumber", "routingNumber", "swiftCode"];
+        const missingFields = requiredFields.filter(field => !landlordBankDetails[field]);
+        if (missingFields.length > 0) {
+          setError(`Landlord bank details missing: ${missingFields.join(", ")}. Please enter them manually.`);
           return;
         }
 
+        // Prepare recipient payload based on available fields:
+        let recipientPayload = {};
+        if (landlordBankDetails.swiftCode) {
+          // Use swift code if available
+          recipientPayload = {
+            bankName: landlordBankDetails.bankName,
+            accountNumber: landlordBankDetails.accountNumber,
+            accountName: landlordBankDetails.accountName || "Landlord Name",
+            routingNumber: landlordBankDetails.routingNumber || "",
+            swiftCode: landlordBankDetails.swiftCode,
+            currency: "PHP",
+            country: "PH",
+          };
+        } else {
+          // Otherwise, use routingNumber (sort code)
+          recipientPayload = {
+            bankName: landlordBankDetails.bankName,
+            accountNumber: landlordBankDetails.accountNumber,
+            accountName: landlordBankDetails.accountName || "Landlord Name",
+            routingNumber: landlordBankDetails.routingNumber || "",
+            currency: "PHP",
+            country: "PH",
+          };
+        }
+
+        console.log("Creating Wise recipient with payload:", recipientPayload);
+
         // 1) Create Wise recipient
-        const recipientRes = await axios.post("/api/payments/wise-create-recipient", {
-          bankName: landlordBankDetails.bankName,
-          accountNumber: landlordBankDetails.accountNumber,
-          accountName: landlordBankDetails.accountName || "Landlord Name",
-          routingNumber: landlordBankDetails.routingNumber || "",
-          currency: "PHP",
-        });
+        const recipientRes = await axios.post("/api/payments/wise-create-recipient", recipientPayload);
         if (!recipientRes.data.success) {
           setError("Failed to create recipient on Wise: " + recipientRes.data.message);
           return;
@@ -212,10 +268,7 @@ const Pay = ({ bill, onClose }) => {
 
         if (wiseRes.data.success) {
           alert("Wise bank transfer processed successfully!");
-          await axios.post("/api/payments/update-status", {
-            billId: bill.id,
-            status: "Paid"
-          });
+          await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
           onClose();
         } else {
           setError("Wise bank transfer failed: " + (wiseRes.data.message || ""));
@@ -288,14 +341,91 @@ const Pay = ({ bill, onClose }) => {
               <div className="pay-wise-section">
                 <h4>Wise Bank Transfer</h4>
                 <p>
-                  Once you confirm, we will initiate a Wise transfer to
-                  the landlord’s bank account on file (from the Bill).
+                  <strong>Landlord Bank Details:</strong>
                 </p>
-                <button
-                  className="pay-submit"
-                  onClick={handleSend}
-                  disabled={processing}
-                >
+                {isEditingBankDetails ? (
+                  <div className="bank-details-edit">
+                    <div className="bank-detail-field">
+                      <label>Bank Name:</label>
+                      <input
+                        type="text"
+                        value={editingBankDetails.bankName}
+                        placeholder="Full bank Name"
+                        onChange={(e) =>
+                          setEditingBankDetails({ ...editingBankDetails, bankName: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="bank-detail-field">
+                      <label>Account Name:</label>
+                      <input
+                        type="text"
+                        value={editingBankDetails.accountName}
+                        placeholder={"Landlord's Full Name"}
+                        onChange={(e) =>
+                          setEditingBankDetails({ ...editingBankDetails, accountName: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="bank-detail-field">
+                      <label>Account Number:</label>
+                      <input
+                        type="text"
+                        value={editingBankDetails.accountNumber}
+                        onChange={(e) =>
+                          setEditingBankDetails({ ...editingBankDetails, accountNumber: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="bank-detail-field">
+                      <label>Routing Number:</label>
+                      <input
+                        type="text"
+                        value={editingBankDetails.routingNumber}
+                        onChange={(e) =>
+                          setEditingBankDetails({ ...editingBankDetails, routingNumber: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="bank-detail-field">
+                      <label>SWIFT Code:</label>
+                      <input
+                        type="text"
+                        value={editingBankDetails.swiftCode}
+                        onChange={(e) =>
+                          setEditingBankDetails({ ...editingBankDetails, swiftCode: e.target.value })
+                        }
+                      />
+                    </div>
+                    <button onClick={handleSaveBankDetails}>Save</button>
+                    <button onClick={handleCancelEdit}>Cancel Edit</button>
+                  </div>
+                ) : (
+                  <div className="bank-details-view">
+                    <div className="bank-detail-field">
+                      <span>Bank Name: </span>
+                      <span>{landlordBankDetails.bankName || "No info. Please input manually and verify with your landlord."}</span>
+                    </div>
+                    <div className="bank-detail-field">
+                      <span>Account Name: </span>
+                      <span>{landlordBankDetails.accountName || "No info. Please input manually and verify with your landlord."}</span>
+                    </div>
+                    <div className="bank-detail-field">
+                      <span>Account Number: </span>
+                      <span>{landlordBankDetails.accountNumber || "No info. Please input manually and verify with your landlord."}</span>
+                    </div>
+                    <div className="bank-detail-field">
+                      <span>Routing Number: </span>
+                      <span>{landlordBankDetails.routingNumber || "No info. Please input manually and verify with your landlord."}</span>
+                    </div>
+                    <div className="bank-detail-field">
+                      <span>SWIFT Code: </span>
+                      <span>{landlordBankDetails.swiftCode || "No info. Please input manually and verify with your landlord."}</span>
+                    </div>
+                    <button onClick={startEditing}>Edit Bank Details</button>
+                  </div>
+                )}
+                <button className="pay-submit" onClick={handleSend} disabled={processing}>
                   {processing ? "Processing..." : "Confirm & Pay via Wise"}
                 </button>
               </div>

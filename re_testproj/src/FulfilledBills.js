@@ -1,5 +1,6 @@
 // src/FulfilledBills.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   const [bills, setBills] = useState([]);
@@ -17,6 +18,16 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedBillIds, setSelectedBillIds] = useState(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [proofMap, setProofMap] = useState({});
+
+  const getFileUrl = (url) => {
+    if (!url) return "#";
+    if (url.startsWith("http")) return url;
+    // Use your environment variable or default to localhost for development
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+    return `${baseUrl}/${url}`;
+  };
+
 
   useEffect(() => {
     async function fetchBills() {
@@ -36,6 +47,46 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
       fetchBills();
     }
   }, [propertyId, refresh]);
+
+  useEffect(() => {
+    async function fetchAllProofs() {
+      const proofs = {};
+      // Use the already-filtered bills array (you may use filteredBills or currentFiles)
+      for (const bill of filteredBills) {
+        try {
+          const res = await axios.get('/api/sendBill/fetch-proof', {
+            params: {
+              landlordEmail: bill.landlordEmail,
+              subject: bill.subject
+            }
+          });
+          if (res.data.success && res.data.proof && res.data.proof.url) {
+            proofs[bill.id] = res.data.proof.url;
+          } else {
+            proofs[bill.id] = null;
+          }
+        } catch (error) {
+          console.error(`Error fetching proof for bill ${bill.id}:`, error);
+          proofs[bill.id] = null;
+        }
+      }
+      setProofMap(proofs);
+    }
+    
+    // Assuming filteredBills is defined as:
+    const filteredBills = bills?.filter((bill) => {
+      const billedDate = new Date(bill.createdAt);
+      return (
+        billedDate.getFullYear() === selectedYear &&
+        billedDate.getMonth() === selectedMonth &&
+        bill.paid === true
+      );
+    });
+    
+    if (filteredBills && filteredBills.length > 0) {
+      fetchAllProofs();
+    }
+  }, [bills, selectedMonth, selectedYear]);
 
   const handleCheckboxChange = (billId) => {
     setSelectedBillIds((prev) => {
@@ -161,6 +212,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
               <th>Date Paid</th>
               <th>Status</th>
               <th>Invoice</th>
+              <th>Proof of Payment</th>
             </tr>
           </thead>
           <tbody>
@@ -190,9 +242,16 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
                         : 'N/A'}
                     </td>
                     <td>
-                      <a href={bill.url} target="_blank" rel="noopener noreferrer">
-                        View Invoice
-                      </a>
+                      <a href={getFileUrl(bill.url)} target="_blank" rel="noopener noreferrer">View Invoice</a>
+                    </td>
+                    <td>
+                      {proofMap[bill.id] ? (
+                        <a href={proofMap[bill.id]} target="_blank" rel="noopener noreferrer">
+                          View Proof
+                        </a>
+                      ) : (
+                        'N/A'
+                      )}
                     </td>
                   </tr>
                 );

@@ -86,11 +86,22 @@ router.post('/generate', async (req, res) => {
     // Fetch landlord's bank ID + bank details
     const landlord = await UserProfile.findOne({
       where: { id: landlordId },
-      attributes: ['landlordBankId', 'landlordBankDetails']
+      attributes: ['landlordBankId', 'landlordBankDetails', 'bankName']
     });
 
     if (!landlord || !landlord.landlordBankId) {
       return res.status(400).json({ message: "Landlord's bank details are missing. Please update settings." });
+    }
+
+    // 3) Combine the bank name with the landlordBankDetails object
+    //    If landlordBankDetails is a JSON with { swiftCode, accountNumber, routingNumber, etc. }
+    //    we now add the bankName from userProfile
+    let finalBankDetails = null;
+    if (landlord.landlordBankDetails) {
+      finalBankDetails = {
+        ...landlord.landlordBankDetails,
+        bankName: landlord.bankName || 'Unknown Bank'
+      };
     }
 
     // Generate PDF invoice
@@ -118,7 +129,7 @@ router.post('/generate', async (req, res) => {
       fileURL = s3.getSignedUrl('getObject', { Bucket: S3_BUCKET_NAME, Key: pdfFileName, Expires: 3600 });
     }
 
-    // Save bill to database (storing only `landlordBankId`)
+    // Save bill to database
     const newFile = await Files.create({
       fileName: pdfFileName,
       fileType: 'pdf',
@@ -132,7 +143,7 @@ router.post('/generate', async (req, res) => {
       landlordEmail,
       deadline,
       landlordBankId: landlord.landlordBankId,
-      landlordBankDetails: landlord.landlordBankDetails
+      landlordBankDetails: finalBankDetails
     });
 
     console.log("Bill generated:", newFile);
@@ -161,9 +172,7 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
       order: [['createdAt', 'DESC']],
       attributes: [
         'id', 'tenantEmail', 'landlordId', 'totalAmount', 'paid', 'fileType',
-        'url', 'createdAt', 'subject', 'landlordBankId',
-        // NEW:
-        'landlordBankDetails'
+        'url', 'createdAt', 'subject', 'landlordBankId', 'landlordBankDetails', 'landlordEmail'
       ]
     });
 
@@ -241,6 +250,36 @@ router.get('/fulfilled', async (req, res) => {
   } catch (error) {
     console.error('Error fetching fulfilled bills:', error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/fetch-proof', async (req, res) => {
+  try {
+    const { landlordEmail, subject } = req.query;
+    if (!landlordEmail || !subject) {
+      return res.status(400).json({ message: 'landlordEmail and subject are required.' });
+    }
+
+    // Build the expected subject string exactly
+    const expectedProofSubject = `${subject} - Proof of Payment`;
+
+    // Query for the most recent proof file matching the landlordEmail and expected subject
+    const proofFile = await Files.findOne({
+      where: {
+        landlordEmail,
+        subject: { [Op.iLike]: expectedProofSubject }
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!proofFile) {
+      return res.status(404).json({ message: 'Proof of payment not found.' });
+    }
+
+    return res.json({ success: true, proof: proofFile });
+  } catch (error) {
+    console.error('Error fetching proof file:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 });
 

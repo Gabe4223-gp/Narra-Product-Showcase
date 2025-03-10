@@ -25,7 +25,7 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
         if (res.data) {
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
-          setLandlordBankDetails(res.data.landlordBankDetails || null);
+          setLandlordBankDetails(res.data.landlordBankDetails);
         } else {
           setLandlordBankId(null);
           setBankName(null);
@@ -91,7 +91,6 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
       taxRate,
       deadline,
       totalAmount,
-      landlordBankId
     };
 
     console.log("Sending billData:", billData);
@@ -110,9 +109,15 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
       <div className="popup-content">
         <h2>Send Bill</h2>
 
-        {!loadingBankInfo && !landlordBankId && !landlordBankDetails && (
+        {!loadingBankInfo && !landlordBankId && (
           <div className="error-banner">
-            ⚠️ No Bank Details Found. Landlord must set up their bank account in "Settings".
+            ⚠️ No Bank Found. Please set up your bank account in "Settings".
+          </div>
+        )}
+
+        {!loadingBankInfo && !landlordBankDetails && (
+          <div className="error-banner">
+            ⚠️ No  Bank Account Info Found. Please set up your bank account in "Settings".
           </div>
         )}
 

@@ -27,6 +27,45 @@ const ManageBilling = ({ tenantEmail }) => {
   const paymentStatus = searchParams.get("paymentStatus"); // Get payment status from URL
   const [statusMessage, setStatusMessage] = useState(null);
 
+  // New state for proof of payment
+  const [showProofUpload, setShowProofUpload] = useState(false);
+  const [proofFile, setProofFile] = useState(null);
+  const [proofError, setProofError] = useState("");
+  const [proofStatus, setProofStatus] = useState({});
+
+  // Returns true if any file in the files array for the given billId has "proof of payment" in its subject.
+  const proofExists = (invoice) => {
+    const invoiceSubject = invoice.subject.toLowerCase().trim();
+    return files.some(file => {
+      const subject = file.subject.toLowerCase().trim();
+      return subject.includes(invoiceSubject) && subject.includes("proof of payment");
+    });
+  };  
+
+  const fetchFiles = async () => {
+    try {
+      const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
+      const filteredFiles = res.data.files
+        .filter(file => file.url && (file.fileType === 'pdf' || file.subject.toLowerCase().includes("proof of payment")))
+        .filter(file => {
+          if (file.subject.toLowerCase().includes("proof of payment")) {
+            return true;
+          }
+          return new Date(file.createdAt).getFullYear() === selectedYear;
+        })        
+        .filter(file => selectedStatus === 'all' || (selectedStatus === 'unpaid' ? !file.paid : file.paid));
+
+      setFiles(filteredFiles);
+      console.log("Fetched file subjects:", filteredFiles.map(f => f.subject));
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching files:', err);
+      setError('Error fetching bills from server.');
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
   // Fetch stored payment methods for the tenant
   useEffect(() => {
     async function checkPaymentMethod() {
@@ -47,25 +86,8 @@ const ManageBilling = ({ tenantEmail }) => {
 
   // Fetch valid files (PDFs with URLs)
   useEffect(() => {
-    async function fetchFiles() {
-      try {
-        const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
-        const filteredFiles = res.data.files
-          .filter(file => file.fileType === 'pdf' && file.url) // Only PDFs with valid URLs
-          .filter(file => new Date(file.createdAt).getFullYear() === selectedYear) // Filter by year
-          .filter(file => selectedStatus === 'all' || (selectedStatus === 'unpaid' ? !file.paid : file.paid)); // Filter by paid/unpaid status
-
-        setFiles(filteredFiles);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching files:', err);
-        setError('Error fetching bills from server.');
-      } finally {
-        setLoadingFiles(false);
-      }
-    }
-
     if (tenantEmail) {
+      setLoadingFiles(true);
       fetchFiles();
     } else {
       setLoadingFiles(false);
@@ -106,10 +128,66 @@ const ManageBilling = ({ tenantEmail }) => {
     setShowPayModal(true);
   };
 
+  // Handler when the "Proof of Pay" button is clicked
+  const handleProofClick = (file) => {
+    setSelectedBill(file);
+    setShowProofUpload(true);
+  };
+
+  // Handler when a file is selected
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      const validTypes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+      if (!validTypes.includes(selected.type)) {
+        setProofError("Invalid file type. Please upload JPG, JPEG, PNG, or PDF.");
+        return;
+      }
+      setProofFile(selected);
+      setProofError("");
+    }
+  };
+
   const closePayModal = () => {
     setShowPayModal(false);
     setSelectedBill(null);
   };
+
+  // Handler to submit the proof of payment
+  const handleProofSubmit = async () => {
+    if (!proofFile) {
+      setProofError("Please select a file to upload.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", proofFile);
+    formData.append("fileName", selectedBill.subject);
+    formData.append("fileType", proofFile.name.split('.').pop());
+    formData.append("subject", selectedBill.subject + " - Proof of Payment");
+    formData.append("billId", selectedBill.id);
+    formData.append("landlordEmail", selectedBill.landlordEmail);
+    formData.append("tenantEmail", tenantEmail);
+    
+    try {
+      const res = await axios.post("/api/payments/upload-proof", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (res.data.success) {
+        alert("Proof of payment uploaded successfully!");
+        // Update proofStatus for this bill
+        setProofStatus(prev => ({ ...prev, [selectedBill.id]: true }));
+        await fetchFiles(); // Optional: re-fetch files if needed
+      } else {
+        setProofError("Failed to upload proof of payment.");
+      }
+    } catch (error) {
+      console.error("Error uploading proof of payment:", error);
+      setProofError("Error uploading proof of payment.");
+    } finally {
+      setShowProofUpload(false);
+      setProofFile(null);
+    }
+  };    
 
   return (
     <div className="manage-billing">
@@ -128,7 +206,7 @@ const ManageBilling = ({ tenantEmail }) => {
               </select>
             </label>
           </div>
-
+  
           {/* Status Filter */}
           <div>
             <label>
@@ -142,7 +220,7 @@ const ManageBilling = ({ tenantEmail }) => {
           </div>
         </div>
       </div>
-
+  
       {loadingFiles ? (
         <p>Loading bills...</p>
       ) : error ? (
@@ -159,7 +237,7 @@ const ManageBilling = ({ tenantEmail }) => {
                 <th>Subject</th>
                 <th>Date Billed</th>
                 <th>Invoice</th>
-                <th></th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -178,13 +256,20 @@ const ManageBilling = ({ tenantEmail }) => {
                       {!file.paid && validPaymentMethod && (
                         <button onClick={() => handlePayClick(file)}>Pay</button>
                       )}
+                      {file.paid && (
+                        proofStatus[file.id] ? (
+                          <span style={{ color: "green", fontWeight: "bold" }}>Done</span>
+                        ) : (
+                          <button onClick={() => handleProofClick(file)}>Proof of Pay</button>
+                        )
+                      )}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-
+  
           {totalPages > 1 && (
             <div className="pagination">
               <button onClick={prevPage} disabled={currentPage === 1}>Previous</button>
@@ -194,10 +279,27 @@ const ManageBilling = ({ tenantEmail }) => {
           )}
         </>
       )}
-
+  
       {showPayModal && <Pay bill={selectedBill} onClose={closePayModal} />}
+  
+      {/* Proof of Payment Modal */}
+      {showProofUpload && (
+        <div className="proof-upload-modal">
+          <h4>Upload Proof of Payment</h4>
+          {proofError && <p style={{ color: "red" }}>{proofError}</p>}
+          <input 
+            type="file" 
+            accept=".jpg,.jpeg,.png,.pdf" 
+            onChange={handleFileChange}
+          />
+          <div className="proof-upload-actions">
+            <button onClick={handleProofSubmit}>Submit Proof</button>
+            <button onClick={() => setShowProofUpload(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
-  );
-};
+  );  
+}
 
 export default ManageBilling;
