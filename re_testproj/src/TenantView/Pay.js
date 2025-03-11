@@ -1,11 +1,7 @@
 // src/Pay.js
 import React, { useState, useEffect } from "react";
 import { useUserProfile } from "../UserProfileContext";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
-
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 const Pay = ({ bill, onClose }) => {
   const { userProfile } = useUserProfile();
@@ -142,8 +138,8 @@ const Pay = ({ bill, onClose }) => {
   };
 
   return (
-    <div className="pay-overlay">
-      <div className="pay-modal">
+    <div className="overlay">
+      <div className="modal">
         <h3>Pay</h3>
 
         {loading ? (
@@ -231,10 +227,4 @@ const Pay = ({ bill, onClose }) => {
   );
 };
 
-const WrappedPay = (props) => (
-  <Elements stripe={stripePromise}>
-    <Pay {...props} />
-  </Elements>
-);
-
-export default WrappedPay;
+export default Pay;

@@ -23,6 +23,7 @@ const TenantHomepage = () => {
       await refreshUserProfile(); // Wait for profile to load
     };
     fetchProfileAndLease();
+    console.log("haha", userProfile?.id);
   }, []); // Empty dependency to run only once
 
   // fetchLeaseData accesses userProfile internally

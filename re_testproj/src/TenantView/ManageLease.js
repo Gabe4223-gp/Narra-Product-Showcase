@@ -37,12 +37,12 @@ const ManageLease = ({ leaseData }) => {
     console.log("ManageLease received new leaseData:", leaseData); // Debugging line
   }, [leaseData]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!isFetched && leaseData?.currentLeaseDoc) {
       fetchLeaseDocument();
       setIsFetched(true);
     }
-  }, [isFetched, leaseData]);
+  }, [isFetched, leaseData]);*/
 
   const fetchLeaseDocument = async () => {
     try {
@@ -117,7 +117,6 @@ const ManageLease = ({ leaseData }) => {
       </p>
       <div className="manage-lease-actions">
         <button onClick={fetchLeaseDocument}>View Lease</button>
-        <button onClick={handleRequestEndLease}>Request to End Lease</button>
       </div>
       
       {previewLease && (

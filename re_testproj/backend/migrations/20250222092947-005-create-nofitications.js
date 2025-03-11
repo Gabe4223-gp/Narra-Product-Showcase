@@ -11,7 +11,7 @@ module.exports = {
       },
       user_id: {
         type: Sequelize.UUID,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'userProfile', // Ensure this matches your actual user table name
           key: 'id',

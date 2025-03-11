@@ -114,6 +114,8 @@ function TeamSettings({ onClose, userName, userEmail }) {
         issues: false,
         billings: false
       });
+
+      alert("Please log-in again to see your changes");
     } catch (error) {
       console.error('Error saving/updating team member:', error.response ? error.response.data : error.message);
       alert(`Error: ${error.response ? error.response.data.error : 'Unknown error'}`);
@@ -204,53 +206,56 @@ function TeamSettings({ onClose, userName, userEmail }) {
           </div>
         </div>
       )}
-  
+
       {/* Main Team Settings Table */}
-      <div className="team-settings-container">
-        <h3>Team Settings</h3>
-  
-        <button className="team-settings-add-btn" onClick={() => setShowAddMemberPopup(true)}>
-          Add More
-        </button>
-  
-        {loading ? (
-          <p>Loading team members...</p>
-        ) : (
-          <>
-            <table className="team-settings-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>App Features</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedMembers.map((member) => (
-                  <tr key={member.id}>
-                    <td>{member.name}</td>
-                    <td>{member.email}</td>
-                    <td>{member.displayPermissions}</td>
-                    <td>
-                      <button onClick={() => handleEditMember(member)}>Edit</button>
-                      <button onClick={() => handleDeleteMember(member.id)}>Delete</button>
-                    </td>
+      <div className='overlay'>
+        <div className="team-settings-container">
+          <h3>Team Settings</h3>
+    
+          <button className="team-settings-add-btn" onClick={() => setShowAddMemberPopup(true)}>
+            Add More
+          </button>
+    
+          {loading ? (
+            <p>Loading team members...</p>
+          ) : (
+            <>
+              <table className="team-settings-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>App Features</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-  
-            {/* Pagination Controls */}
-            <div className="pagination">
-              <button disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <button disabled={page * pageSize >= teamMembers.length} onClick={() => setPage(page + 1)}>Next</button>
-            </div>
-          </>
-        )}
-  
-        <button onClick={onClose} className="team-settings-small-btn">Back</button>
+                </thead>
+                <tbody>
+                  {paginatedMembers.map((member) => (
+                    <tr key={member.id}>
+                      <td>{member.name}</td>
+                      <td>{member.email}</td>
+                      <td>{member.displayPermissions}</td>
+                      <td>
+                        <button onClick={() => handleEditMember(member)}>Edit</button>
+                        <button onClick={() => handleDeleteMember(member.id)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+    
+              {/* Pagination Controls */}
+              <div className="pagination">
+                <button disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+                <button disabled={page * pageSize >= teamMembers.length} onClick={() => setPage(page + 1)}>Next</button>
+              </div>
+            </>
+          )}
+    
+          <button onClick={onClose} className="team-settings-small-btn">Back</button>
+        </div>
       </div>
+      
     </>
   );  
 }

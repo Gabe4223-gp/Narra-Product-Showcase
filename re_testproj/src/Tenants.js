@@ -414,7 +414,30 @@ function Tenants() {
   };
 
 
- 
+  const [sortConfig, setSortConfig] = useState({ key: "unit", direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIndicator = (key) => {
+    return sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : " ▲";
+  };
+
+  const sortedTenants = [...tenants].sort((a, b) => {
+    if (sortConfig.key === "unit" || sortConfig.key === "leaseStarted" || sortConfig.key === "leaseExpiry") {
+      return sortConfig.direction === "asc"
+        ? new Date(a[sortConfig.key]) - new Date(b[sortConfig.key])
+        : new Date(b[sortConfig.key]) - new Date(a[sortConfig.key]);
+    } else {
+      return sortConfig.direction === "asc"
+        ? a[sortConfig.key].localeCompare(b[sortConfig.key])
+        : b[sortConfig.key].localeCompare(a[sortConfig.key]);
+    }
+  });
 
 
   if (selectedTenant !== null) {
@@ -453,64 +476,56 @@ function Tenants() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: "5%" }}> </th>
-              <th style={{ width: "10%" }}>Name</th>
-              <th style={{ width: "10%" }}>Unit No.</th>
-              <th style={{ width: "20%" }}>Email</th>
+              <th style={{ width: "5%" }}></th>
+              <th style={{ width: "10%", cursor: "pointer" }} onClick={() => handleSort("name")}>
+                Name{getSortIndicator("name")}
+              </th>
+              <th style={{ width: "10%", cursor: "pointer" }} onClick={() => handleSort("unit")}>
+                Unit No.{getSortIndicator("unit")}
+              </th>
+              <th style={{ width: "20%", cursor: "pointer" }} onClick={() => handleSort("email")}>
+                Email{getSortIndicator("email")}
+              </th>
               <th style={{ width: "15%" }}>Phone No.</th>
-              <th style={{ width: "15%" }}>Lease Started</th>
-              <th style={{ width: "15%" }}>Lease Expiry</th>
+              <th style={{ width: "15%", cursor: "pointer" }} onClick={() => handleSort("leaseStarted")}>
+                Lease Started{getSortIndicator("leaseStarted")}
+              </th>
+              <th style={{ width: "15%", cursor: "pointer" }} onClick={() => handleSort("leaseExpiry")}>
+                Lease Expiry{getSortIndicator("leaseExpiry")}
+              </th>
               <th style={{ width: "10%" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {tenants.length > 0 ? (
-              [...tenants]
-                .sort((a, b) => Number(a.unit) - Number(b.unit))
-                .map((tenant, index) => (
-                  <tr key={index}>
-                    <td style={{ width: "5%" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTenantIds.has(tenant.id)}
-                        onChange={() => handleCheckboxChange(tenant.id)}
-                      />
-                    </td>
-                    <td style={{ width: "10%" }}>{tenant.name}</td>
-                    <td style={{ width: "10%" }}>{tenant.unit}</td>
-                    <td
-                      style={{
-                        width: "20%",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {tenant.email}
-                    </td>
-                    <td style={{ width: "15%" }}>{tenant.phone}</td>
-                    <td style={{ width: "15%" }}>
-                      {tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}
-                    </td>
-                    <td style={{ width: "15%" }}>
-                      {tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}
-                    </td>
-                    <td style={{ width: "10%" }}>
-                      <button onClick={() => handleViewProfile(tenant)}>View</button>
-                    </td>
-                  </tr>
-                ))
+            {sortedTenants.length > 0 ? (
+              sortedTenants.map((tenant, index) => (
+                <tr key={index}>
+                  <td style={{ width: "5%" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTenantIds.has(tenant.id)}
+                      onChange={() => handleCheckboxChange(tenant.id)}
+                    />
+                  </td>
+                  <td style={{ width: "10%" }}>{tenant.name}</td>
+                  <td style={{ width: "10%" }}>{tenant.unit}</td>
+                  <td style={{ width: "20%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {tenant.email}
+                  </td>
+                  <td style={{ width: "15%" }}>{tenant.phone}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleDateString() : ""}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleDateString() : ""}</td>
+                  <td style={{ width: "10%" }}>
+                    <button onClick={() => handleViewProfile(tenant)}>View</button>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
-                  No tenants added yet.
-                </td>
+                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>No tenants added yet.</td>
               </tr>
             )}
           </tbody>
-
-
-          
         </table>
       </div>
 

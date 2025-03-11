@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, tenantEmail, user_id, propertyId, landlordId, landlordEmail }) {
+function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, propertyId, landlordId, landlordEmail }) {
   console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
@@ -96,6 +96,7 @@ function SendBillPopup({ onClose, tenantEmail, user_id, propertyId, landlordId, 
       alert('Failed to send the bill.');
     }
     onClose();
+    onRefreshPayments();
   };
 
   return (

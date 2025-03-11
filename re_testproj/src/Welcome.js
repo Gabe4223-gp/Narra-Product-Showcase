@@ -58,6 +58,16 @@ function Welcome({ onProfileCreated }) {
     }
   };
 
+  // Handle back navigation to RoleSelection
+  const handleBack = () => {
+    navigate('/role-selection', {
+      replace: true,
+      state: {
+        authUserInfo,
+      },
+    });
+  };
+
   return (
     <div className="welcome-container">
       <h2>Welcome to Narra</h2>
@@ -133,6 +143,9 @@ function Welcome({ onProfileCreated }) {
 
       <button className="btn-role" onClick={handleSave}>
         Save
+      </button>
+      <button className="btn-role back-btn" onClick={handleBack}>
+        Back
       </button>
     </div>
   );

@@ -1,10 +1,10 @@
-// src/FulfilledBills.js
 import React, { useState, useEffect } from 'react';
 
 function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   const [bills, setBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
   const [error, setError] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'tenantName', direction: 'asc' });
 
   console.log("refresh", refresh);
   
@@ -117,6 +117,22 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     );
   });
 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedBills = [...filteredBills].sort((a, b) => {
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="bills-container">
       <div className='bills-list'>
@@ -153,20 +169,32 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
           <thead>
             <tr>
               <th></th>
-              <th>Tenant Name</th>
-              <th>Subject</th>
-              <th>Total Amount</th>
-              <th>Date Billed</th>
-              <th>Deadline</th>
-              <th>Date Paid</th>
+              <th onClick={() => handleSort('tenantName')}>
+                Tenant Name <span>{sortConfig.key === 'tenantName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('subject')}>
+                Subject <span>{sortConfig.key === 'subject' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('totalAmount')}>
+                Total Amount <span>{sortConfig.key === 'totalAmount' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('createdAt')}>
+                Date Billed <span>{sortConfig.key === 'createdAt' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('deadline')}>
+                Deadline <span>{sortConfig.key === 'deadline' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('updatedAt')}>
+                Date Paid <span>{sortConfig.key === 'updatedAt' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
               <th>Status</th>
               <th>Invoice</th>
               <th>Proof of Payment</th>
             </tr>
           </thead>
           <tbody>
-            {filteredBills.length > 0 ? (
-              filteredBills.map((bill) => {
+            {sortedBills.length > 0 ? (
+              sortedBills.map((bill) => {
                 const dateBilled = bill.createdAt ? new Date(bill.createdAt).toLocaleString() : 'N/A';
                 return (
                   <tr key={bill.id}>
@@ -177,7 +205,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
                         onChange={() => handleCheckboxChange(bill.id)}
                       />
                     </td>
-                    <td>{bill.name}</td>
+                    <td>{bill.tenantName}</td>
                     <td>{bill.subject}</td>
                     <td>{bill.totalAmount?.toFixed(2)}</td>
                     <td>{dateBilled}</td>
@@ -221,7 +249,6 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
           </button>
         </div>
       </div>
-
 
       {showDeleteModal && (
         <div className='overlay'>

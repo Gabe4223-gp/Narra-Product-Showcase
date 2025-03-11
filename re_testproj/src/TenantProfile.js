@@ -19,6 +19,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     const [editedTenant, setEditedTenant] = useState(null);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
+    const [refresh, setRefresh] = useState(false);
     const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
     const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
@@ -400,6 +401,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           <div className="tenant-mid-section">
             <PaymentHistory 
               tenantDetails={tenantDetails}
+              refresh={refresh}
             />
           </div>
       
@@ -487,6 +489,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           {showSendBillPopup && (
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
+              onRefreshPayments={() => setRefresh(prev => !prev)}
               tenantEmail={tenantDetails.email}
               user_id={tenantDetails.user_id}
               landlordId={userProfile.id}

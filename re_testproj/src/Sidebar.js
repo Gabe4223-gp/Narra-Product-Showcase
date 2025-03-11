@@ -45,7 +45,7 @@ function Sidebar({ isCollapsed, role }) {
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/tenant/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
+                <NavLink to="/tenant/tenant-settings" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaCog className="sidebar-icon" />
                   {!isCollapsed && <span>Settings</span>}
                 </NavLink>

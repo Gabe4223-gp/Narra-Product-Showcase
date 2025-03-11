@@ -95,7 +95,8 @@
     margin-top: 10px;
 }
 
-.edit-btn:hover {
+.edit-btn:hover,
+.link-btn:hover {
     background-color: #0056b3;
 }
 
@@ -105,25 +106,10 @@
     text-decoration: underline;
     border: none;
     padding: 0;
-    text-align: left;
-}
-
-.team-setting-btn {
-    background: none;
-    color: #007bff;
-    text-decoration: underline;
-    border: none;
-    padding: 0;
-    text-align: left;
-}
-
-.team-setting-btn:hover {
-    color: #0056b3;
 }
 
 .link-btn:hover {
     color: #0056b3;
-    text-align: left;
 }
 
 /* Danger Button */

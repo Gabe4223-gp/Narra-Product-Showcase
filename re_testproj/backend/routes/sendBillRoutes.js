@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sequelize } = require('../models'); 
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
@@ -261,6 +260,18 @@ router.post('/generate', async (req, res) => {
     );
     
     console.log("Bill generated. File record:", newFileRecord);
+
+    // Fetch the property details
+    const propQuery = `SELECT * FROM "Properties" WHERE id = :propertyId`;
+    const [propertyResults] = await sequelize.query(propQuery, {
+      replacements: { propertyId: updatedFile.propertyId }, // Corrected typo
+      type: sequelize.QueryTypes.SELECT, // Fetching a record
+    });
+
+    // Ensure property exists
+    if (!propertyResults) {
+      throw new Error("Property not found");
+    }
     
     //used currency P
     const notificationQuery = `
@@ -268,7 +279,7 @@ router.post('/generate', async (req, res) => {
       SELECT 
         gen_random_uuid(), 
         :user_id,  
-        CONCAT(up."name", ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
+        CONCAT(up."name", ' from ', ':propertyName', ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
         'lease', 
         NOW()
       FROM "userProfile" up
@@ -282,11 +293,12 @@ router.post('/generate', async (req, res) => {
         deadline: deadline,
         totalAmount: totalAmount,
         landlordId: landlordId,
+        propertyName: propertyResults.propertyName,
       },
       type: sequelize.QueryTypes.INSERT,
     });
 
-    return res.json({ message: 'Bill generated successfully.', fileRecord: newFile });
+    return res.json({ file: newFileRecord });
 
   } catch (error) {
     console.error('Error generating bill:', error);

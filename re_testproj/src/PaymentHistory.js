@@ -4,7 +4,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { useAuth0 } from '@auth0/auth0-react';
 import './PaymentHistory.css';
 
-function PaymentHistory({ tenantDetails}) {
+function PaymentHistory({ tenantDetails, refresh}) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = Array.from({ length: 12 }, (_, i) =>
@@ -54,7 +54,7 @@ function PaymentHistory({ tenantDetails}) {
     };
 
     fetchInitialPayments();
-  }, [getAccessTokenSilently, tenantDetails]);
+  }, [getAccessTokenSilently, tenantDetails, refresh]);
 
   // Fetch more payments
   /*

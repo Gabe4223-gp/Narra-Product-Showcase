@@ -14,7 +14,7 @@ function ManagePay({ onSave, onClose, initialData }) {
     cardholderName: initialData.cardholderName || "",
     billingAddress: initialData.billingAddress || "",
     billingZipCode: initialData.billingZipCode || "",
-    paymentMethodId: initialData.paymentMethodId || "", // Stores Stripe payment method ID
+    paymentMethodId: initialData.paymentMethodId || "", // Stores payment method ID
     last4: initialData.last4 || "", // Display only last 4 digits of card
     expiry: initialData.expiry || "", // Display expiry month/year
     gcashMobileNumber: initialData.gcashMobileNumber || "",

@@ -8,6 +8,7 @@ import './RoleSelection.css';
 function RoleSelection({ setRole, setPermissions }) {
   const { user, logout } = useAuth0();
   const navigate = useNavigate();
+  
 
   const handleRoleSelection = async (selectedRole) => {
     try {

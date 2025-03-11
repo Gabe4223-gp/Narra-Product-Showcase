@@ -25,18 +25,22 @@ export function UserProfileProvider({ children }) {
 
     try {
       setLoadingProfile(true);
+      console.log("Fetching user profile from API...");
       
-      // First, check local storage
+      /* First, check local storage
       const storedProfile = localStorage.getItem('userProfile');
       if (storedProfile) {
+        console.log("its getting from here", storedProfile);
         setUserProfile(JSON.parse(storedProfile));
         setLoadingProfile(false);
         return;
-      }
+      }*/
 
       // Otherwise, fetch from API
       const res = await axios.get(`/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
       setUserProfile(res.data.userProfile); 
+      console.log("Fetched user profile:", res.data.userProfile);
+      
 
       // Store in local storage
       localStorage.setItem('userProfile', JSON.stringify(res.data.userProfile));

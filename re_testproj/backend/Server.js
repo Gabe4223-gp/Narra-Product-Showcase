@@ -2296,13 +2296,17 @@ app.post('/tenants/upload-lease', async (req, res) => {
       });
     }
 
-     // Send Notification to User (passed in body as user_id)
-     const notificationQuery = `
-     INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+    
+    const notificationMessage = signed 
+      ? 'updated your lease' 
+      : 'sent you a lease for signing';
+    
+    const notificationQuery = `
+      INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
       SELECT 
         gen_random_uuid(), 
         :user_id,  
-        CONCAT(up."name", ' has sent you a lease for signing'), 
+        CONCAT(up."name", ' from ', p."propertyName", ' has ', :notificationMessage), 
         'lease', 
         NOW()
       FROM "Properties" p
@@ -2314,7 +2318,8 @@ app.post('/tenants/upload-lease', async (req, res) => {
     const notifications = await sequelize.query(notificationQuery, {
       replacements: { 
         user_id: user_id, // The user_id to send the notification to
-        propertyId: propertyId // The property_id to match the owner
+        propertyId: propertyId, // The property_id to match the owner
+        notificationMessage: notificationMessage,
       },
       type: sequelize.QueryTypes.INSERT,
     });
@@ -2963,7 +2968,7 @@ app.post('/save-payment-history', async (req, res) => {
   }
 });
 
-//Payment API Through Mastercard/Visa
+/*Payment API Through Mastercard/Visa
 app.post('/create-payment-intent', async (req, res) => {
   const { amount } = req.body;
   const client_id = req.auth.payload.sub; // Auth0 user ID
@@ -2990,7 +2995,7 @@ app.post('/create-payment-intent', async (req, res) => {
     res.status(500).json({ message: 'Unable to create payment intent.' });
     }
   }
-});
+});*/
 
 // Payment API through Bank Transfer
 app.post('/api/paymongo/bank-transfer-intent', async (req, res) => {

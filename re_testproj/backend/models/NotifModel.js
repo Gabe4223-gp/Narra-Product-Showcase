@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       user_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'UserProfiles', // Ensure it matches your users table name
           key: 'id',
@@ -29,6 +29,8 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      
+
     },
     {
       tableName: 'Notifications', // Ensure consistency with the migration file

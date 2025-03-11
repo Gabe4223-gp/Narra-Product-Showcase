@@ -109,29 +109,30 @@ const ManageBilling = ({ tenantEmail }) => {
     <div className="manage-billing">
       <div className="manage-billing-header">
         <h5>Manage Billing</h5>
-        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-          {/* Year Selection */}
-          <div>
-            <label>
-              Select Year:
-              <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}>
-                {years.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <label>
-              Status:
-              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
-                <option value="all">All</option>
-              </select>
-            </label>
+        <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                      <span>Select Year:</span>
+                      <select
+                          style={{ fontSize: "12px"}}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                      >
+                          {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                          ))}
+                      </select>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                    Status:
+                    <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                      <option value="unpaid">Unpaid</option>
+                      <option value="paid">Paid</option>
+                      <option value="all">All</option>
+                    </select>
+                  </label>
+              </div>
           </div>
         </div>
       </div>
@@ -140,8 +141,6 @@ const ManageBilling = ({ tenantEmail }) => {
         <p>Loading bills...</p>
       ) : error ? (
         <div className="error-banner">{error}</div>
-      ) : files.length === 0 ? (
-        <p>No bills found.</p>
       ) : (
         <>
           <table className="billing-table">

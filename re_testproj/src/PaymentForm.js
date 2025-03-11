@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+/*import React, { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
 import './PaymentForm.css';
 
 function PaymentForm() {
-  const stripe = useStripe();
   const elements = useElements();
   const { user, getAccessTokenSilently } = useAuth0();
   const [amount, setAmount] = useState(''); // Allow custom input for amount
@@ -138,4 +137,4 @@ function PaymentForm() {
   );
 }
 
-export default PaymentForm;
+export default PaymentForm;*/

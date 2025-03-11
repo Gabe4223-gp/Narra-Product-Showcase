@@ -10,6 +10,7 @@ import Tenants from './Tenants';
 import Units from './Units';
 import Issues from './Issues';
 import Settings from './Settings/Settings';
+import TenantSettings from './Settings/TenantSettings';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
@@ -124,7 +125,7 @@ function AppContent() {
             <>
               <Route path="tenant">
                 <Route path="dashboard" element={<TenantHomepage />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="tenant-settings" element={<TenantSettings />} />
                 <Route index element={<Navigate to="dashboard" replace />} />
               </Route>
               <Route path="*" element={<Navigate to="/tenant/dashboard" replace />} />

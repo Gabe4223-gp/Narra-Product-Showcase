@@ -422,6 +422,34 @@ function Units() {
     // Update the selectedTenantIds state to include all tenant IDs
     setSelectedUnitIds(allUnitIds); // Assuming setSelectedTenantIds is the function for updating selected tenants
   };
+  
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIndicator = (key) => {
+    return sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : " ▲";
+  };
+
+  const sortedUnits = [...units].sort((a, b) => {
+    if (!sortConfig.key) return 0; // No sorting initially
+    
+    if (sortConfig.key === "unitNo" || sortConfig.key === "sizeValue") {
+      return sortConfig.direction === "asc"
+        ? Number(a[sortConfig.key]) - Number(b[sortConfig.key])
+        : Number(b[sortConfig.key]) - Number(a[sortConfig.key]);
+    } else {
+      return sortConfig.direction === "asc"
+        ? (a[sortConfig.key] || "").localeCompare(b[sortConfig.key] || "")
+        : (b[sortConfig.key] || "").localeCompare(a[sortConfig.key] || "");
+    }
+  });
+
 
   if (selectedUnit !== null) {
     return (
@@ -456,47 +484,45 @@ function Units() {
           <thead>
             <tr>
               <th> </th>
-              <th>No.</th>
-              <th>Type</th>
-              <th>Mode</th>
-              <th>Size</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("unitNo")}>No.{getSortIndicator("unitNo")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("type")}>Type{getSortIndicator("type")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("mode")}>Mode{getSortIndicator("mode")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("sizeValue")}>Size{getSortIndicator("sizeValue")}</th>
               <th>   
                 <button onClick={() => setshowSizeUnitModal(true)}>unit</button>
               </th>
-              <th>Pets Allowed</th>
-              <th>Occupants</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("petsAllowed")}>Pets Allowed{getSortIndicator("petsAllowed")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("tenants")}>Occupants{getSortIndicator("tenants")}</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {units?.length > 0 ? (
-              [...units]
-                .sort((a, b) => Number(a.unitNo) - Number(b.unitNo))
-                .map((unit, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedUnitIds.has(unit?.id)}
-                        onChange={() => handleCheckboxChange(unit?.id)}
-                      />
-                    </td>
-                    <td>{unit.unitNo}</td>
-                    <td>{unit.type}</td>
-                    <td>{unit.mode}</td>
-                    <td>{unit.sizeValue}</td>
-                    <td>{unit.sizeUnit}</td>
-                    <td>{unit.petsAllowed ? "Yes" : "No"}</td>
-                    <td>
-                      {unit.tenants && unit.tenants?.length > 0 
-                        ? unit.tenants.length
-                        : "No tenants"}
-                    </td>
-                    <td>
-                      <button onClick={() => handleViewUnit(unit)}>View</button>
-                    </td>
-                  </tr>
-                ))
+            {sortedUnits?.length > 0 ? (
+              sortedUnits.map((unit, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedUnitIds.has(unit?.id)}
+                      onChange={() => handleCheckboxChange(unit?.id)}
+                    />
+                  </td>
+                  <td>{unit.unitNo}</td>
+                  <td>{unit.type}</td>
+                  <td>{unit.mode}</td>
+                  <td>{unit.sizeValue}</td>
+                  <td>{unit.sizeUnit}</td>
+                  <td>{unit.petsAllowed ? "Yes" : "No"}</td>
+                  <td>
+                    {unit.tenants && unit.tenants?.length > 0 
+                      ? unit.tenants.length
+                      : "No tenants"}
+                  </td>
+                  <td>
+                    <button onClick={() => handleViewUnit(unit)}>View</button>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
                 <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>

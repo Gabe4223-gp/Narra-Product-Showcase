@@ -1,8 +1,7 @@
 require('dotenv').config({ path: './backend/.env' }); // Ensure .env is loaded
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.REACT_APP_STRIPE_SECRET_KEY);
-const { UserProfile, Files } = require('../models'); // Sequelize model
+const { UserProfile, Files, sequelize } = require('../models'); // Sequelize model
 const axios = require('axios');
 const BASE_URL = process.env.REACT_APP_API_URL;
 
@@ -62,7 +61,7 @@ router.post('/gcash', async (req, res) => {
 
     console.log("Creating GCash Source in PayMongo:", { amount, billId, tenantEmail });
 
-    const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}`;
+    const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
     const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
 
 
@@ -187,14 +186,59 @@ router.post("/update-status", async (req, res) => {
 
 router.get('/payment-success', async (req, res) => {
   try {
-      const { billId } = req.query;
+      const { billId, tenantEmail } = req.query;
 
       if (!billId) {
           return res.status(400).json({ message: 'Missing billId.' });
       }
 
-      // Mark the bill as paid in the database
+      // Mark the bill as paid and fetch the updated record
       await Files.update({ paid: true }, { where: { id: billId } });
+
+      // Fetch the updated bill details separately
+      const updatedFile = await Files.findOne({ where: { id: billId } });
+
+      if (!updatedFile) {
+        throw new Error("Bill not found");
+      }
+
+      // Fetch the property details
+      const propQuery = `SELECT * FROM "Properties" WHERE id = :propertyId`;
+      const [propertyResults] = await sequelize.query(propQuery, {
+        replacements: { propertyId: updatedFile.propertyId }, // Corrected typo
+        type: sequelize.QueryTypes.SELECT, // Fetching a record
+      });
+
+      // Ensure property exists
+      if (!propertyResults) {
+        throw new Error("Property not found");
+      }
+
+      // Insert a notification for the landlord
+      const notificationQuery = `
+        INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+        SELECT 
+          gen_random_uuid(), 
+          :user_id,  
+          CONCAT(up."name", ' from ', :propertyName, ' has paid ', :totalAmount, ' on the bill due ', :deadline), 
+          'bill', 
+          NOW()
+        FROM "userProfile" up
+        WHERE up."email" = :tenantEmail  
+        RETURNING *;
+      `;
+
+      // Execute notification query
+      const result = await sequelize.query(notificationQuery, {
+        replacements: {
+          user_id: updatedFile.landlordId,    // Correctly fetched landlord ID
+          totalAmount: updatedFile.totalAmount,
+          deadline: updatedFile.deadline,
+          tenantEmail,  // Ensure this is defined earlier
+          propertyName: propertyResults.propertyName // Correct way to access property name
+        },
+        type: sequelize.QueryTypes.INSERT,
+      });
 
       // Redirect back to Tenant Dashboard & Force Reload Billing
       return res.redirect(`${process.env.FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=success&redirected=true`);
