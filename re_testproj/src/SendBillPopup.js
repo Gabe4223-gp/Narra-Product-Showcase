@@ -17,6 +17,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
   const [landlordBankId, setLandlordBankId] = useState(null);
   const [bankName, setBankName] = useState(null);
   const [loadingBankInfo, setLoadingBankInfo] = useState(true);
+  const [landlordBankDetails, setLandlordBankDetails] = useState(null);
 
   useEffect(() => {
     const fetchLandlordBankDetails = async () => {
@@ -25,14 +26,17 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
         if (res.data) {
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
+          setLandlordBankDetails(res.data.landlordBankDetails);
         } else {
           setLandlordBankId(null);
           setBankName(null);
+          setLandlordBankDetails(null);
         }
       } catch (error) {
         console.error('Error fetching landlord payment details:', error);
         setLandlordBankId(null);
         setBankName(null);
+        setLandlordBankDetails(null);
       } finally {
         setLoadingBankInfo(false);
       }
@@ -71,6 +75,11 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
       return;
     }
 
+    if (!landlordBankDetails) {
+      alert("Landlord has not set up their Bank Details. Please ask them to update it in Settings.");
+      return;
+    }
+
     const billData = {
       tenantEmail,
       propertyId,
@@ -106,7 +115,13 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
 
         {!loadingBankInfo && !landlordBankId && (
           <div className="error-banner">
-            ⚠️ No Bank Details Found. Landlord must set up their bank account in "Settings".
+            ⚠️ No Bank Found. Please set up your bank account in "Settings".
+          </div>
+        )}
+
+        {!loadingBankInfo && !landlordBankDetails && (
+          <div className="error-banner">
+            ⚠️ No  Bank Account Info Found. Please set up your bank account in "Settings".
           </div>
         )}
 

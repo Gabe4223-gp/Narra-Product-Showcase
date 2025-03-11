@@ -123,7 +123,7 @@ app.use('/api/applications', tenantApplicationRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/docs', docsRoutes);
 app.use('/api/user-profile', userProfileRoutes);
-app.use('/api/team', teamRoutes);
+app.use('/api/teams', teamRoutes);
 app.use('/files', express.static('public/files'));
 app.use('/api/tenant', TenantHomepage);
 app.use('/api/properties', propertiesRoutes);
@@ -132,6 +132,7 @@ app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
+app.use('/proof_uploads', express.static(path.join(__dirname, 'proof_uploads')));
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });

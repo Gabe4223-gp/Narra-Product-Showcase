@@ -1,37 +1,29 @@
-import React, { useEffect, useState } from 'react';
+// Sidebar.js
+import React from 'react';
 import './Sidebar.css';
 import { NavLink } from 'react-router-dom';
 import { FaHome, FaCog, FaBuilding, FaWrench } from 'react-icons/fa';
 import { AiOutlineForm } from 'react-icons/ai';
-import { FaUser, FaComments, FaClipboardList } from 'react-icons/fa';
-import axios from 'axios';
+import { FaUser, FaClipboardList } from 'react-icons/fa';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useTeamContext } from './TeamContext'; // new import
 
 function Sidebar({ isCollapsed, role }) {
   const { user } = useAuth0();
-  const [permissions, setPermissions] = useState({
-    applications: false,
-    tenants: false,
-    units: false,
-    issues: false,
-    billings: false
-  });
 
-  useEffect(() => {
-    if (!user?.email) return;
-    
-    console.log(`Fetching permissions for Sidebar - Email: ${user.email}`);
-    
-    axios.get(`/api/team/permissions?email=${encodeURIComponent(user.email)}`)
-      .then(res => {
-        console.log(`Sidebar received permissions:`, res.data);
-        setPermissions(res.data);
-      })
-      .catch(err => {
-        console.warn(`Failed to fetch permissions:`, err);
-      });
-  }, [user?.email]);
+  // Pull membership from TeamContext
+  const { activeTeamMembership } = useTeamContext();
 
+  // If no membership, default everything false
+  const permissions = {
+    applications: activeTeamMembership?.applications || false,
+    tenants: activeTeamMembership?.tenants || false,
+    units: activeTeamMembership?.units || false,
+    issues: activeTeamMembership?.issues || false,
+    billings: activeTeamMembership?.billings || false
+  };
+
+  // Render the sidebar based on role + membership
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <nav className="sidebar-nav">

@@ -186,14 +186,25 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Fetch landlord's bank ID to store in Files table
+    // Fetch landlord's bank ID + bank details
     const landlord = await UserProfile.findOne({
       where: { id: landlordId },
-      attributes: ['landlordBankId']
+      attributes: ['landlordBankId', 'landlordBankDetails', 'bankName']
     });
 
     if (!landlord || !landlord.landlordBankId) {
       return res.status(400).json({ message: "Landlord's bank details are missing. Please update settings." });
+    }
+
+    // 3) Combine the bank name with the landlordBankDetails object
+    //    If landlordBankDetails is a JSON with { swiftCode, accountNumber, routingNumber, etc. }
+    //    we now add the bankName from userProfile
+    let finalBankDetails = null;
+    if (landlord.landlordBankDetails) {
+      finalBankDetails = {
+        ...landlord.landlordBankDetails,
+        bankName: landlord.bankName || 'Unknown Bank'
+      };
     }
 
     // Generate PDF invoice
@@ -254,6 +265,7 @@ router.post('/generate', async (req, res) => {
           deadline: deadline,
           updatedAt: null, //set to null cuz this attribute will be set when bill is paid
           landlordBankId: landlord.landlordBankId,
+          landlordBankDetails: finalBankDetails,
         },
         type: sequelize.QueryTypes.INSERT,
       }
@@ -315,11 +327,15 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
     }
 
     const files = await Files.findAll({
-      where: { tenantEmail, fileType: 'pdf', url: { [Op.ne]: null } }, // Fetch only PDFs with URLs
+      where: {
+        tenantEmail,
+        fileType: 'pdf',
+        url: { [Op.ne]: null }
+      },
       order: [['createdAt', 'DESC']],
       attributes: [
         'id', 'tenantEmail', 'landlordId', 'totalAmount', 'paid', 'fileType',
-        'url', 'createdAt', 'subject', 'landlordBankId'
+        'url', 'createdAt', 'subject', 'landlordBankId', 'landlordBankDetails', 'landlordEmail'
       ]
     });
 
@@ -329,6 +345,7 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 // routes/sendBillRoutes.js (append these endpoints)
 
@@ -398,18 +415,53 @@ router.get('/fulfilled', async (req, res) => {
   }
 });
 
+router.get('/fetch-proof', async (req, res) => {
+  try {
+    const { landlordEmail, subject } = req.query;
+    if (!landlordEmail || !subject) {
+      return res.status(400).json({ message: 'landlordEmail and subject are required.' });
+    }
+
+    // Build the expected subject string exactly
+    const expectedProofSubject = `${subject} - Proof of Payment`;
+
+    // Query for the most recent proof file matching the landlordEmail and expected subject
+    const proofFile = await Files.findOne({
+      where: {
+        landlordEmail,
+        subject: { [Op.iLike]: expectedProofSubject }
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!proofFile) {
+      return res.status(404).json({ message: 'Proof of payment not found.' });
+    }
+
+    return res.json({ success: true, proof: proofFile });
+  } catch (error) {
+    console.error('Error fetching proof file:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
 router.get('/get-landlord-payment/:landlordId', async (req, res) => {
   try {
     const landlord = await UserProfile.findOne({
       where: { id: req.params.landlordId },
-      attributes: ['landlordBankId', 'bankName']
+      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails']
     });
 
     if (!landlord) {
       return res.status(404).json({ message: 'Landlord not found' });
     }
 
-    res.json(landlord);
+    // Return all relevant fields
+    return res.json({
+      landlordBankId: landlord.landlordBankId,
+      bankName: landlord.bankName,
+      landlordBankDetails: landlord.landlordBankDetails
+    });
   } catch (error) {
     console.error('Error fetching landlord bank details:', error);
     res.status(500).json({ message: 'Error retrieving landlord bank details' });
