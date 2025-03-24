@@ -105,7 +105,7 @@ const fs = require('fs');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
-const { File } = require('./models'); // Adjust if your models are in a different path
+const { Tenant } = require('./models'); // Adjust if your models are in a different path
 
 
 //Configure with Frontend
@@ -1831,6 +1831,31 @@ app.get("/tenants/:id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching tenant:", error);
     res.status(500).json({ error: "An error occurred while fetching the tenant." });
+  }
+});
+
+// POST /api/tenants/emails-by-ids
+app.post('/emails-by-ids', async (req, res) => {
+  try {
+    const { tenantIds } = req.body;
+    if (!tenantIds || !Array.isArray(tenantIds)) {
+      return res.status(400).json({ success: false, message: 'tenantIds must be an array' });
+    }
+
+    // Find tenants by provided IDs, and return only the email attribute
+    const tenants = await Tenant.findAll({
+      where: {
+        id: tenantIds
+      },
+      attributes: ['email']
+    });
+
+    // Map the result to an array of emails
+    const emails = tenants.map(t => t.email);
+    return res.json({ success: true, emails });
+  } catch (error) {
+    console.error('Error fetching tenant emails by IDs:', error);
+    return res.status(500).json({ success: false, message: 'Server error while fetching tenant emails.' });
   }
 });
 

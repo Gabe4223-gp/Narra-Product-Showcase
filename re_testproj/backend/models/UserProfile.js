@@ -8,6 +8,11 @@ module.exports = (sequelize, DataTypes) => {
     email: DataTypes.STRING,
     password: DataTypes.STRING,
     units: DataTypes.ARRAY(DataTypes.UUID),
+    tenants: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: []  // initialize as empty array
+    },
     storedPaymentMethods: { type: DataTypes.JSONB, allowNull: true },
     preferredPaymentMethod: { type: DataTypes.STRING, allowNull: true },
     landlordBankId: { type: DataTypes.STRING, allowNull: true },
@@ -27,7 +32,23 @@ module.exports = (sequelize, DataTypes) => {
       //   routingNumber: "987654321",
       //   swiftCode: "ABC123XYZ"
       // }
-    }
+    },
+    personalAddressInfo: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    businessAddressInfo: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    businessDetails: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    businessBankInfo: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
   }, {
     tableName: 'userProfile',
     freezeTableName: true,

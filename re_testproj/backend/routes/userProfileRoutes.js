@@ -371,18 +371,24 @@ router.post('/register-bank', async (req, res) => {
 router.post('/:id/landlord-bank-details', async (req, res) => {
   try {
     const { id } = req.params;
-    const { landlordBankDetails } = req.body; // { bankName, accountNumber, routingNumber, swiftCode }
-
+    const { landlordBankDetails } = req.body; // e.g. { bankName, accountNumber, routingNumber, swiftCode }
+    
     // 1) Find the User Profile by ID
     const profile = await UserProfile.findByPk(id);
     if (!profile) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    // 2) Save the landlordBankDetails to the profile
-    profile.landlordBankDetails = landlordBankDetails;
+    
+    // 2) Merge the new bank details with the existing ones, preserving existing currency
+    const existingDetails = profile.landlordBankDetails || {};
+    profile.landlordBankDetails = { 
+      ...existingDetails, 
+      ...landlordBankDetails,
+      // Ensure currency remains unchanged if it already exists
+      currency: existingDetails.currency || null 
+    };
     await profile.save();
-
+    
     // 3) Return success response
     return res.json({
       success: true,
@@ -392,6 +398,34 @@ router.post('/:id/landlord-bank-details', async (req, res) => {
   } catch (err) {
     console.error('Error saving user bank details:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// PUT /api/user-profile/:id/tenants
+router.put('/:id/tenants', async (req, res) => {
+  try {
+    const { tenants } = req.body; // Expected to be an array of emails
+    if (!tenants || !Array.isArray(tenants)) {
+      return res.status(400).json({ success: false, message: 'tenants must be an array of emails' });
+    }
+
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Update the tenants field (JSONB column) with the provided array of emails
+    userProfile.tenants = tenants;
+    await userProfile.save();
+
+    return res.json({
+      success: true,
+      message: 'User profile tenants updated successfully.',
+      tenants: userProfile.tenants,
+    });
+  } catch (error) {
+    console.error('Error updating user profile tenants:', error);
+    return res.status(500).json({ success: false, message: 'Server error while updating tenants.' });
   }
 });
 
@@ -428,6 +462,101 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+router.put('/:id/address-details', async (req, res) => {
+  try {
+    const { personalAddressInfo } = req.body;
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Update the address details
+    userProfile.personalAddressInfo = personalAddressInfo;
+    await userProfile.save();
+    
+    res.json({ success: true, message: 'Address details updated successfully.' });
+  } catch (error) {
+    console.error('Error updating address details:', error);
+    res.status(500).json({ success: false, message: 'Server error while updating address details.' });
+  }
+});
+
+router.put('/:id/landlord-bank-details/currency', async (req, res) => {
+  try {
+    const { currency } = req.body;
+    console.log(`Updating currency for user ${req.params.id} to:`, currency);
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Create a shallow copy of the existing landlordBankDetails or initialize as an object
+    const updatedBankDetails = { ...userProfile.landlordBankDetails, currency };
+    
+    // Use the update() method to update the field
+    await userProfile.update({ landlordBankDetails: updatedBankDetails });
+    console.log(`Currency updated to ${currency} for user ${req.params.id}`);
+    
+    res.json({ success: true, message: 'Currency updated successfully.' });
+  } catch (error) {
+    console.error('Error updating currency:', error);
+    res.status(500).json({ success: false, message: 'Server error while updating currency.' });
+  }
+});
+
+// PUT /api/user-profile/:id/business-details
+router.put('/:id/business-details', async (req, res) => {
+  try {
+    const { businessDetails } = req.body;
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessDetails = businessDetails;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business information updated.' });
+  } catch (error) {
+    console.error('Error updating business details:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// PUT /api/user-profile/:id/business-address
+router.put('/:id/business-address', async (req, res) => {
+  try {
+    const { businessAddressInfo } = req.body;
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessAddressInfo = businessAddressInfo;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business address updated.' });
+  } catch (error) {
+    console.error('Error updating business address:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// PUT /api/user-profile/:id/business-bank-info
+router.put('/:id/business-bank-info', async (req, res) => {
+  try {
+    const { businessBankInfo } = req.body;
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessBankInfo = businessBankInfo;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business bank details updated.' });
+  } catch (error) {
+    console.error('Error updating business bank info:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -450,6 +579,25 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting userProfile:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.delete('/:id/address-details', async (req, res) => {
+  try {
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Clear the address details by setting them to null
+    userProfile.personalAddressInfo = null;
+    await userProfile.save();
+    
+    res.json({ success: true, message: 'Address details deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting address details:', error);
+    res.status(500).json({ success: false, message: 'Server error while deleting address details.' });
   }
 });
 
@@ -511,8 +659,13 @@ router.delete('/:id/landlord-bank-details', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // 2) Set landlordBankDetails to null
-    profile.landlordBankDetails = null;
+    // 2) Rebuild the landlordBankDetails JSONB object to preserve only the currency
+    const updatedDetails = {};
+    if (profile.landlordBankDetails && profile.landlordBankDetails.currency) {
+      updatedDetails.currency = profile.landlordBankDetails.currency;
+    }
+    profile.landlordBankDetails = updatedDetails;
+    
     await profile.save();
 
     // 3) Return success response
@@ -523,6 +676,54 @@ router.delete('/:id/landlord-bank-details', async (req, res) => {
   } catch (err) {
     console.error('Error deleting user bank details:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// DELETE /api/user-profile/:id/business-details
+router.delete('/:id/business-details', async (req, res) => {
+  try {
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessDetails = null;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business information deleted.' });
+  } catch (error) {
+    console.error('Error deleting business details:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// DELETE /api/user-profile/:id/business-address
+router.delete('/:id/business-address', async (req, res) => {
+  try {
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessAddressInfo = null;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business address deleted.' });
+  } catch (error) {
+    console.error('Error deleting business address:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// DELETE /api/user-profile/:id/business-bank-info
+router.delete('/:id/business-bank-info', async (req, res) => {
+  try {
+    const userProfile = await UserProfile.findByPk(req.params.id);
+    if (!userProfile) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userProfile.businessBankInfo = null;
+    await userProfile.save();
+    res.json({ success: true, message: 'Business bank details deleted.' });
+  } catch (error) {
+    console.error('Error deleting business bank info:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
 

@@ -1,6 +1,6 @@
 // src/ManageBilling.js
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation , useSearchParams } from 'react-router-dom';
 import Pay from './Pay';
 import axios from 'axios';
 import './ManageBilling.css';
@@ -8,6 +8,11 @@ import { useUserProfile } from '../UserProfileContext';
 
 const ManageBilling = ({ tenantEmail }) => {
   const { userProfile } = useUserProfile();
+  const location = useLocation();
+
+  // State for payment success/failure message
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [messageType, setMessageType] = useState(null);
 
   // Generate last 10 years for selection
   const currentYear = new Date().getFullYear();
@@ -23,15 +28,17 @@ const ManageBilling = ({ tenantEmail }) => {
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [validPaymentMethod, setValidPaymentMethod] = useState(false);
-  const [searchParams] = useSearchParams();
-  const paymentStatus = searchParams.get("paymentStatus"); // Get payment status from URL
-  const [statusMessage, setStatusMessage] = useState(null);
 
   // New state for proof of payment
   const [showProofUpload, setShowProofUpload] = useState(false);
   const [proofFile, setProofFile] = useState(null);
   const [proofError, setProofError] = useState("");
   const [proofStatus, setProofStatus] = useState({});
+
+  const [landlordData, setLandlordData] = useState(null);
+  const [loadingLandlordData, setLoadingLandlordData] = useState(true);
+  const [landlordError, setLandlordError] = useState(null);
+
 
   // Returns true if any file in the files array for the given billId has "proof of payment" in its subject.
   const proofExists = (invoice) => {
@@ -94,21 +101,57 @@ const ManageBilling = ({ tenantEmail }) => {
     }
   }, [tenantEmail, selectedYear, selectedStatus]);
 
-  //Show payment status message
   useEffect(() => {
+    const fetchLandlordData = async () => {
+      if (!tenantEmail) return;
+  
+      try {
+        setLoadingLandlordData(true);
+        const response = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/profileData`);
+        console.log("Landlord data response:", response.data);
+        if (response.data.userProfile) {
+          setLandlordData(response.data.userProfile);
+        } else {
+          setLandlordData(null);
+          setLandlordError("No matching landlord found.");
+        }
+      } catch (error) {
+        console.error("Error fetching landlord data:", error);
+        setLandlordError("Error fetching landlord details.");
+      } finally {
+        setLoadingLandlordData(false);
+      }
+    };
+  
+    fetchLandlordData();
+  }, [tenantEmail]);  
+
+   // Fetch payment status from URL
+   useEffect(() => {
+
+    const params = new URLSearchParams(location.search);
+    const paymentStatus = params.get("status");
+
+    console.log("Checking payment status from URL:", paymentStatus);
+
     if (paymentStatus) {
       if (paymentStatus === "success") {
         setStatusMessage("Payment successful!");
-      } else if (paymentStatus === "failed") {
+        setMessageType("success");
+      } else if (paymentStatus === "failed" || paymentStatus === "false") {
         setStatusMessage("Payment failed. Please try again.");
+        setMessageType("error");
       }
 
-      // Remove the status message after 5 seconds
+      setTimeout(() => {
+        window.history.replaceState(null, "", location.pathname);
+      }, 1000);
+
       setTimeout(() => {
         setStatusMessage(null);
       }, 5000);
     }
-  }, [paymentStatus]);
+  }, [location.search]);
 
   const indexOfLastFile = currentPage * filesPerPage;
   const indexOfFirstFile = indexOfLastFile - filesPerPage;
@@ -124,9 +167,13 @@ const ManageBilling = ({ tenantEmail }) => {
   };
 
   const handlePayClick = (bill) => {
-    setSelectedBill(bill);
+    if (!landlordData) {
+      alert("Error: Landlord data is unavailable. Please contact support.");
+      return;
+    }
+    setSelectedBill({ ...bill, landlordData });
     setShowPayModal(true);
-  };
+  };  
 
   // Handler when the "Proof of Pay" button is clicked
   const handleProofClick = (file) => {
@@ -191,7 +238,30 @@ const ManageBilling = ({ tenantEmail }) => {
 
   return (
     <div className="manage-billing">
-      {statusMessage && <div className="payment-status">{statusMessage}</div>}
+
+       {/* Display Payment Status Messages */}
+       {statusMessage && (
+        <div
+          className={`payment-status ${messageType}`}
+          style={{
+            padding: "10px",
+            margin: "10px 0",
+            backgroundColor: messageType === "success" ? "#d4edda" : "#f8d7da",
+            color: messageType === "success" ? "#155724" : "#721c24",
+            border: messageType === "success" ? "1px solid #c3e6cb" : "1px solid #f5c6cb",
+            borderRadius: "5px",
+            textAlign: "center",
+            fontSize: "14px",
+            fontWeight: "bold",
+          }}
+        >
+          {statusMessage}
+        </div>
+      )}
+
+      {loadingLandlordData && <p>Loading landlord information...</p>}
+      {landlordError && <div className="error-banner">{landlordError}</div>}
+
       <div className="manage-billing-header">
         <h5>Manage Billing</h5>
         <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
@@ -280,7 +350,7 @@ const ManageBilling = ({ tenantEmail }) => {
         </>
       )}
   
-      {showPayModal && <Pay bill={selectedBill} onClose={closePayModal} />}
+      {showPayModal && <Pay bill={selectedBill} landlordData={landlordData} onClose={closePayModal} />}
   
       {/* Proof of Payment Modal */}
       {showProofUpload && (

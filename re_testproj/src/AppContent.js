@@ -1,6 +1,6 @@
 // AppContent.js
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useUserProfile } from './UserProfileContext';
 import { useTeamContext } from './TeamContext';
@@ -21,9 +21,9 @@ import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
 
 function AppContent() {
-  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
   const { userProfile } = useUserProfile();
-
+  
   // Bring in TeamContext
   const {
     teams,
@@ -34,20 +34,38 @@ function AppContent() {
   } = useTeamContext();
 
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirected = searchParams.get("redirected");
+  const location = useLocation();
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem("userRole") || null;
+  });
 
-  const [role, setRole] = useState(null);
+  function useQuery() {
+    return new URLSearchParams(location.search);
+  }
 
-  // If redirected after GCash Payment, go to tenant dash
+  const query = useQuery();
+  const redirected = query.get("redirected");
+
   useEffect(() => {
-    if (redirected) {
-      navigate("/tenant/dashboard", { replace: true });
+    if (role) {
+      localStorage.setItem("userRole", role);
     }
-    if (!isAuthenticated && !isLoading && window.location.pathname !== "/") {
-      loginWithRedirect();
-    }
-  }, [redirected, isAuthenticated, isLoading, loginWithRedirect, navigate]);
+      console.log('redirected:', redirected);
+      
+      if (redirected === "true") {
+        if (role === "tenant") {
+          navigate("/tenant/dashboard", { replace: true });
+        } else if (role === "landlord") {
+          navigate("/homepage", { replace: true });
+        } else {
+          navigate("/select-role", { replace: true });  // Fallback if role is missing
+        }
+      }
+      
+      if (!isAuthenticated && !isLoading && window.location.pathname !== "/") {
+        loginWithRedirect();
+      }
+    }, [redirected, role, isAuthenticated, isLoading, loginWithRedirect, navigate]);
 
   // If loading from Auth0 or TeamContext, show loading
   if (isLoading || loadingTeams) {

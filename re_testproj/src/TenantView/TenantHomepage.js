@@ -1,36 +1,39 @@
-// src/TenantHomepage.js
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import './TenantHomepage.css';
 import ManageBilling from './ManageBilling';
 import ManagePaymentMethods from './ManagePaymentMethods';
 import ManageLease from './ManageLease';
 import RenewLease from './RenewLease';
 import { useUserProfile } from '../UserProfileContext.js';
-import { useSearchParams} from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 const TenantHomepage = () => {
   const { userProfile, refreshUserProfile } = useUserProfile();
-  const [searchParams] = useSearchParams();
-  const redirected = searchParams.get("redirected");
+  const location = useLocation();
 
   const [leaseData, setLeaseData] = useState({
-      leaseStarted: null,
-      leaseExpiry: null,
-      currentLeaseDoc: null,
-    });
+    leaseStarted: null,
+    leaseExpiry: null,
+    currentLeaseDoc: null,
+  });
 
-  // Fetch user profile once on mount (no dependency)
+  // Fetch user profile once on mount
   useEffect(() => {
-    if (redirected) {
+    const params = new URLSearchParams(location.search);
+    const redirected = params.get("redirected");
+
+    console.log("Checking for redirected:", redirected);
+
+    if (redirected === "true") {
       refreshUserProfile();
     }
 
     const fetchProfileAndLease = async () => {
-      await refreshUserProfile(); // Wait for profile to load
+      await refreshUserProfile();
     };
+
     fetchProfileAndLease();
-  }, [redirected]); // Empty dependency to run only once
+  }, [location.search]);
 
   // fetchLeaseData accesses userProfile internally
   const fetchLeaseData = useCallback(async () => {
@@ -51,13 +54,12 @@ const TenantHomepage = () => {
       fetchLeaseData();
     }
   }, [userProfile?.id, fetchLeaseData]);
-  
 
   // Wait until the profile is loaded
   if (!userProfile) {
     return <div>Loading your profile...</div>;
   }
-  
+
   const tenantEmail = userProfile.email;
 
   return (
@@ -65,15 +67,12 @@ const TenantHomepage = () => {
       <header className="top-bar">
         <h5>Tenant Dashboard</h5>
       </header>
-      {/* You can let ManageBilling fetch files; no need for duplicate fetch here */}
-      <div className="additional-containers" style={{display:"flex",flexDirection:'column', gap:'15px'}}>
-        <ManageBilling tenantEmail={tenantEmail} />
-        <ManageLease 
-          leaseData={leaseData}
-        />
-        <RenewLease 
-          onUploadSignedLease={fetchLeaseData}
-        />
+
+      <div className="additional-containers" style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+        {/* ManageBilling will now handle success/failure messages */}
+        <ManageBilling tenantEmail={tenantEmail} key={location.search} />
+        <ManageLease leaseData={leaseData} />
+        <RenewLease onUploadSignedLease={fetchLeaseData} />
         <ManagePaymentMethods />
       </div>
     </div>

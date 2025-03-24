@@ -119,11 +119,13 @@ function Tenants() {
  
       const tenantsData = await response.json();
       setTenants(tenantsData); // Update the tenants state
+      return tenantIds;
 
 
     } catch (error) {
       console.error('Error fetching tenants:', error);
       alert('Failed to load tenants. Please try again.');
+      return [];
     }
   };
 
@@ -158,6 +160,60 @@ function Tenants() {
   const handleAddTenantChange = (field, value) => {
     setNewTenant({ ...newTenant, [field]: value });
   };
+
+  const fetchAndUpdateTenantEmails = async (tenantIds, userProfile) => {
+    try {
+      // Log tenantIds to verify it's an array
+      console.log("fetchAndUpdateTenantEmails - tenantIds:", tenantIds);
+      if (!Array.isArray(tenantIds)) {
+        console.error("tenantIds is not an array:", tenantIds);
+        return;
+      }
+      
+      // Call the /emails-by-ids endpoint to get emails for the given tenant IDs
+      const response = await fetch('/emails-by-ids', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantIds: tenantIds, // now sending tenantIds
+        }),
+      });
+  
+      if (!response.ok) {
+        const errMsg = await response.text();
+        console.error("Failed to fetch tenant emails:", response.statusText, errMsg);
+        return;
+      }
+  
+      const data = await response.json();
+      console.log("Received data from /emails-by-ids:", data);
+      
+      if (data.success) {
+        // data.emails is expected to be an array of tenant emails
+        const emails = data.emails;
+  
+        // Update the userProfile.tenants field via your existing API endpoint
+        const updateResponse = await fetch(`/api/user-profile/${userProfile.id}/tenants`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ tenants: emails }),
+        });
+        
+        const updateData = await updateResponse.json();
+        if (!updateData.success) {
+          console.error("Failed to update userProfile.tenants:", updateData.message);
+        }
+      } else {
+        console.error("Failed to fetch tenant emails:", data.message);
+      }
+    } catch (error) {
+      console.error("Error updating tenant emails:", error);
+    }
+  };  
 
   const saveNewTenant = async () => {
 
@@ -221,7 +277,7 @@ function Tenants() {
       console.log("Aflooie", responseData);
 
       // Optionally: If you have a function that fetches tenants by IDs
-      fetchTenants(responseData.tenants);
+      const updatedTenantIds = await fetchTenants(responseData.tenants);
 
       // Update properties to reflect the newly added tenant
       setProperties((prevProperties) =>
@@ -231,6 +287,11 @@ function Tenants() {
             : property
         )
       );
+
+      // Call helper function to fetch emails based on updated tenant IDs
+    // responseData.tenants should be an array of tenant IDs
+    console.log("Updated tenant IDs:", updatedTenantIds);
+    fetchAndUpdateTenantEmails(updatedTenantIds, userProfile);
  
       setIsAddingTenant(false); // Close the add tenant form
     } catch (error) {
@@ -361,7 +422,7 @@ function Tenants() {
         const data = await response.json();
         console.log("Tenant deleted successfully:", data);
 
-        fetchTenants(data.updatedTenantIds);
+        const updatedTenantIds = await fetchTenants(data.updatedTenantIds);
 
         // Update properties state by removing deleted tenants from the selected property
         setProperties((prevProperties) =>
@@ -376,6 +437,11 @@ function Tenants() {
                   : property
           )
         );
+
+        // Call helper function to fetch updated tenant emails and update userProfile.tenants
+        // Pass in the updated tenant IDs along with the userProfile (assuming userProfile is available)
+        console.log("Updated tenant IDs:", updatedTenantIds);
+        fetchAndUpdateTenantEmails(updatedTenantIds, userProfile);
         
         setShowDeleteModal(false);
 

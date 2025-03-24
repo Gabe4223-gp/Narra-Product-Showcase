@@ -21,10 +21,15 @@ function Header({toggleSidebar, isSidebarCollapsed}) {
   const {userProfile} = useUserProfile();
 
   const handleLogout = () => {
+    // Clear stored role
+    localStorage.removeItem("userRole");
+  
+    // Proceed with Auth0 logout
     logout({
       returnTo: window.location.origin,
     });
   };
+  
 
   const handleToggle = () => {
     setIsCollapsed(!isCollapsed); // Toggle the collapsed state
