@@ -33,7 +33,13 @@ function RoleSelection({ setRole, setPermissions }) {
     } else {
       // Just set role and redirect
       setRole(selectedRole);
-      navigate(selectedRole === 'tenant' ? '/tenant/dashboard' : '/homepage', { replace: true });
+      localStorage.setItem("userRole", selectedRole);
+
+      if (selectedRole === "tenant") {
+        navigate("/tenant/dashboard");
+      } else {
+        navigate("/manager/dashboard");
+      }
     }
   };
 

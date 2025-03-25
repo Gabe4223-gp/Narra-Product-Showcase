@@ -187,27 +187,6 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Fetch landlord's bank ID + bank details
-    const landlord = await UserProfile.findOne({
-      where: { id: landlordId },
-      attributes: ['landlordBankId', 'landlordBankDetails', 'bankName']
-    });
-
-    if (!landlord || !landlord.landlordBankId) {
-      return res.status(400).json({ message: "Landlord's bank details are missing. Please update settings." });
-    }
-
-    // 3) Combine the bank name with the landlordBankDetails object
-    //    If landlordBankDetails is a JSON with { swiftCode, accountNumber, routingNumber, etc. }
-    //    we now add the bankName from userProfile
-    let finalBankDetails = null;
-    if (landlord.landlordBankDetails) {
-      finalBankDetails = {
-        ...landlord.landlordBankDetails,
-        bankName: landlord.bankName || 'Unknown Bank'
-      };
-    }
-
     // Generate PDF invoice
     const safeSubject = subject.replace(/[^\w\d-]/g, '_');
     const pdfFileName = `${safeSubject}.pdf`;
@@ -370,6 +349,45 @@ router.get('/tenant/:tenantEmail/files', async (req, res) => {
   }
 });
 
+router.get('/tenant/:tenantEmail/profileData', async (req, res) => {
+  try {
+    const { tenantEmail } = req.params;
+    if (!tenantEmail) {
+      return res.status(400).json({ message: 'tenantEmail is required.' });
+    }
+    
+    // Query for user profiles where the tenants JSONB array contains the tenantEmail.
+    const userProfiles = await UserProfile.findAll({
+      where: {
+        tenants: {
+          [Op.contains]: [tenantEmail]
+        }
+      },
+      attributes: [
+        'name', 
+        'phoneNumber', 
+        'email', 
+        'landlordBankId', 
+        'bankName', 
+        'landlordBankDetails', 
+        'personalAddressInfo', 
+        'businessAddressInfo', 
+        'businessDetails', 
+        'businessBankInfo'
+      ]
+    });
+    
+    if (!userProfiles || userProfiles.length === 0) {
+      return res.status(404).json({ message: 'No matching user found.' });
+    }
+    
+    // Assuming one match is expected; otherwise, you can return the whole array.
+    return res.json({ userProfile: userProfiles[0] });
+  } catch (error) {
+    console.error('Error fetching user profile for tenantEmail:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 // routes/sendBillRoutes.js (append these endpoints)
 
@@ -473,7 +491,7 @@ router.get('/get-landlord-payment/:landlordId', async (req, res) => {
   try {
     const landlord = await UserProfile.findOne({
       where: { id: req.params.landlordId },
-      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails']
+      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails', 'personalAddressInfo']
     });
 
     if (!landlord) {
@@ -484,7 +502,8 @@ router.get('/get-landlord-payment/:landlordId', async (req, res) => {
     return res.json({
       landlordBankId: landlord.landlordBankId,
       bankName: landlord.bankName,
-      landlordBankDetails: landlord.landlordBankDetails
+      landlordBankDetails: landlord.landlordBankDetails,
+      personalAddressInfo: landlord.personalAddressInfo,
     });
   } catch (error) {
     console.error('Error fetching landlord bank details:', error);

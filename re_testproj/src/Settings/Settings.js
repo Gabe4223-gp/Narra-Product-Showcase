@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useUserProfile } from '../UserProfileContext';
 import axios from 'axios';
 import TeamSettings from './TeamSettings';
+import BusinessSettings from './BusinessSettings';
 import './Settings.css';
 
 function Settings() {
@@ -14,6 +15,10 @@ function Settings() {
     updateUserProfile,
   } = useUserProfile();
 
+  // For the business settings popup
+  const [showBusinessSettings, setShowBusinessSettings] = useState(false);
+
+  // For the team settings popup
   const [showTeamSettings, setShowTeamSettings] = useState(false);
 
   // Locally store the form data
@@ -32,6 +37,14 @@ function Settings() {
   // For the delete confirmation popup
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
+  // For the address details form
+  const [addressDetails, setAddressDetails] = useState({
+    country: "",
+    city: "",
+    streetAddress: "",
+    zipCode: ""
+  });  
+
   // Existing bank form data (for Bank Name, etc. – unchanged)
   const [bankFormData, setBankFormData] = useState({
     bankName: '',
@@ -41,9 +54,17 @@ function Settings() {
   // For Bank details form
   const [userBankDetails, setUserBankDetails] = useState({
     accountNumber: '',
+    accountName: '',
+    accountType: 'Checking',  // Default selection; options: Checking, Savings, Other
+    customAccountType: '',    // Only used when accountType is "Other"
     routingNumber: '',
-    swiftCode: '',
-  });
+    transitNumber: '',
+    institutionNumber: '',
+    swiftBicCode: '',         // Changed from swiftCode, now required
+    wiseAccountId: '',        // Optional
+  });  
+
+  const [currency, setCurrency] = useState('None');
 
   // When userProfile changes, populate formData
   useEffect(() => {
@@ -62,17 +83,32 @@ function Settings() {
         password: userProfile.password || '',
       });
 
+      setAddressDetails({
+        country: userProfile.personalAddressInfo?.country || '',
+        city: userProfile.personalAddressInfo?.city || '',
+        streetAddress: userProfile.personalAddressInfo?.streetAddress || '',
+        zipCode: userProfile.personalAddressInfo?.zipCode || ''
+      });
+
       setBankFormData({
         bankName: userProfile.bank || '',
         landlordBankId: userProfile.landlordBankId || ''
       });
 
+      setCurrency(userProfile.landlordBankDetails?.currency || 'None');
+
       // Populate the bank details form
       if (userProfile.landlordBankDetails) {
         setUserBankDetails({
           accountNumber: userProfile.landlordBankDetails.accountNumber || '',
+          accountName: userProfile.landlordBankDetails.accountName || '',
+          accountType: userProfile.landlordBankDetails.accountType || 'Checking',
+          customAccountType: userProfile.landlordBankDetails.customAccountType || '',
           routingNumber: userProfile.landlordBankDetails.routingNumber || '',
-          swiftCode: userProfile.landlordBankDetails.swiftCode || '',
+          transitNumber: userProfile.landlordBankDetails.transitNumber || '',
+          institutionNumber: userProfile.landlordBankDetails.institutionNumber || '',
+          swiftBicCode: userProfile.landlordBankDetails.swiftBicCode || '',
+          wiseAccountId: userProfile.landlordBankDetails.wiseAccountId || '',
         });
       }
     }
@@ -82,6 +118,14 @@ function Settings() {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleAddressDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setAddressDetails((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -99,6 +143,10 @@ function Settings() {
       ...prev,
       [name]: value,
     }));
+  };  
+
+  const toggleCurrencyChange = (e) => {
+    setCurrency(e.target.value);
   };
 
   const handleChangePassword = () => {
@@ -129,6 +177,23 @@ function Settings() {
       setMessage('An error occurred while saving settings.');
     }
   };
+
+  const saveAddressDetails = async () => {
+    try {
+      const response = await axios.put(`/api/user-profile/${userProfile.id}/address-details`, {
+        personalAddressInfo: addressDetails,
+      });
+      if (response.data.success) {
+        alert('Address details saved successfully!');
+        refreshUserProfile();
+      } else {
+        alert(response.data.message || 'Failed to save address details.');
+      }
+    } catch (error) {
+      console.error("Error saving address details:", error);
+      alert("Error saving address details.");
+    }
+  };  
 
   const saveBankDetails = async () => {
     if (!userProfile?.id) {
@@ -162,34 +227,32 @@ function Settings() {
   const saveUserBankDetails = async (e) => {
     e.preventDefault();
   
-    // -- Basic Validation --
+    // Basic Validation
     if (!/^\d{6,20}$/.test(userBankDetails.accountNumber)) {
       return alert('Please enter a valid account number (6-20 digits).');
     }
-  
-    // For routing number: typically 9 digits for US banks, but may differ internationally
+    if (!userBankDetails.accountName) {
+      return alert('Please enter an account name.');
+    }
+    if (userBankDetails.accountType === 'Other' && !userBankDetails.customAccountType) {
+      return alert('Please specify your account type.');
+    }
     if (userBankDetails.routingNumber && !/^\d{5,12}$/.test(userBankDetails.routingNumber)) {
       return alert('Please enter a valid routing number (5-12 digits), or leave blank if not applicable.');
     }
-  
-    // Swift code: typically 8-11 alphanumeric characters.
-    if (
-      userBankDetails.swiftCode &&
-      !/^[A-Za-z0-9]{8,11}$/.test(userBankDetails.swiftCode)
-    ) {
-      return alert('Please enter a valid SWIFT code (8-11 letters/numbers) or leave blank.');
+    // SWIFT/BIC Code is now required and must be 8-11 alphanumeric characters
+    if (!userBankDetails.swiftBicCode || !/^[A-Za-z0-9]{8,11}$/.test(userBankDetails.swiftBicCode)) {
+      return alert('Please enter a valid SWIFT/BIC code (8-11 letters/numbers).');
     }
-    
+  
     try {
       if (!userProfile?.id) {
         return alert('No user ID found. Please log in again.');
       }
-  
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`,
         { landlordBankDetails: userBankDetails }
       );
-  
       if (response.data.success) {
         alert('User bank details saved successfully!');
         refreshUserProfile();
@@ -200,7 +263,48 @@ function Settings() {
       console.error('Error saving user bank details:', error);
       alert('An error occurred while saving user bank details.');
     }
+  };  
+
+  const saveCurrency = async () => {
+    try {
+      const response = await axios.put(
+        `/api/user-profile/${userProfile.id}/landlord-bank-details/currency`,
+        { currency }
+      );
+      if (response.data.success) {
+        alert('Currency updated successfully!');
+        refreshUserProfile();
+      } else {
+        alert(response.data.message || 'Failed to update currency.');
+      }
+    } catch (error) {
+      console.error("Error updating currency:", error);
+      alert("Error updating currency.");
+    }
   };
+
+  const deleteAddressDetails = async () => {
+    if (!window.confirm("Are you sure you want to delete your address details?")) return;
+    try {
+      const response = await axios.delete(`/api/user-profile/${userProfile.id}/address-details`);
+      if (response.data.success) {
+        alert("Address details deleted successfully!");
+        setAddressDetails({
+          country: "",
+          city: "",
+          streetAddress: "",
+          zipCode: ""
+        });
+        refreshUserProfile();
+      } else {
+        alert(response.data.message || "Failed to delete address details.");
+      }
+    } catch (error) {
+      console.error("Error deleting address details:", error);
+      alert("Error deleting address details.");
+    }
+  };
+  
 
   // Delete bank info
   const deleteBankInfo = async () => {
@@ -232,7 +336,7 @@ function Settings() {
         `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`
       );
       if (response.data.success) {
-        alert('User bank details deleted successfully.');
+        alert('User bank details deleted successfully!');
         refreshUserProfile();
       } else {
         alert(response.data.message || 'Failed to delete user bank details.');
@@ -241,7 +345,7 @@ function Settings() {
       console.error('Error deleting user bank details:', error);
       alert('An error occurred while deleting user bank details.');
     }
-  };
+  };  
 
   // Handle Delete Account (front-end only for now)
   const handleDeleteAccount = () => {
@@ -267,16 +371,42 @@ function Settings() {
 
   return (
     <div className="settings-container">
-      <div className='settings-header'>
+      <div className="settings-header">
         <h3>Account Settings</h3>
+        <div className="toggle-settings">
+          {showBusinessSettings ? (
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setShowBusinessSettings(false)}
+            >
+              Back to Account Settings
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setShowBusinessSettings(true)}
+            >
+              Setup Business Settings Here
+            </button>
+          )}
+        </div>
       </div>
       
+      {showBusinessSettings ? (
+        <div className="business-settings-container">
+          {/* Render BusinessSettings component */}
+          <BusinessSettings onBack={() => setShowBusinessSettings(false)} userProfile={userProfile} refreshUserProfile={refreshUserProfile} />
+        </div>
+      ) : (
+      <>
       
       {/* Personal Details Section */}
       <h4>Personal Details</h4>
       <form onSubmit={handleSubmit}>
         <div className="fields">
-          <label htmlFor="name">Name</label>
+          <label htmlFor="name">Full Name</label>
           <input
             type="text"
             id="name"
@@ -342,6 +472,62 @@ function Settings() {
         <button type="submit" className="edit-btn">Save Changes</button>
       </form>
 
+      <h4>Address Details</h4>
+      <form onSubmit={(e) => { e.preventDefault(); saveAddressDetails(); }}>
+        <div className="fields">
+          <label htmlFor="country">Country</label>
+          <input
+            type="text"
+            id="country"
+            name="country"
+            value={addressDetails.country}
+            onChange={handleAddressDetailsChange}
+            placeholder="e.g. PH"
+          />
+        </div>
+        <div className="fields">
+          <label htmlFor="city">City</label>
+          <input
+            type="text"
+            id="city"
+            name="city"
+            value={addressDetails.city}
+            onChange={handleAddressDetailsChange}
+            placeholder="e.g. Pasig"
+          />
+        </div>
+        <div className="fields">
+          <label htmlFor="streetAddress">Address (Street, Apt/Unit)</label>
+          <input
+            type="text"
+            id="streetAddress"
+            name="streetAddress"
+            value={addressDetails.streetAddress}
+            onChange={handleAddressDetailsChange}
+            placeholder="e.g. 123 Main St, Apt 4B"
+          />
+        </div>
+        <div className="fields">
+          <label htmlFor="zipCode">Zip Code/Postcode</label>
+          <input
+            type="text"
+            id="zipCode"
+            name="zipCode"
+            value={addressDetails.zipCode}
+            onChange={handleAddressDetailsChange}
+            placeholder="e.g. 1234"
+          />
+        </div>
+        <button type="submit" className="edit-btn">Save Address Details</button>
+      </form>
+      <button
+        type="button"
+        className="link-btn danger"
+        onClick={deleteAddressDetails}
+      >
+        Delete Address Details
+      </button>
+
       {/* Bank Information */}
       <h4>Bank Information</h4>
       <label>Bank Name:</label>
@@ -380,6 +566,47 @@ function Settings() {
         </div>
 
         <div className="fields">
+          <label htmlFor="accountName">Account Name</label>
+          <input
+            id="accountName"
+            name="accountName"
+            type="text"
+            placeholder="ex. My Checking Account"
+            value={userBankDetails.accountName}
+            onChange={handleUserBankDetailsChange}
+            required
+          />
+        </div>
+
+        <div className="fields">
+          <label htmlFor="accountType">Account Type</label>
+          <select
+            id="accountType"
+            name="accountType"
+            value={userBankDetails.accountType}
+            onChange={handleUserBankDetailsChange}
+          >
+            <option value="Checking">Checking</option>
+            <option value="Savings">Savings</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        {userBankDetails.accountType === 'Other' && (
+          <div className="fields">
+            <label htmlFor="customAccountType">Specify Account Type</label>
+            <input
+              id="customAccountType"
+              name="customAccountType"
+              type="text"
+              placeholder="ex. Business"
+              value={userBankDetails.customAccountType}
+              onChange={handleUserBankDetailsChange}
+            />
+          </div>
+        )}
+
+        <div className="fields">
           <label htmlFor="routingNumber">Routing Number</label>
           <input
             id="routingNumber"
@@ -392,22 +619,55 @@ function Settings() {
         </div>
 
         <div className="fields">
-          <label htmlFor="swiftCode">SWIFT Code (optional)</label>
+          <label htmlFor="transitNumber">Transit Number (Optional)</label>
           <input
-            id="swiftCode"
-            name="swiftCode"
+            id="transitNumber"
+            name="transitNumber"
             type="text"
-            placeholder="ex. ABC123XYZ"
-            value={userBankDetails.swiftCode}
+            placeholder="ex. 00123"
+            value={userBankDetails.transitNumber}
             onChange={handleUserBankDetailsChange}
           />
         </div>
 
-        <button type="submit" className="edit-btn">
-          Save User Bank Details
-        </button>
-      </form>
+        <div className="fields">
+          <label htmlFor="institutionNumber">Institution Number (Optional)</label>
+          <input
+            id="institutionNumber"
+            name="institutionNumber"
+            type="text"
+            placeholder="ex. 123"
+            value={userBankDetails.institutionNumber}
+            onChange={handleUserBankDetailsChange}
+          />
+        </div>
 
+        <div className="fields">
+          <label htmlFor="swiftBicCode">SWIFT/BIC Code</label>
+          <input
+            id="swiftBicCode"
+            name="swiftBicCode"
+            type="text"
+            placeholder="ex. ABCDUS33"
+            value={userBankDetails.swiftBicCode}
+            onChange={handleUserBankDetailsChange}
+            required
+          />
+        </div>
+
+        <div className="fields">
+          <label htmlFor="wiseAccountId">Wise Account ID (Optional)</label>
+          <input
+            id="wiseAccountId"
+            name="wiseAccountId"
+            type="text"
+            value={userBankDetails.wiseAccountId}
+            onChange={handleUserBankDetailsChange}
+          />
+        </div>
+
+        <button type="submit" className="edit-btn">Save User Bank Details</button>
+      </form>
       <button
         type="button"
         onClick={deleteUserBankDetails}
@@ -442,15 +702,17 @@ function Settings() {
         </button>
       </p>
       <p>
-        Default Currency: Philippine Peso{' '}
-        <button
-          type="button"
-          className="link-btn"
-          onClick={() => alert('Change Currency feature not yet available')}
-        >
-          Change Currency
-        </button>
+        Currency Set: {currency}
       </p>
+      <select value={currency} onChange={toggleCurrencyChange}>
+        <option value="None">None</option>
+        <option value="US Dollar">US Dollar</option>
+        <option value="Euro">Euro</option>
+        <option value="Philippine Peso">Philippine Peso</option>
+      </select>
+      <button type="button" className="link-btn" onClick={saveCurrency}>
+        Save Currency
+      </button>
 
       {/* ====================== Help Section ====================== */}
       <h4>Help</h4>
@@ -486,6 +748,9 @@ function Settings() {
       )}
       
       {message && <p>{message}</p>}
+
+      </>
+      )}
     </div>
   );
 }

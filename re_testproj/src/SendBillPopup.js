@@ -18,6 +18,8 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
   const [bankName, setBankName] = useState(null);
   const [loadingBankInfo, setLoadingBankInfo] = useState(true);
   const [landlordBankDetails, setLandlordBankDetails] = useState(null);
+  const [personalAddressInfo, setPersonalAddressInfo] = useState(null);
+  const [bankInfoErrors, setBankInfoErrors] = useState([]);
 
   useEffect(() => {
     const fetchLandlordBankDetails = async () => {
@@ -27,16 +29,19 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
           setLandlordBankDetails(res.data.landlordBankDetails);
+          setPersonalAddressInfo(res.data.personalAddressInfo);
         } else {
           setLandlordBankId(null);
           setBankName(null);
           setLandlordBankDetails(null);
+          setPersonalAddressInfo(null);
         }
       } catch (error) {
         console.error('Error fetching landlord payment details:', error);
         setLandlordBankId(null);
         setBankName(null);
         setLandlordBankDetails(null);
+        setPersonalAddressInfo(null);
       } finally {
         setLoadingBankInfo(false);
       }
@@ -52,6 +57,41 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
     const tax = subtotal * taxMultiplier;
     setTotalAmount(subtotal + tax);
   }, [rentalAmount, utilityFees, otherFees, taxRate, landlordId]);
+
+  const validateLandlordInfo = () => {
+    const errors = [];
+    if (!landlordBankId) {
+      errors.push("No Bank Found. Please set up your bank account in 'Settings'.");
+    }
+    if (!bankName) {
+      errors.push("No Bank Name Found. Please set up your bank account in 'Settings'.");
+    }
+    console.log("personalAddressInfo", personalAddressInfo);
+    if (!personalAddressInfo) {
+      errors.push("No Address Found. Please set up your address in 'Settings'.");
+    }
+    if (!landlordBankDetails) {
+      errors.push("No Bank Account Info Found. Please set up your bank account in 'Settings'.");
+    } else {
+      // Define required fields in landlordBankDetails (customize as needed)
+      const requiredFields = ['accountNumber', 'accountName', 'accountType', 'routingNumber', 'swiftBicCode'];
+      const missingFields = requiredFields.filter(field => {
+        return (
+          !landlordBankDetails[field] ||
+          landlordBankDetails[field].toString().trim() === ""
+        );
+      });
+      if (missingFields.length > 0) {
+        errors.push(`No ${missingFields.join(", ")} found in Bank Details. Please set up your bank account in 'Settings'.`);
+      }
+      // Special check for currency inside landlordBankDetails
+      if (!landlordBankDetails.currency || landlordBankDetails.currency.toString().trim() === "") {
+        errors.push("No Currency found in Bank Details. Please set up your bank account in 'Settings'.");
+      }
+    }
+    setBankInfoErrors(errors);
+    return errors.length === 0;
+  };
 
   const validateFields = () => {
     const newErrors = {};
@@ -70,13 +110,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
       return;
     }
 
-    if (!landlordBankId) {
-      alert("Landlord has not set up their bank account. Please ask them to update it in Settings.");
-      return;
-    }
-
-    if (!landlordBankDetails) {
-      alert("Landlord has not set up their Bank Details. Please ask them to update it in Settings.");
+    if (!validateLandlordInfo()) {
       return;
     }
 
@@ -112,18 +146,16 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
     <div className="send-bill-popup">
       <div className="popup-content">
         <h2>Send Bill</h2>
+        <p>
+         ⚠️ If you represent a business, please register your business in the settings page before sending a bill.
+        </p>
 
-        {!loadingBankInfo && !landlordBankId && (
-          <div className="error-banner">
-            ⚠️ No Bank Found. Please set up your bank account in "Settings".
+        {/* Display bank info error banners if present */}
+        {!loadingBankInfo && bankInfoErrors.length > 0 && bankInfoErrors.map((error, index) => (
+          <div key={index} className="error-banner">
+            ⚠️ {error}
           </div>
-        )}
-
-        {!loadingBankInfo && !landlordBankDetails && (
-          <div className="error-banner">
-            ⚠️ No  Bank Account Info Found. Please set up your bank account in "Settings".
-          </div>
-        )}
+        ))}
 
         <label>
           Subject:

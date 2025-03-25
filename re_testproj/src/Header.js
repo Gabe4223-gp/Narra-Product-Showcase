@@ -35,6 +35,7 @@ function Header({ toggleSidebar }) {
     });  
     logout();
   };
+  
 
   const handleToggle = () => {
     setIsCollapsed(!isCollapsed);
