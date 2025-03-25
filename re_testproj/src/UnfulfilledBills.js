@@ -21,7 +21,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   useEffect(() => {
     async function fetchBills() {
       try {
-        const res = await fetch(`/api/sendBill/unfulfilled?propertyId=${propertyId}`);
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/unfulfilled?propertyId=${propertyId}`);
         const data = await res.json();
 
         setBills(data);
@@ -57,7 +57,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
     }
     console.log("Selectedbullids", selectedBillIds);
     try {
-        const response = await fetch(`/api/sendBill/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
     alert(`Mark selected bills as paid: ${Array.from(selectedBillIds).join(', ')}`);
     
     try {
-      const res = await fetch('/api/sendBill/markAsPaid', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/markAsPaid`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

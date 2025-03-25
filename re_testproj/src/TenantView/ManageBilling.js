@@ -44,7 +44,7 @@ const ManageBilling = ({ tenantEmail }) => {
 
   const fetchFiles = async () => {
     try {
-      const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
       const filteredFiles = res.data.files
         .filter(file => file.url && (file.fileType === 'pdf' || file.subject.toLowerCase().includes("proof of payment")))
         .filter(file => {
@@ -70,7 +70,7 @@ const ManageBilling = ({ tenantEmail }) => {
   useEffect(() => {
     async function checkPaymentMethod() {
       try {
-        const res = await axios.get('/api/user-profile/payment-methods', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-methods`, {
           params: { userProfileId: userProfile.id },
         });
         setValidPaymentMethod(res.data.paymentMethods.length > 0);
@@ -169,7 +169,7 @@ const ManageBilling = ({ tenantEmail }) => {
     formData.append("tenantEmail", tenantEmail);
     
     try {
-      const res = await axios.post("/api/payments/upload-proof", formData, {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/upload-proof`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.success) {

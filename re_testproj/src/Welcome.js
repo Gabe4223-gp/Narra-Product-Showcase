@@ -42,7 +42,7 @@ function Welcome({ onProfileCreated }) {
   const handleSave = async () => {
     if (!validateFields()) return;
     try {
-      await axios.post('/api/user-profile/welcome', {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/user-profile/welcome`, {
         name,
         phoneNumber: phone,
         dateofBirth: dob,

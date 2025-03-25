@@ -53,7 +53,7 @@ function Tenants() {
     
     try {
 
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +104,7 @@ function Tenants() {
 
     try {
  
-      const response = await fetch('/tenants/byIds', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/byIds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ function Tenants() {
       };
  
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('/tenants', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ function Tenants() {
           }
  
           // Send the imported tenants and selected property ID to the backend
-          const response = await fetch("/tenants/import", {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/import`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -344,7 +344,7 @@ function Tenants() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/tenants/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -547,9 +547,9 @@ function Tenants() {
         >
           Import From Excel
         </button>
-        <button onClick={handleSelectAll}>Select All</button>
-        <button onClick={handleDeselectAll}>Unselect All</button>
-        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+        <button onClick={handleSelectAll} >Select All</button>
+        <button onClick={handleDeselectAll} disabled={selectedTenantIds.size === 0}>Unselect All</button>
+        <button onClick={() => setShowDeleteModal(true)} disabled={selectedTenantIds.size === 0}>Delete Selected</button>
       </div>
 
 

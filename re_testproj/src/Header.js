@@ -4,6 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { FaBars, FaBell } from 'react-icons/fa';
 import { useUserProfile } from "./UserProfileContext";
 import Notifications from "./Notifications";
+import { useNavigate } from 'react-router-dom';//$
 
 
 const logo1 = require('./images/tenent.png');
@@ -24,11 +25,15 @@ function Header({ toggleSidebar }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { userProfile, refreshUserProfile } = useUserProfile();
   const dropdownRef = useRef(null);
-
+  const navigate = useNavigate();//$
+  
+  //$
   const handleLogout = () => {
-    logout({
-      returnTo: window.location.origin,
-    });
+    navigate('/', {
+      replace: true,
+      state: { authUserInfo: user },
+    });  
+    logout();
   };
 
   const handleToggle = () => {
@@ -56,7 +61,7 @@ function Header({ toggleSidebar }) {
     if (userProfile?.id) {
       const fetchNotifications = async () => {
         try {
-          const response = await fetch(`/api/notifications/${userProfile.id}`);
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/api/notifications/${userProfile.id}`);
           if (response.ok) {
             const data = await response.json();
             setNotifications(data);
@@ -77,7 +82,7 @@ function Header({ toggleSidebar }) {
   // Mark notifications as read
   const markNotificationsAsRead = async () => {
     try {
-      const response = await fetch(`/api/notifications/${userProfile.id}/mark-read`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/notifications/${userProfile.id}/mark-read`, {
         method: "POST",
       });
 

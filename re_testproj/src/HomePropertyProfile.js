@@ -26,7 +26,7 @@ function HomePropertyProfile({ property, onBack }) {
     try {
 
       // Make a request to the backend
-      const response = await fetch(`/properties/${propertyId}`,  {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties/${propertyId}`,  {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ function HomePropertyProfile({ property, onBack }) {
 
 
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('/properties/update', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ function HomePropertyProfile({ property, onBack }) {
       }
  
       // Send a request to fetch tenants with expiring leases
-      const response = await fetch("/properties/expiring-leases", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties/expiring-leases`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,7 +161,7 @@ function HomePropertyProfile({ property, onBack }) {
 
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/properties/delete`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/properties/delete`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ function HomePropertyProfile({ property, onBack }) {
         
     try {
       // Use query parameters instead of body
-      const response = await fetch(`/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',

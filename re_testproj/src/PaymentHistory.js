@@ -1,8 +1,8 @@
 // PaymentHistory.js
-import React, { useState, useEffect } from 'react';
-import InfiniteScroll from 'react-infinite-scroll-component';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import './PaymentHistory.css';
+import axios from 'axios';
 
 function PaymentHistory({ tenantDetails, refresh}) {
   const currentYear = new Date().getFullYear();
@@ -18,6 +18,7 @@ function PaymentHistory({ tenantDetails, refresh}) {
   const [entriesPerPage] = useState(5);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState('');
+  const [proofMap, setProofMap] = useState({});
 
   // Check if tenantDetails exists and has email
   const tenantEmail = tenantDetails?.email;
@@ -35,7 +36,7 @@ function PaymentHistory({ tenantDetails, refresh}) {
         });
       
         console.log('tenantEmail before fetch:', tenantEmail);
-        const response = await fetch(`/api/payments/${tenantEmail}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments/${tenantEmail}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
       
@@ -55,6 +56,50 @@ function PaymentHistory({ tenantDetails, refresh}) {
 
     fetchInitialPayments();
   }, [getAccessTokenSilently, tenantDetails, refresh]);
+
+  const filteredBills = paymentHistory?.filter((payment) => {
+    const paymentDate = new Date(payment.createdAt);
+    return (
+      paymentDate.getFullYear() === selectedYear &&
+      paymentDate.getMonth() === selectedMonth 
+    );
+  });
+  console.log("filteredbills", filteredBills);
+
+  //Fetch proofs
+  useEffect(() => {
+    async function fetchAllProofs() {
+      const proofs = {};
+      for (const bill of filteredBills) {
+        try {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/fetch-proof`, {
+            params: {
+              landlordEmail: bill.landlordEmail,
+              subject: bill.subject
+            }
+          });
+          if (res.data.success && res.data.proof && res.data.proof.url) {
+            proofs[bill.id] = res.data.proof.url;
+          } else {
+            proofs[bill.id] = null;
+          }
+        } catch (error) {
+          console.error(`Error fetching proof for bill ${bill.id}:`, error);
+          proofs[bill.id] = null;
+        }
+      }
+      setProofMap(proofs);
+    }
+  
+    fetchAllProofs();
+  }, []);  
+
+  if (!user) {
+    return <p>Please log in to view your payment history.</p>;
+  }
+  
+
+  
 
   // Fetch more payments
   /*
@@ -106,18 +151,9 @@ function PaymentHistory({ tenantDetails, refresh}) {
       setError(err.message || 'Unable to load more payment history.');
     }
   };*/
+  
 
-  if (!user) {
-    return <p>Please log in to view your payment history.</p>;
-  }
-  const filteredBills = paymentHistory?.filter((payment) => {
-    const paymentDate = new Date(payment.createdAt);
-    return (
-      paymentDate.getFullYear() === selectedYear &&
-      paymentDate.getMonth() === selectedMonth 
-    );
-  });
-  console.log("filteredbills", filteredBills);
+  
 
   return (
     <div className="payment-history">
@@ -155,28 +191,28 @@ function PaymentHistory({ tenantDetails, refresh}) {
       <table>
         <thead>
           <tr>
-            <th>Subject</th>
-            <th>Total Amount</th>
-            <th>Paid</th>
-            <th>Date Billed</th>
-            <th>Deadline</th>
-            <th>Date Paid</th>
-            <th>Status</th>
-            <th>Invoice</th>
-            <th>Proof of Payment</th>
+            <th style={{ width: "15%"}}>Subject</th>
+            <th style={{ width: "10%"}}>Total Amount</th>
+            <th style={{ width: "5%"}}>Paid</th>
+            <th style={{ width: "15%"}}>Date Billed</th>
+            <th style={{ width: "15%"}}>Deadline</th>
+            <th style={{ width: "15%"}}>Date Paid</th>
+            <th style={{ width: "5%"}}>Status</th>
+            <th style={{ width: "10%"}}>Invoice</th>
+            <th style={{ width: "10%"}}>Proof of Payment</th>
           </tr>
         </thead>
           <tbody>
             {filteredBills.length > 0 ? (
               filteredBills.map((payment) => (
                 <tr key={payment.id}>
-                  <td>{payment.subject}</td>
-                  <td>{payment.totalAmount?.toFixed(2)}</td>
-                  <td>{payment.paid ? "Paid" : "Unpaid"}</td>
-                  <td>{payment.createdAt ? new Date(payment.createdAt).toLocaleString() : ""}</td>
-                  <td>{payment.deadline ? new Date(payment.deadline).toLocaleString() : ""}</td>
-                  <td>{payment.updatedAt ? new Date(payment.updatedAt).toLocaleString() : ""}</td>
-                  <td>
+                  <td style={{ width: "15%"}}>{payment.subject}</td>
+                  <td style={{ width: "10%"}}>{payment.totalAmount?.toFixed(2)}</td>
+                  <td style={{ width: "5%" }}>{payment.paid ? "Paid" : "Unpaid"}</td>
+                  <td style={{ width: "15%", whiteSpace: "nowrap"}} >{payment.createdAt ? new Date(payment.createdAt).toLocaleString() : ""}</td>
+                  <td style={{ width: "15%", whiteSpace: "nowrap" }}>{payment.deadline ? new Date(payment.deadline).toLocaleString() : ""}</td>
+                  <td style={{ width: "15%", whiteSpace: "nowrap" }}>{payment.updatedAt ? new Date(payment.updatedAt).toLocaleString() : ""}</td>
+                  <td style={{ width: "5%", whiteSpace: "nowrap"}}>
                     {payment.updatedAt
                       ? (new Date(payment.updatedAt) > new Date(payment.deadline)
                           ? 'Paid Late'
@@ -185,15 +221,19 @@ function PaymentHistory({ tenantDetails, refresh}) {
                           ? 'Late'
                           : '')}
                   </td>
-                  <td>
+                  <td style={{ width: "9%" }}>
                     <a href={payment.url} target="_blank" rel="noopener noreferrer">
                       View 
                     </a>
                   </td>
-                  <td>
-                    <a href={payment.proof} target="_blank" rel="noopener noreferrer">
-                      View
-                    </a>
+                  <td style={{ width: "9%" }}>
+                    {proofMap[payment.id] ? (
+                      <a href={proofMap[payment.id]} target="_blank" rel="noopener noreferrer">
+                        View Proof
+                      </a>
+                    ) : (
+                      'N/A'
+                    )}
                   </td>
                 </tr>
               ))

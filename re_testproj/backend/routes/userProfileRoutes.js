@@ -86,6 +86,29 @@ router.put('/payment-method', async (req, res) => {
         bankName, // Store separately
       });
 
+      console.log("this area works")
+
+      if (bankName !== null && bankName !== undefined) {
+        await sequelize.query(
+          `UPDATE "Tenants" SET "bankName" = :bankName WHERE "user_id" = :userProfileId`,
+          {
+            replacements: { bankName, userProfileId },
+            type: sequelize.QueryTypes.UPDATE,
+          }
+        );
+      }
+      
+      if (cardholderName !== null && cardholderName !== undefined && cardholderName !== '') {
+        await sequelize.query(
+          `UPDATE "Tenants" SET "creditCardName" = :bankName WHERE "user_id" = :userProfileId`,
+          {
+            replacements: { bankName, userProfileId },
+            type: sequelize.QueryTypes.UPDATE,
+          }
+        );
+      }
+      
+
       return res.json({ success: true, message: 'Bank & Card information updated successfully.' });
     }
 
@@ -95,6 +118,16 @@ router.put('/payment-method', async (req, res) => {
       await userProfile.update({
         gcashMobileNumber,
       });
+
+      if (gcashMobileNumber !== null && gcashMobileNumber !== undefined) {
+        await sequelize.query(
+          `UPDATE "Tenants" SET "eWalletName" = 'GCash' WHERE "user_id" = :userProfileId`,
+          {
+            replacements: { userProfileId },
+            type: sequelize.QueryTypes.UPDATE,
+          }
+        );
+      }
 
       return res.json({ success: true, message: 'GCash information updated successfully.' });
     }
@@ -126,10 +159,25 @@ router.delete('/payment-method', async (req, res) => {
         { storedPaymentMethods: null, bankName: null },
         { where: { id: userProfileId } }
       );
+      await sequelize.query(
+        `UPDATE "Tenants" SET "bankName" = NULL, "creditCardName" = NULL WHERE "user_id" = :userProfileId`,
+        {
+          replacements: { userProfileId },
+          type: sequelize.QueryTypes.UPDATE,
+        }
+      );
+      
     } else if (paymentType === "GCash") {
       await UserProfile.update(
         { gcashMobileNumber: null },
         { where: { id: userProfileId } }
+      );
+      await sequelize.query(
+        `UPDATE "Tenants" SET "eWalletName" = NULL WHERE "user_id" = :userProfileId`,
+        {
+          replacements: { userProfileId },
+          type: sequelize.QueryTypes.UPDATE,
+        }
       );
     } else {
       return res.status(400).json({ message: "Invalid payment type." });

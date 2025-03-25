@@ -24,7 +24,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     if (!url) return "#";
     if (url.startsWith("http")) return url;
     // Use your environment variable or default to localhost for development
-    const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+    const baseUrl = process.env.REACT_APP_API_URL;
     return `${baseUrl}/${url}`;
   };
 
@@ -32,7 +32,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   useEffect(() => {
     async function fetchBills() {
       try {
-        const res = await fetch(`/api/sendBill/fulfilled?propertyId=${propertyId}`);
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/fulfilled?propertyId=${propertyId}`);
         const data = await res.json();
         setBills(data);
         setError(null);
@@ -54,7 +54,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
       // Use the already-filtered bills array (you may use filteredBills or currentFiles)
       for (const bill of filteredBills) {
         try {
-          const res = await axios.get('/api/sendBill/fetch-proof', {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/fetch-proof`, {
             params: {
               landlordEmail: bill.landlordEmail,
               subject: bill.subject
@@ -104,7 +104,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     console.log("Selectedbullids", selectedBillIds);
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/api/sendBill/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     
     try {
       // Make the API call to update the status of the selected bills
-      const res = await fetch('/api/sendBill/markAsUnpaid', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/markAsUnpaid`, {
         method: 'PUT', // or 'PUT' depending on your backend design
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
         <table>
           <thead>
             <tr>
-              <th></th>
+              <th ></th>
               <th onClick={() => handleSort('tenantName')}>
                 Tenant Name <span>{sortConfig.key === 'tenantName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
               </th>
@@ -240,7 +240,6 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
               </th>
               <th>Status</th>
               <th>Invoice</th>
-              <th>Proof of Payment</th>
               <th>Proof of Payment</th>
             </tr>
           </thead>

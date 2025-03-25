@@ -47,7 +47,7 @@ const ManageLease = ({ leaseData }) => {
   const fetchLeaseDocument = async () => {
     try {
       console.log("Fetching lease document...");
-      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const ManageLease = ({ leaseData }) => {
       return;
     }
     try {
-      const res = await axios.post('/api/leaseAgreement/end-request', {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/leaseAgreement/end-request`, {
         tenantEmail: inputEmail,
         subject: "Tenant wants to end lease",
       });

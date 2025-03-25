@@ -55,7 +55,7 @@ function TeamSettings({ onClose }) {
       setErrorMessage('');
       try {
         // GET /api/teams => returns { success: true, teams: [...] }
-        const res = await axios.get('/api/teams', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/teams`, {
           headers: { 'user-email': userEmail }
         });
         if (res.data.success) {
@@ -84,7 +84,7 @@ function TeamSettings({ onClose }) {
     // 1) Get this user’s membership in the team
     // GET /api/teams/:teamId/my-membership => { success: true, membership: {...} }
     try {
-      const memRes = await axios.get(`/api/teams/${teamId}/my-membership`, {
+      const memRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/teams/${teamId}/my-membership`, {
         headers: { 'user-email': userEmail }
       });
       if (memRes.data.success) {
@@ -100,7 +100,7 @@ function TeamSettings({ onClose }) {
     // 2) Get the team’s members
     // GET /api/teams/:teamId/members => { success: true, members: [...] }
     try {
-      const memListRes = await axios.get(`/api/teams/${teamId}/members`, {
+      const memListRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/teams/${teamId}/members`, {
         headers: { 'user-email': userEmail }
       });
       if (memListRes.data.success) {
@@ -154,7 +154,7 @@ function TeamSettings({ onClose }) {
       if (editTeamId) {
         // Update existing team name
         await axios.put(
-          `/api/teams/${editTeamId}`,
+          `${process.env.REACT_APP_API_URL}/api/teams/${editTeamId}`,
           { teamName: teamNameInput },
           { headers: { 'user-email': userEmail } }
         );
@@ -167,7 +167,7 @@ function TeamSettings({ onClose }) {
       } else {
         // Create new team
         const res = await axios.post(
-          '/api/teams',
+          `${process.env.REACT_APP_API_URL}/api/teams`,
           { teamName: teamNameInput },
           { headers: { 'user-email': userEmail } }
         );
@@ -196,7 +196,7 @@ function TeamSettings({ onClose }) {
   const confirmDeleteTeam = async () => {
     if (!deleteTeamId) return;
     try {
-      await axios.delete(`/api/teams/${deleteTeamId}`, {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/teams/${deleteTeamId}`, {
         headers: { 'user-email': userEmail }
       });
       setTeams((prev) => prev.filter((t) => t.id !== deleteTeamId));
@@ -259,7 +259,7 @@ function TeamSettings({ onClose }) {
       if (editMemberId) {
         // PUT
         await axios.put(
-          `/api/teams/${currentTeamId}/members/${editMemberId}`,
+          `${process.env.REACT_APP_API_URL}/api/teams/${currentTeamId}/members/${editMemberId}`,
           {
             memberName: memberForm.memberName,
             memberEmail: memberForm.memberEmail,
@@ -275,7 +275,7 @@ function TeamSettings({ onClose }) {
       } else {
         // POST
         await axios.post(
-          `/api/teams/${currentTeamId}/members`,
+          `${process.env.REACT_APP_API_URL}/api/teams/${currentTeamId}/members`,
           {
             memberName: memberForm.memberName,
             memberEmail: memberForm.memberEmail,
@@ -311,7 +311,7 @@ function TeamSettings({ onClose }) {
     if (!deleteMemberId || !currentTeamId) return;
     try {
       await axios.delete(
-        `/api/teams/${currentTeamId}/members/${deleteMemberId}`,
+        `${process.env.REACT_APP_API_URL}/api/teams/${currentTeamId}/members/${deleteMemberId}`,
         { headers: { 'user-email': userEmail } }
       );
       await loadTeamDetails(currentTeamId); // reload

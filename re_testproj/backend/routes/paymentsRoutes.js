@@ -6,7 +6,9 @@ const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const BASE_URL = process.env.REACT_APP_API_URL;
+const BASE_URL = process.env.NODE_ENV === 'production'
+  ? process.env.REACT_APP_API_URL_PROD
+  : process.env.REACT_APP_API_URL;
 const AWS = require('aws-sdk');
 
 // Local storage configuration using diskStorage
@@ -124,9 +126,15 @@ router.post('/gcash', async (req, res) => {
     }
 
     console.log("Creating GCash Source in PayMongo:", { amount, billId, tenantEmail });
-
+    console.log('Authorization Header:', Buffer.from(process.env.PAYMONGO_SECRET_KEY).toString('base64'));
+    
     const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
     const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
+    console.log('Request Data:', {
+      amount,
+      successUrl,
+      failedUrl
+    });
 
     const paymongoResponse = await axios.post('https://api.paymongo.com/v1/sources', {
       data: {
@@ -143,6 +151,7 @@ router.post('/gcash', async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
+    console.log("PayMongo response", paymongoResponse);
 
     if (!paymongoResponse.data || !paymongoResponse.data.data) {
       return res.status(500).json({ message: "Error creating PayMongo source." });
@@ -155,6 +164,28 @@ router.post('/gcash', async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating GCash payment:", error);
+
+    // Check if error.response exists (i.e., error is from the API call)
+    if (error.response) {
+      // Capture specific response data for a 400 error or other statuses
+      console.error("Error response data:", error.response.data); 
+      
+      // Send a more specific response if it's a 400 error
+      if (error.response.status === 400) {
+        return res.status(400).json({
+          message: "Bad request: " + (error.response.data.message || "Invalid request parameters."),
+          details: error.response.data
+        });
+      }
+      
+      // Handle other status codes as necessary
+      return res.status(error.response.status).json({
+        message: error.response.data.message || "Error with PayMongo API request.",
+        details: error.response.data
+      });
+    }
+
+    // Fallback for non-response errors (e.g., network issues)
     res.status(500).json({ message: "Internal server error" });
   }
 });

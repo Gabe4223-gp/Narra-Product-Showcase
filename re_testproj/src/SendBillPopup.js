@@ -22,7 +22,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
   useEffect(() => {
     const fetchLandlordBankDetails = async () => {
       try {
-        const res = await axios.get(`/api/sendBill/get-landlord-payment/${landlordId}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/get-landlord-payment/${landlordId}`);
         if (res.data) {
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
@@ -98,7 +98,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
 
     console.log("Sending billData:", billData);
     try {
-      await axios.post('/api/sendBill/generate', billData);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/sendBill/generate`, billData);
       alert('Bill sent successfully.');
     } catch (error) {
       console.error('Error generating bill:', error);
@@ -255,6 +255,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
         </label>
         <div className="total-amount">
           <h3>Total Amount: PHP {isNaN(totalAmount) ? '0.00' : totalAmount.toFixed(2)}</h3>
+          <h7 style={{fontWeight:'normal', fontSize:'9px', color:'black'}}>Note: Minimum bill is P21.0</h7>
         </div>
         <div className="popup-actions">
           <button onClick={onClose} className="cancel-button">Cancel</button>

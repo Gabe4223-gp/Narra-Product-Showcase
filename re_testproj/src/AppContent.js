@@ -95,6 +95,7 @@ function AppContent() {
 
   // Optional: multi-team switcher if teams.length > 1
   function renderTeamSwitcher() {
+    console.log()
     if (teams.length <= 1) return null;
     return (
       <div style={{ padding: '8px', background: '#ddd' }}>

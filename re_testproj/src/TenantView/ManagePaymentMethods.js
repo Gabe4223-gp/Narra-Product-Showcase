@@ -18,7 +18,7 @@ const ManagePaymentMethods = () => {
 
     async function fetchPaymentMethods() {
       try {
-        const res = await axios.get("/api/user-profile/payment-methods", {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-methods`, {
           params: { userProfileId: userProfile.id },
         });
 
@@ -70,7 +70,7 @@ const ManagePaymentMethods = () => {
       }
   
       if (data.type === "Bank & Card") {
-        await axios.put("/api/user-profile/payment-method", {
+        await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-method`, {
           userProfileId: userProfile.id,
           paymentType: "Bank & Card",
           data,
@@ -78,7 +78,7 @@ const ManagePaymentMethods = () => {
   
         alert("Bank & Card information saved successfully!");
       } else if (data.type === "GCash") {
-        await axios.put("/api/user-profile/payment-method", {
+        await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-method`, {
           userProfileId: userProfile.id,
           paymentType: "GCash",
           data: { gcashMobileNumber: data.gcashMobileNumber },
@@ -108,7 +108,7 @@ const ManagePaymentMethods = () => {
       const confirmDelete = window.confirm(`Are you sure you want to delete ${method.type}?`);
       if (!confirmDelete) return;
   
-      await axios.delete("/api/user-profile/payment-method", {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-method`, {
         data: { userProfileId: userProfile.id, paymentType: method.type },
       });
   

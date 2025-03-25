@@ -17,7 +17,7 @@ function OutstandingInvoice({ propertyId }) {
   useEffect(() => {
     async function fetchInvoices() {
       try {
-        const res = await axios.get(`/api/invoices/${propertyId}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/invoices/${propertyId}`);
         console.log("THe invoices", res.data);
         setInvoiceData(res.data);
         console.log("Billings", res.data);

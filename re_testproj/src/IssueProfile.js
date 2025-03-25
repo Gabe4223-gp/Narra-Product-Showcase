@@ -12,7 +12,7 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`/issues/get-doc?issueId=${issueId}&fileName=${fileName}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/get-doc?issueId=${issueId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/issues/delete`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

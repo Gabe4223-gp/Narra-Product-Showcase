@@ -38,9 +38,11 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('Origin:', origin); // Add this line for debugging
     const allowedOrigins = [
       'https://www.narra-ph.com',
       'http://localhost:5000/',
+      'http://3.133.130.238',
     ];    
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
@@ -150,10 +152,16 @@ app.use('/uploads', express.static('uploads'));
 
 //Sequelize Connection
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  protocol: 'postgres',
-  logging: console.log, // You might want to disable logging in production by setting logging: false.
+const sequelize = new Sequelize("postgresql://postgres:***REMOVED***@narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com:5432/narradatabase", {
+  dialect: 'postgres', // Specifies the PostgreSQL dialect for Sequelize
+  protocol: 'postgres', // Specifies the protocol (not strictly necessary)
+  logging: console.log, // Logs queries to the console (disable in production by setting logging: false)
+  dialectOptions: {
+    ssl: {
+      require: true,   // Enforces SSL connection (required by AWS RDS)
+      rejectUnauthorized: false,  // Allows self-signed certificates (needed for RDS)
+    }
+  }
 });
 
 sequelize.authenticate()
@@ -3046,7 +3054,7 @@ app.post('/api/paymongo/gcash-intent', async (req, res) => {
 
 //Invoice generator endpoint for Tenant Billing
 // Utility function to generate the invoice PDF
-const nodemailer = require('nodemailer');
+
 async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees, taxRate, totalAmount, deadline) {
   const invoicesDir = path.join(__dirname, 'invoices');
   if (!fs.existsSync(invoicesDir)) {
@@ -3086,8 +3094,9 @@ async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees,
   return invoicePath;
 }
 
+//const nodemailer = require('nodemailer');
 // Utility function to send an email
-async function sendEmail(email, subject, invoicePath) {
+/*async function sendEmail(email, subject, invoicePath) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -3110,7 +3119,7 @@ async function sendEmail(email, subject, invoicePath) {
   };
 
   await transporter.sendMail(mailOptions);
-}
+}*/
 
 // Invoice generator endpoint for Tenant Billing
 app.post('/api/send-bill', async (req, res) => {

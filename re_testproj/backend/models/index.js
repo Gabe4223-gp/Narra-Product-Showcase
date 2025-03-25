@@ -3,7 +3,7 @@ const path = require('path');
 const Sequelize = require('sequelize');
 
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
+const env = process.env.NODE_ENV || 'production';
 const configPath = path.resolve(__dirname, '../config/config.js');
 const config = require(configPath)[env];
 
@@ -17,6 +17,8 @@ if (config.use_env_variable) {
 } else {
     sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
+
+console.log(config.database, config.username, config.password);
 
 // Check database connection
 (async () => {

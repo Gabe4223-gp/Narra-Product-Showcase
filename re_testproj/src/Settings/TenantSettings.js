@@ -64,7 +64,7 @@ function TenantSettings() {
     e.preventDefault();
     try {
       // PUT request to update
-      const res = await axios.put(`/api/user-profile/${formData.id}`, {
+      const res = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`, {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
@@ -99,7 +99,7 @@ function TenantSettings() {
   const confirmDeleteAccount = async () => {
     try {
       // DELETE request to /api/user-profile/:id
-      await axios.delete(`/api/user-profile/${formData.id}`);
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`);
 
       // Close the confirmation popup
       setShowDeleteConfirmation(false);

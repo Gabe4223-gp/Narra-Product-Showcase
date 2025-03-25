@@ -79,7 +79,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         }
         try {
             // Make a DELETE request to the backend with the selected reading IDs
-            const response = await fetch(`/readings/delete-all`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/readings/delete-all`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

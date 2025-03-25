@@ -108,7 +108,7 @@ function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.put(`/api/user-profile/${formData.id}`, {
+      const res = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`, {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
@@ -142,7 +142,7 @@ function Settings() {
     }
 
     try {
-      const response = await axios.post('/api/user-profile/register-bank', {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/user-profile/register-bank`, {
         userId: userProfile.id,
         bankName: bankFormData.bankName
       });
@@ -186,7 +186,7 @@ function Settings() {
       }
   
       const response = await axios.post(
-        `/api/user-profile/${userProfile.id}/landlord-bank-details`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`,
         { landlordBankDetails: userBankDetails }
       );
   
@@ -209,7 +209,7 @@ function Settings() {
     try {
       // This route will clear userProfile.bank and userProfile.landlordBankId
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/delete-bank-info`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/delete-bank-info`
       );
   
       if (response.data.success) {
@@ -229,7 +229,7 @@ function Settings() {
     if (!window.confirm('Are you sure you want to delete these bank details?')) return;
     try {
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/landlord-bank-details`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`
       );
       if (response.data.success) {
         alert('User bank details deleted successfully.');
@@ -250,7 +250,7 @@ function Settings() {
 
   const confirmDeleteAccount = async () => {
     try {
-      await axios.delete(`/api/user-profile/${formData.id}`);
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`);
       setShowDeleteConfirmation(false);
       window.location.href = '/login';
     } catch (error) {

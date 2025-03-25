@@ -1,9 +1,9 @@
 const express = require('express');
 const { EmailMessage } = require('../models'); // Import model
-const nodemailer = require('nodemailer'); // For sending emails
+//const nodemailer = require('nodemailer'); // For sending emails
 const router = express.Router();
 
-// Fetch email messages with pagination
+/*/ Fetch email messages with pagination
 router.get('/', async (req, res) => {
   try {
     const { page = 1, limit = 5 } = req.query;
@@ -94,6 +94,7 @@ router.post('/:id/decline', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Failed to decline and send email' });
   }
-});
+});*/
 
 module.exports = router;
+

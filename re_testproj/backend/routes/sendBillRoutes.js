@@ -15,6 +15,7 @@ const { Tenant, Files, UserProfile } = require('../models');
 
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
+const baseUrl = process.env.REACT_APP_API_URL_PROD || 'http://localhost:5000';
 
 let s3;
 if (STORAGE_TYPE === 's3') {
@@ -219,7 +220,7 @@ router.post('/generate', async (req, res) => {
     // Store file on local server or AWS S3
     let fileURL;
     if (STORAGE_TYPE === 'local') {
-      fileURL = `http://localhost:5000/lease_bills/${encodeURIComponent(pdfFileName)}`;
+      fileURL = `${baseUrl}/lease_bills/${encodeURIComponent(pdfFileName)}`;
     } else {
       const fileData = fs.readFileSync(localPDFPath);
       await s3.putObject({
@@ -276,7 +277,7 @@ router.post('/generate', async (req, res) => {
     // Fetch the property details
     const propQuery = `SELECT * FROM "Properties" WHERE id = :propertyId`;
     const [propertyResults] = await sequelize.query(propQuery, {
-      replacements: { propertyId: updatedFile.propertyId }, // Corrected typo
+      replacements: { propertyId: newFileRecord[0]?.propertyId }, // Corrected typo
       type: sequelize.QueryTypes.SELECT, // Fetching a record
     });
 
@@ -285,13 +286,15 @@ router.post('/generate', async (req, res) => {
       throw new Error("Property not found");
     }
     
+    console.log("Property results", [propertyResults]);
+    
     //used currency P
     const notificationQuery = `
       INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
       SELECT 
         gen_random_uuid(), 
         :user_id,  
-        CONCAT(up."name", ' from ', ':propertyName', ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
+        CONCAT(up."name", ' from ', :propertyName, ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
         'lease', 
         NOW()
       FROM "userProfile" up
@@ -309,6 +312,27 @@ router.post('/generate', async (req, res) => {
       },
       type: sequelize.QueryTypes.INSERT,
     });
+
+    /*if (notifications[0].length > 0) {
+      const messageText = notifications[0][0].message; // Extract the generated message
+    
+      const mailOptions = {
+        from: process.env.EMAIL_USER, // Sender email
+        to: tenantEmail, // Recipient email
+        subject: 'New',
+        text: messageText, // Use the extracted message
+      };
+    
+      try {
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: "Email sent successfully!" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error sending email", error });
+      }
+    } else {
+      res.status(400).json({ message: "Notification creation failed." });
+    }*/
 
     return res.json({ file: newFileRecord });
 

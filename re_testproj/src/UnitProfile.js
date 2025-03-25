@@ -46,7 +46,7 @@ function UnitProfile ({unitId, onBack}) {
           }
    
           // Make a request to the backend
-          const response = await fetch(`/units/${unitId}`, {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/units/${unitId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ function UnitProfile ({unitId, onBack}) {
             console.log("Step 1", editedUnit);
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ function UnitProfile ({unitId, onBack}) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/units/delete`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

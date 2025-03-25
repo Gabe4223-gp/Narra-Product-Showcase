@@ -39,7 +39,7 @@ function Units() {
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ function Units() {
 
     try {
  
-      const response = await fetch('/units/byIds', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/units/byIds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ function Units() {
         };
    
         // Send tenant and selectedPropertyID to the backend
-        const response = await fetch('/units', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/units`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -223,7 +223,7 @@ function Units() {
     try {
  
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('/units/size', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/units/size`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -300,7 +300,7 @@ function Units() {
           }
   
           // Send the imported units and selected property ID to the backend
-          const response = await fetch(`/units/import`, {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/units/import`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -359,7 +359,7 @@ function Units() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/units/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/units/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -573,9 +573,9 @@ function Units() {
         
         <button onClick={handleSelectAll}>Select All</button>
       
-        <button onClick={handleDeselectAll}>Unselect All</button>
+        <button onClick={handleDeselectAll} disabled={selectedUnitIds.size === 0}>Unselect All</button>
 
-        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+        <button onClick={() => setShowDeleteModal(true)} disabled={selectedUnitIds.size === 0}>Delete Selected</button>
       
         
       </div>

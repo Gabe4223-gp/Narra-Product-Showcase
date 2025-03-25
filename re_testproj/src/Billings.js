@@ -21,7 +21,7 @@ function Billings() {
   const fetchProperties = async () => {
     if (!userProfile) return;
     try {
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

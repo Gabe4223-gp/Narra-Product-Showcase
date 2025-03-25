@@ -36,7 +36,7 @@ const TenantHomepage = () => {
   const fetchLeaseData = useCallback(async () => {
     if (!userProfile?.id) return;
     try {
-      const res = await fetch(`/current-lease/${userProfile.id}`);
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/current-lease/${userProfile.id}`);
       const data = await res.json();
       console.log('Lease data:', data);
       setLeaseData(data);

@@ -13,17 +13,17 @@ module.exports = {
   },
   test: {
     "username": "postgres",
-    "password": "***REMOVED***",
+    "password": "Pleaseopenme123*",
     "database": "narra_database",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   production: {
     "username": "postgres",
-    "password": "***REMOVED***",
-    "database": "narra_database",
-    "host": "127.0.0.1",
+    "password": "***REMOVED***",  // RDS password for production
+    "database": "narradatabase",  // The name of your production database in RDS
+    "host": "narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com", // RDS endpoint
     "dialect": "postgres"
   }
 };
-console.log('Sequelize development config:', module.exports.development);
+console.log('Sequelize production config:', module.exports.production);

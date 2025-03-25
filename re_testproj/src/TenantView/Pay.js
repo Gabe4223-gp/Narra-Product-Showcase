@@ -58,7 +58,7 @@ const Pay = ({ bill, onClose }) => {
 
         // Fetch tenant payment methods
         const userPaymentRes = await axios.get(
-          `/api/payments/user-payment-methods/${userProfile.id}`
+          `${process.env.REACT_APP_API_URL}/api/payments/user-payment-methods/${userProfile.id}`
         );
         const { storedPaymentMethods, gcashMobileNumber, bankName } = userPaymentRes.data || {};
 
@@ -67,7 +67,7 @@ const Pay = ({ bill, onClose }) => {
         setTenantGcashNumber(gcashMobileNumber || null);
 
         // Fetch landlord basic details (for GCash)
-        const landlordRes = await axios.get(`/api/payments/get-landlord-details/${bill.landlordId}`);
+        const landlordRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/payments/get-landlord-details/${bill.landlordId}`);
         const { landlordBankId, landlordGcashMobileNumber } = landlordRes.data || {};
         setLandlordGcashNumber(landlordGcashMobileNumber || null);
 
@@ -103,7 +103,7 @@ const Pay = ({ bill, onClose }) => {
   useEffect(() => {
     const fetchLandlordBank = async () => {
       try {
-        const response = await axios.get(`/api/payments/get-landlord-bank/${bill.id}`);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/payments/get-landlord-bank/${bill.id}`);
         if (response.data && response.data.success) {
           // Store fetched details in all three states
           setLandlordBankDetails(response.data.bankDetails);
@@ -167,7 +167,7 @@ const Pay = ({ bill, onClose }) => {
       // GCash Flow
       if (paymentMethod === "GCash") {
         console.log("Initiating GCash Payment with Amount:", amountPaid);
-        const response = await axios.post("/api/payments/gcash", {
+        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/gcash`, {
           amount: Math.round(parseFloat(amountPaid) * 100),
           billId: bill.id,
           tenantEmail: userProfile.email
@@ -180,14 +180,14 @@ const Pay = ({ bill, onClose }) => {
           // Poll
           const interval = setInterval(async () => {
             try {
-              const statusResp = await axios.post("/api/payments/gcash-status", {
+              const statusResp = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/gcash-status`, {
                 sourceId
               });
               const paymentStatus = statusResp.data.status;
               if (paymentStatus === "chargeable") {
                 clearInterval(interval);
                 alert("Payment successful!");
-                await axios.post("/api/payments/update-status", {
+                await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/update-status`, {
                   billId: bill.id,
                   status: "Paid"
                 });
@@ -248,14 +248,14 @@ const Pay = ({ bill, onClose }) => {
         console.log("Creating Wise recipient with payload:", recipientPayload);
 
         // 1) Create Wise recipient
-        const recipientRes = await axios.post("/api/payments/wise-create-recipient", recipientPayload);
+        const recipientRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/wise-create-recipient`, recipientPayload);
         if (!recipientRes.data.success) {
           setError("Failed to create recipient on Wise: " + recipientRes.data.message);
           return;
         }
 
         // 2) Perform the Transfer
-        const wiseRes = await axios.post("/api/payments/wise-transfer", {
+        const wiseRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/wise-transfer`, {
           amount: bill.totalAmount,
           currency: "PHP",
           recipientId: recipientRes.data.recipientId,
@@ -263,7 +263,7 @@ const Pay = ({ bill, onClose }) => {
 
         if (wiseRes.data.success) {
           alert("Wise bank transfer processed successfully!");
-          await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
+          await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/update-status`, { billId: bill.id, status: "Paid" });
           onClose();
         } else {
           setError("Wise bank transfer failed: " + (wiseRes.data.message || ""));

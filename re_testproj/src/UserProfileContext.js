@@ -22,10 +22,10 @@ export function UserProfileProvider({ children }) {
     if (!isAuthenticated || !user?.email) {
       setLoadingProfile(false);
       return;
-    }
+    } 
     try {
       setLoadingProfile(true);
-      const res = await axios.get(`/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
       setUserProfile(res.data.userProfile); 
       console.log("Fetched user profile:", res.data.userProfile);
       

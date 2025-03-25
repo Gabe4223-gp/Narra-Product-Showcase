@@ -8,6 +8,9 @@ import './RoleSelection.css';
 function RoleSelection({ setRole, setPermissions }) {
   const { user, logout } = useAuth0();
   const navigate = useNavigate();
+
+  const apiUrl = process.env.REACT_APP_API_URL;
+  console.log("This is the URL", apiUrl);
   
 
   const handleRoleSelection = async (selectedRole) => {
@@ -18,7 +21,7 @@ function RoleSelection({ setRole, setPermissions }) {
     }
   
     // (Optional) Check if user profile exists
-    const res = await axios.get(`/api/user-profile/existing?email=${encodeURIComponent(email)}`);
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/existing?email=${encodeURIComponent(email)}`);
     const { exists } = res.data;
   
     // If doesn't exist, go to welcome steps
