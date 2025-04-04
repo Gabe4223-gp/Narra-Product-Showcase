@@ -1,21 +1,25 @@
 // routes/sendBillRoutes.js
 require('dotenv').config();
 const express = require('express');
+//NodeMailer
+const nodemailer = require('nodemailer');
+
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const AWS = require('aws-sdk');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sequelize } = require('../models'); 
-const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
 // Import models – note Files is our reintroduced model
 const { Tenant, Files, UserProfile } = require('../models');
 
-const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
+const STORAGE_TYPE = 's3'; //set to s3 for testing
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
-const baseUrl = process.env.REACT_APP_API_URL_PROD || 'http://localhost:5000';
+const AWS_REGION = process.env.AWS_REGION;
 
 let s3;
 if (STORAGE_TYPE === 's3') {
@@ -26,11 +30,54 @@ if (STORAGE_TYPE === 's3') {
   });
 }
 
-function generatePDF(data, outputPath) {
+//Send Mail/////////////////////////////////////////////////////////////////////////////////////
+async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  let transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,  // 587 for TLS
+    auth: {
+      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
+      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+    },
+  });
+
+  let mailOptions = {
+    from: `"${landlordName} (via Narra)" <${"joshtylerchan@gmail.com"}>`,
+    replyTo: landlordEmail,  // The landlord's email will be the reply-to
+    to: tenantEmail,
+    subject: subject,
+    text: text,
+  };
+
+  try {
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ' + info.response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+}
+
+const { PassThrough } = require("stream");
+
+function generatePDF(data) {
+
   return new Promise( async (resolve, reject) => {
+
     const doc = new PDFDocument({ margin: 50 });
-    const stream = fs.createWriteStream(outputPath);
-    doc.pipe(stream);
+    const passThrough = new PassThrough();  // STREAM
+
+    // Setup S3 upload parameters
+    const uploadParams = {
+      Bucket: S3_BUCKET_NAME,
+      Key: data.pdfFileName,
+      Body: passThrough,  // STREAMING into S3
+      ContentType: "application/pdf",
+    };
+
+    // Upload stream to S3
+    const uploadPromise = s3.upload(uploadParams).promise();
+
+    doc.pipe(passThrough);  // Write PDF to the stream
 
     // Convert numeric values
     const rentalAmount = Number(data.rentalAmount) || 0;
@@ -150,10 +197,20 @@ function generatePDF(data, outputPath) {
         .text("Powered by Narra. Visit narra-ph.com", 0, footerY, { align: "center", width: 600 });
 
       doc.end();
-      stream.on("finish", () => resolve(outputPath));
-      stream.on("error", reject);
+
+      // Wait for upload to finish, then return the S3 link
+      try {
+        await uploadPromise;  // Wait for upload to complete
+
+        const fileURL = `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${data.pdfFileName}`;
+
+        resolve(fileURL);  // Resolve with file URL
+      } catch (uploadError) {
+        reject(uploadError);  // Reject on upload error
+      }
+
     } catch (error) {
-      reject(error);
+      reject(error);  // Reject on any error
     }
   });
 }
@@ -177,54 +234,33 @@ router.post('/generate', async (req, res) => {
       user_id,
       notes
     } = req.body;
-
-    console.log('Request body:', req.body);
-
+    
     const pdfId = uuidv4();
 
+    const safeSubject = subject.replace(/[^\w\d-]/g, "_");
+    const pdfFileName = `${safeSubject}_${pdfId}.pdf`;
+
+    //Retrieve landlord
+    const landlord = await UserProfile.findOne({
+      where: { id: landlordId },
+      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails', 'personalAddressInfo']
+    });
+
+    if (!landlord) {
+      return res.status(404).json({ message: 'Landlord not found' });
+    }
 
     if (!tenantEmail || !subject || !deadline) {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Generate PDF invoice
-    const safeSubject = subject.replace(/[^\w\d-]/g, '_');
-    const pdfFileName = `${safeSubject}.pdf`;
-    const localDir = path.join(__dirname, '..', 'lease_bills');
-    if (!fs.existsSync(localDir)) fs.mkdirSync(localDir);
-    const localPDFPath = path.join(localDir, pdfFileName);
-
-    await generatePDF({ pdfId, subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount, propertyId, landlordId, notes }, localPDFPath);
-
-    // Store file on local server or AWS S3
-    let fileURL;
-    if (STORAGE_TYPE === 'local') {
-      fileURL = `${baseUrl}/lease_bills/${encodeURIComponent(pdfFileName)}`;
-    } else {
-      const fileData = fs.readFileSync(localPDFPath);
-      await s3.putObject({
-        Bucket: S3_BUCKET_NAME,
-        Key: pdfFileName,
-        Body: fileData,
-        ContentType: 'application/pdf',
-      }).promise();
-      fs.unlinkSync(localPDFPath);
-      fileURL = s3.getSignedUrl('getObject', { Bucket: S3_BUCKET_NAME, Key: pdfFileName, Expires: 3600 });
-    }
-
-    // Update the Tenant's billingDeadline based on tenantEmail
-    const tenantRecord = await Tenant.findOne({ where: { email: tenantEmail } });
-    if (tenantRecord) {
-      await tenantRecord.update({ billingDeadline: deadline });
-    } else {
-      console.log(`Tenant with email ${tenantEmail} not found.`);
-    }
+    const fileURL = await generatePDF({ pdfId, pdfFileName, subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount, propertyId, landlordId, notes});
 
     const [newFileRecord] = await sequelize.query(
       `
       INSERT INTO "Files" 
         ("id", "fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", 
-        "tenantEmail", "landlordId", "deadline", "updatedAt", "landlordBankId")
+        "tenantEmail", "landlordId", "deadline", "updatedAt", landlordBankId)
       VALUES 
         (:id, :fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, 
         :tenantEmail, :landlordId, :deadline, :updatedAt, :landlordBankId)
@@ -245,7 +281,6 @@ router.post('/generate', async (req, res) => {
           deadline: deadline,
           updatedAt: null, //set to null cuz this attribute will be set when bill is paid
           landlordBankId: landlord.landlordBankId,
-          landlordBankDetails: finalBankDetails,
         },
         type: sequelize.QueryTypes.INSERT,
       }
@@ -292,29 +327,44 @@ router.post('/generate', async (req, res) => {
       type: sequelize.QueryTypes.INSERT,
     });
 
-    /*if (notifications[0].length > 0) {
-      const messageText = notifications[0][0].message; // Extract the generated message
-    
-      const mailOptions = {
-        from: process.env.EMAIL_USER, // Sender email
-        to: tenantEmail, // Recipient email
-        subject: 'New',
-        text: messageText, // Use the extracted message
-      };
-    
-      try {
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ message: "Email sent successfully!" });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error sending email", error });
-      }
-    } else {
-      res.status(400).json({ message: "Notification creation failed." });
-    }*/
+    //Send email to tenant
+    const landlordEmailQuery = `
+      SELECT email, name FROM "userProfile" WHERE id = :landlordId
+    `;
+    const emailLandlord = await sequelize.query(landlordEmailQuery, {
+      replacements: { landlordId: landlordId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    const propEmailQuery = `
+      SELECT "propertyName" FROM "Properties" WHERE id = :propertyId
+    `;
+    const emailProp = await sequelize.query(propEmailQuery, {
+      replacements: { propertyId: propertyId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (emailLandlord && emailProp && emailLandlord.length > 0 && emailProp.length > 0) {
+      const landlordEmail = emailLandlord[0].email;
+      const landlordName = emailLandlord[0].name;
+      const propertyName = emailProp[0].propertyName;
+      const emailSubject = `${propertyName} Invoice - ${subject}`;
+      const emailBody = `
+        Hello,
+
+        ${landlordName} from ${propertyName} has sent you an invoice titled ${subject}.
+
+        Please find the attached invoice here: ${fileURL}
+
+        Thank you.
+
+        Note: Any replies to this email will be send to the landlord/property manager.
+      `;
+
+      await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
+    }
 
     return res.json({ file: newFileRecord });
-
   } catch (error) {
     console.error('Error generating bill:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -423,6 +473,7 @@ router.get('/unfulfilled', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 // GET fulfilled bills by propertyId
 router.get('/fulfilled', async (req, res) => {
@@ -599,7 +650,34 @@ router.delete('/delete-all', async (req, res) => {
   }
 
   try {
-    // Raw SQL query to delete the selected bills associated with the given property
+
+    // Step 1: Find the S3 keys of the files to be deleted
+    const files = await sequelize.query(
+      `SELECT * FROM "Leases" WHERE "id" IN (:bills) AND "propertyId" = :propertyId`,
+      {
+        replacements: { bills, propertyId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const s3Keys = files.map(file => ({ Key: file.fileName }));
+
+    console.log("these are the keys", s3Keys);
+
+    // Step 2: Delete files from S3 (only if keys are found)
+    if (s3Keys.length > 0) {
+      const s3Params = {
+        Bucket: S3_BUCKET_NAME, // Make sure this is set
+        Delete: {
+          Objects: s3Keys,
+          Quiet: false,
+        },
+      };
+
+      await s3.deleteObjects(s3Params).promise();
+    }
+
+    //3. Database delete the selected bills associated with the given property
     const query = `
       DELETE FROM "Files"
       WHERE "id" IN (:bills) AND "propertyId" = :propertyId;

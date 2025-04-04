@@ -17,7 +17,7 @@ const user = {
     imageSize: 50,
   };
 
-function Header({ toggleSidebar }) {
+function Header({ toggleSidebar, setRole }) {
   const { logout } = useAuth0();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -29,11 +29,12 @@ function Header({ toggleSidebar }) {
   
   //$
   const handleLogout = () => {
+    logout();
+    setRole("null");
+    localStorage.setItem("userRole", "null");
     navigate('/', {
       replace: true,
-      state: { authUserInfo: user },
     });  
-    logout();
   };
   
 

@@ -1,14 +1,13 @@
 require('dotenv').config({ path: './backend/.env' });
 const express = require('express');
 const router = express.Router();
-const { UserProfile, Files, sequelize } = require('../models'); // Sequelize model
+const stripe = require('stripe')(process.env.REACT_APP_STRIPE_SECRET_KEY);
+const { UserProfile, Files, sequelize} = require('../models');
 const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL_PROD
-  : process.env.REACT_APP_API_URL;
+const BASE_URL = 'https://api.narra-ph.com'; //set it fixed for testing
 const AWS = require('aws-sdk');
 
 // Local storage configuration using diskStorage
@@ -126,15 +125,9 @@ router.post('/gcash', async (req, res) => {
     }
 
     console.log("Creating GCash Source in PayMongo:", { amount, billId, tenantEmail });
-    console.log('Authorization Header:', Buffer.from(process.env.PAYMONGO_SECRET_KEY).toString('base64'));
-    
+
     const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
     const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
-    console.log('Request Data:', {
-      amount,
-      successUrl,
-      failedUrl
-    });
 
     const paymongoResponse = await axios.post('https://api.paymongo.com/v1/sources', {
       data: {
@@ -151,7 +144,6 @@ router.post('/gcash', async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
-    console.log("PayMongo response", paymongoResponse);
 
     if (!paymongoResponse.data || !paymongoResponse.data.data) {
       return res.status(500).json({ message: "Error creating PayMongo source." });
@@ -479,7 +471,7 @@ router.get('/payment-success', async (req, res) => {
       });
 
       // Redirect back to Tenant Dashboard & Force Reload Billing
-      return res.redirect(`${process.env.FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=success&redirected=true`);
+      return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=success&redirected=true`); //fixed to narra-ph.com for testing
   } catch (error) {
     console.error('Error processing payment success:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -487,7 +479,7 @@ router.get('/payment-success', async (req, res) => {
 });
 
 router.get('/payment-failed', (req, res) => {
-  return res.redirect(`${process.env.FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=failed&redirected=true`);
+  return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=failed&redirected=true`); //fixed to narra-ph.com for testing
 });
 
 // ================== Proof of Payments ==================

@@ -47,26 +47,41 @@ function AppContent() {
   const query = useQuery();
   const redirected = query.get("redirected");
 
+
+
   useEffect(() => {
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    console.log('this is your role when logging in', role);
+    
     if (role) {
       localStorage.setItem("userRole", role);
     }
-      console.log('redirected:', redirected);
-      
-      if (redirected === "true") {
-        if (role === "tenant") {
-          navigate("/tenant/dashboard", { replace: true });
-        } else if (role === "landlord") {
-          navigate("/homepage", { replace: true });
-        } else {
-          navigate("/select-role", { replace: true });  // Fallback if role is missing
-        }
+
+    console.log('redirected:', redirected);
+
+    if (redirected === "true") {
+      if (role === "tenant") {
+        navigate("/tenant/dashboard", { replace: true });
+      } else if (role === "landlord") {
+        navigate("/homepage", { replace: true });
+      } else {
+        navigate("/select-role", { replace: true });  // Fallback if role is missing
       }
-      
-      if (!isAuthenticated && !isLoading && window.location.pathname !== "/") {
-        loginWithRedirect();
-      }
-    }, [redirected, role, isAuthenticated, isLoading, loginWithRedirect, navigate]);
+    } else if (role === "null" && window.location.pathname !== "/select-role" && window.location.pathname !=="/welcome") {
+      console.log("you are going to select role");
+      navigate("/select-role", { replace: true });
+    }
+
+    if (!isAuthenticated && !isLoading && window.location.pathname !== "/" && window.location.pathname !== "/select-role") {
+      console.log("logging in with redirect");
+      loginWithRedirect();
+    }
+  
+  }, [redirected, role, isAuthenticated, isLoading, loginWithRedirect, navigate]);
 
   // If loading from Auth0 or TeamContext, show loading
   if (isLoading || loadingTeams) {
@@ -75,6 +90,7 @@ function AppContent() {
 
   // If not authenticated, show public routes
   if (!isAuthenticated) {
+    console.log("user  is not authenticated");
     return (
       <Routes>
         <Route path="/" element={<Login />} />
@@ -93,7 +109,8 @@ function AppContent() {
   }
 
   // If user has no role => show role selection
-  if (!role) {
+  if (role === "null") {
+    console.log("user has no role");
     return (
       <Routes>
         <Route path="/select-role" element={
@@ -138,7 +155,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={
           <ProtectedRoute>
-            <Layout role={role} membership={activeTeamMembership} />
+            <Layout role={role} setRole={setRole} membership={activeTeamMembership} />
           </ProtectedRoute>
         }>
           {role === 'landlord' && (

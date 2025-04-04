@@ -23,7 +23,7 @@ function RenewLease({onUploadSignedLease}) {
  
   const fetchUnsignedLeases = async () => {
     try {
-      const response = await fetch(`/unsigned-leases/${tenantId}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/unsigned-leases/${tenantId}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -53,7 +53,7 @@ function RenewLease({onUploadSignedLease}) {
   const handleViewLease = async (doc) => {
     try {
       // Use query parameters instead of body
-      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${doc.fileName}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-id?tenantId=${tenantId}&fileName=${doc.fileName}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ function RenewLease({onUploadSignedLease}) {
           const fileContent = reader.result;  // Base64 content of the file
 
           try {
-              const response = await fetch('/tenants/update-lease', {
+              const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/update-lease`, {
                   method: 'PUT',  // Use PUT for updating the document
                   headers: {
                       'Content-Type': 'application/json',

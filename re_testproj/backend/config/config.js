@@ -5,7 +5,7 @@ module.exports = {
   },
   development: {
     "username": "postgres",
-    "password": "Pleaseopenme123*",
+    "password": "***REMOVED***",
     "database": "narra_database",
     "host": "127.0.0.1",
     "port": 5432,
@@ -13,17 +13,26 @@ module.exports = {
   },
   test: {
     "username": "postgres",
-    "password": "Pleaseopenme123*",
+    "password": "***REMOVED***",
     "database": "narra_database",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   production: {
     "username": "postgres",
-    "password": "***REMOVED***",  // RDS password for production
-    "database": "narradatabase",  // The name of your production database in RDS
-    "host": "narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com", // RDS endpoint
-    "dialect": "postgres"
+    "password": "***REMOVED***",
+    "database": "narradatabase",
+    "host": "narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com",
+    "dialect": "postgres",
+    "dialectOptions": {
+        "ssl": {
+            "require": true,
+            "rejectUnauthorized": false
+        }
+    }
   }
 };
-console.log('Sequelize production config:', module.exports.production);
+
+const env = process.env.NODE_ENV;
+const config = module.exports[env];
+console.log(`Sequelize ${env} config:`, config);

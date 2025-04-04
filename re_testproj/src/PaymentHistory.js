@@ -30,15 +30,17 @@ function PaymentHistory({ tenantDetails, refresh}) {
     console.log("fetch works");
     const fetchInitialPayments = async () => {
       try {
+        /*
         const token = await getAccessTokenSilently({
           audience: process.env.REACT_APP_AUTH0_AUDIENCE,
           scope: 'openid read:payments write:payments offline_access',
-        });
+        });*/
       
         console.log('tenantEmail before fetch:', tenantEmail);
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments/${tenantEmail}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments/${tenantEmail}`);
+          /* {
           headers: { Authorization: `Bearer ${token}` }
-        });
+        });*/
       
         const data = await response.json();
       

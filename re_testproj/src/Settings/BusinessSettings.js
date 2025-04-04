@@ -78,7 +78,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     e.preventDefault();
     try {
       const response = await axios.put(
-        `/api/user-profile/${userProfile.id}/business-details`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-details`,
         { businessDetails: businessInfo }
       );
       if (response.data.success) {
@@ -97,7 +97,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     e.preventDefault();
     try {
       const response = await axios.put(
-        `/api/user-profile/${userProfile.id}/business-address`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-address`,
         { businessAddressInfo: businessAddress }
       );
       if (response.data.success) {
@@ -124,7 +124,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     }
     try {
       const response = await axios.put(
-        `/api/user-profile/${userProfile.id}/business-bank-info`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-bank-info`,
         { businessBankInfo }
       );
       if (response.data.success) {
@@ -144,7 +144,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     if (!window.confirm('Are you sure you want to delete business information?')) return;
     try {
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/business-details`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-details`
       );
       if (response.data.success) {
         alert('Business information deleted successfully!');
@@ -168,7 +168,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     if (!window.confirm('Are you sure you want to delete business address?')) return;
     try {
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/business-address`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-address`
       );
       if (response.data.success) {
         alert('Business address deleted successfully!');
@@ -192,7 +192,7 @@ function BusinessSettings({ onBack, userProfile, refreshUserProfile }) {
     if (!window.confirm('Are you sure you want to delete business bank details?')) return;
     try {
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/business-bank-info`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/business-bank-info`
       );
       if (response.data.success) {
         alert('Business bank details deleted successfully!');

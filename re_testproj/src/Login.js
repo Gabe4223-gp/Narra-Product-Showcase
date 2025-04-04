@@ -14,11 +14,12 @@ function Login() {
   //$
   React.useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      console.log("Login got triggered", isLoading);
       // If user is already authenticated, direct them to role selection or a homepage
       navigate('/select-role', {
         replace: true,
         state: { authUserInfo: user },
-      });;  // or /homepage, etc.//$
+      });  // or /homepage, etc.//$
     }
   }, [isAuthenticated, isLoading]);
 
@@ -29,6 +30,7 @@ function Login() {
         scope: 'openid profile email',
       },
     });
+    console.log("login with redirect got triggered");
   };
 
   // If you want to remove sign up and forgot password, just comment them out

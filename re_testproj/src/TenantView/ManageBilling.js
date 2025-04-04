@@ -107,7 +107,7 @@ const ManageBilling = ({ tenantEmail }) => {
   
       try {
         setLoadingLandlordData(true);
-        const response = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/profileData`);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/profileData`);
         console.log("Landlord data response:", response.data);
         if (response.data.userProfile) {
           setLandlordData(response.data.userProfile);

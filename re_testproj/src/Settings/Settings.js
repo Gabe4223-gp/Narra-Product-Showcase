@@ -180,7 +180,7 @@ function Settings() {
 
   const saveAddressDetails = async () => {
     try {
-      const response = await axios.put(`/api/user-profile/${userProfile.id}/address-details`, {
+      const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/address-details`, {
         personalAddressInfo: addressDetails,
       });
       if (response.data.success) {
@@ -268,7 +268,7 @@ function Settings() {
   const saveCurrency = async () => {
     try {
       const response = await axios.put(
-        `/api/user-profile/${userProfile.id}/landlord-bank-details/currency`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details/currency`,
         { currency }
       );
       if (response.data.success) {
@@ -286,7 +286,7 @@ function Settings() {
   const deleteAddressDetails = async () => {
     if (!window.confirm("Are you sure you want to delete your address details?")) return;
     try {
-      const response = await axios.delete(`/api/user-profile/${userProfile.id}/address-details`);
+      const response = await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/address-details`);
       if (response.data.success) {
         alert("Address details deleted successfully!");
         setAddressDetails({

@@ -171,7 +171,7 @@ function Tenants() {
       }
       
       // Call the /emails-by-ids endpoint to get emails for the given tenant IDs
-      const response = await fetch('/emails-by-ids', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/emails-by-ids`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +195,7 @@ function Tenants() {
         const emails = data.emails;
   
         // Update the userProfile.tenants field via your existing API endpoint
-        const updateResponse = await fetch(`/api/user-profile/${userProfile.id}/tenants`, {
+        const updateResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/tenants`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -273,8 +273,6 @@ function Tenants() {
 
      
       const responseData = await response.json(); // Get the response data
-
-      console.log("Aflooie", responseData);
 
       // Optionally: If you have a function that fetches tenants by IDs
       const updatedTenantIds = await fetchTenants(responseData.tenants);

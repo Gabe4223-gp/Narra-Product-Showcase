@@ -86,8 +86,6 @@ router.put('/payment-method', async (req, res) => {
         bankName, // Store separately
       });
 
-      console.log("this area works")
-
       if (bankName !== null && bankName !== undefined) {
         await sequelize.query(
           `UPDATE "Tenants" SET "bankName" = :bankName WHERE "user_id" = :userProfileId`,
@@ -107,7 +105,6 @@ router.put('/payment-method', async (req, res) => {
           }
         );
       }
-      
 
       return res.json({ success: true, message: 'Bank & Card information updated successfully.' });
     }
@@ -166,7 +163,6 @@ router.delete('/payment-method', async (req, res) => {
           type: sequelize.QueryTypes.UPDATE,
         }
       );
-      
     } else if (paymentType === "GCash") {
       await UserProfile.update(
         { gcashMobileNumber: null },

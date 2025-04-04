@@ -9,6 +9,10 @@ const app = express();
 // Error handling
 const morgan = require('morgan');
 
+//NodeMailer
+const nodemailer = require('nodemailer');
+
+
 //Routes
 const emailMessageRoutes = require('./routes/emailMessageRoutes');
 const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
@@ -38,12 +42,13 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('Origin:', origin); // Add this line for debugging
+    console.log('Origin:', origin); //For Debug
     const allowedOrigins = [
       'https://www.narra-ph.com',
-      'http://localhost:5000/',
-      'http://3.133.130.238',
-    ];    
+      'http://localhost:5000',
+      'https://narra-ph.com',
+      'https://localhost:5000',
+    ];
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
       callback(null, true);
@@ -108,11 +113,13 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
 const { Tenant } = require('./models'); // Adjust if your models are in a different path
+const { getMaxListeners } = require('events');
 
 
 //Configure with Frontend
 const limit = '50mb';
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); //enable preflight
 app.use(morgan('combined'));
 app.get('/', (req, res) => {res.send('Backend is running successfully!');});
 app.use(express.json({ limit: '50mb' }));
@@ -151,15 +158,17 @@ app.use('/uploads', express.static('uploads'));
 
 
 //Sequelize Connection
+console.log("NODE_ENV:", process.env.NODE_ENV);
 
-const sequelize = new Sequelize("postgresql://postgres:***REMOVED***@narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com:5432/narradatabase", {
-  dialect: 'postgres', // Specifies the PostgreSQL dialect for Sequelize
-  protocol: 'postgres', // Specifies the protocol (not strictly necessary)
-  logging: console.log, // Logs queries to the console (disable in production by setting logging: false)
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  protocol: 'postgres',
+  logging: console.log,
   dialectOptions: {
     ssl: {
-      require: true,   // Enforces SSL connection (required by AWS RDS)
-      rejectUnauthorized: false,  // Allows self-signed certificates (needed for RDS)
+      require: true,
+      ca: fs.readFileSync('/home/ec2-user/rds-combined-ca-bundle.pem').toString(),
+      rejectUnauthorized: false
     }
   }
 });
@@ -237,6 +246,33 @@ sequelize.sync()
   .catch((error) => {
     console.error('Error syncing with the database:', error);
 });
+
+//Send Mail/////////////////////////////////////////////////////////////////////////////////////
+async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  let transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,  // 587 for TLS
+    auth: {
+      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
+      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+    },
+  });
+
+  let mailOptions = {
+    from: `"${landlordName} (via Narra)" <${"joshtylerchan@gmail.com"}>`,
+    replyTo: landlordEmail,  // The landlord's email will be the reply-to
+    to: tenantEmail,
+    subject: subject,
+    text: text,
+  };
+
+  try {
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ' + info.response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+}
 
 //Issue functions///////////////////////////////////////////////////////////////////////////////
 
@@ -2249,22 +2285,22 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Tenant lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { id, fileName, fileType, url, fileContent, 
-    landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, 
-    signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
   
-  console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
+  const newBuffer = fileContent.replace(/^data:.+;base64,/, ""); // Strips the data URI prefix
+  const buffer = Buffer.from(newBuffer, 'base64');
 
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
+    Body: buffer,
+    ContentEncoding: 'base64',
+    ContentType: 'application/pdf',
   };
 
   try {
     const data = await s3.upload(params).promise();
-    const fileUrl = data.Location;
+    const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     console.log("FileUrl", fileUrl)
 
@@ -2329,7 +2365,6 @@ app.post('/tenants/upload-lease', async (req, res) => {
         type: sequelize.QueryTypes.UPDATE,
       });
     }
-
     
     const notificationMessage = signed 
       ? 'updated your lease' 
@@ -2357,6 +2392,43 @@ app.post('/tenants/upload-lease', async (req, res) => {
       },
       type: sequelize.QueryTypes.INSERT,
     });
+
+    //Send email to tenant
+    const landlordQuery = `
+      SELECT email, name FROM "userProfile" WHERE id = :landlordId
+    `;
+    const emailLandlord = await sequelize.query(landlordQuery, {
+      replacements: { landlordId: landlordId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    const propQuery = `
+      SELECT "propertyName" FROM "Properties" WHERE id = :propertyId
+    `;
+    const emailProp = await sequelize.query(propQuery, {
+      replacements: { propertyId: propertyId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (emailLandlord && emailProp && emailLandlord.length > 0 && emailProp.length > 0) {
+      const landlordEmail = emailLandlord[0].email;
+      const landlordName = emailLandlord[0].name;
+      const propertyName = emailProp[0].propertyName;
+      const emailSubject = signed ? 'Lease Updated' : 'Lease Sent for Signing';
+      const emailBody = `
+        Hello,
+
+        ${landlordName} from ${propertyName} has ${signed ? 'updated your lease' : 'sent you a lease for signing'}.
+
+        Please find the attached lease document here: ${fileUrl}
+
+        Thank you.
+
+        Note: Any replies to this email will be send to the landlord/property manager.
+      `;
+
+      await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
+    }
 
     res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result1[0][0]?.leaseDocs})
 
@@ -2463,6 +2535,10 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
       }
     );
 
+    if (typeof leaseDocs === 'undefined' || !leaseDocs?.[0]?.leaseDocs) {
+       return res.status(200).json([]);
+    }
+
     // Convert leaseDocs array to a string formatted as an array literal
     const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
    
@@ -2470,7 +2546,7 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
     const files = await sequelize.query(
       `SELECT *
        FROM "Leases"
-       WHERE "id" = ANY (:leaseDocs::UUID[])
+       WHERE "id" = ANY(:leaseDocs::UUID[])
        AND "signed" = false`,
       {
         replacements: { leaseDocs: leaseDocsArray },
@@ -2659,21 +2735,47 @@ app.delete('/leases/delete-all', async (req, res) => {
   }
 
   try {
-    // Step 1: Delete all documents specified in docIds
+    // Step 1: Find the S3 keys of the files to be deleted
+    const files = await sequelize.query(
+      `SELECT "fileName" FROM "Files" WHERE id = ANY(:docIds::uuid[])`,
+      {
+        replacements: { docIds: `{${docIds.join(',')}}` },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const s3Keys = files.map(file => ({ Key: file.fileName }));
+
+    console.log("these are the keys", s3Keys);
+
+    // Step 2: Delete files from S3 (only if keys are found)
+    if (s3Keys.length > 0) {
+      const s3Params = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME, // Make sure this is set
+        Delete: {
+          Objects: s3Keys,
+          Quiet: false,
+        },
+      };
+
+      await s3.deleteObjects(s3Params).promise();
+    }
+
+    // Step 2: Delete all documents specified in docIds
     const deleteDocsQuery = `DELETE FROM "Leases" WHERE id = ANY(:docIds::uuid[])`;
     await sequelize.query(deleteDocsQuery, {
       replacements: { docIds: `{${docIds.join(',')}}` }, // Format docIds as a PostgreSQL array
       type: sequelize.QueryTypes.DELETE,
     });
 
-    // Step 2: Fetch the tenant by tenantId
+    // Step 3: Fetch the tenant by tenantId
     const fetchTenantQuery = `SELECT * FROM "Tenants" WHERE id = :tenantId;`;
     const [tenant] = await sequelize.query(fetchTenantQuery, {
       replacements: { tenantId }, // Use tenantId directly
       type: sequelize.QueryTypes.SELECT,
     });
 
-    // Step 3: Update the tenant to remove deleted Lease Doc ids
+    // Step 4: Update the tenant to remove deleted Lease Doc ids
     const updatedLeaseDocs = tenant.leaseDocs.filter(
       (fileId) => !docIds.includes(fileId)
     );
@@ -2849,8 +2951,6 @@ app.post("/api/notifications/:userId/mark-read", async (req, res) => {
   }
 });
 
-
-
 //Billing//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 app.get('/api/payments/:tenantEmail', async (req, res) => {
   
@@ -2876,10 +2976,8 @@ app.get('/api/payments/:tenantEmail', async (req, res) => {
   }
 });
 
-
 //Billings.js AND Tenant.js PAYMENT API ENDPOINTS
 // Paginated Payments API (Checking Payment History)
-/*
 app.get('/api/payments', async (req, res) => {
   console.log('Query Params:', req.query);
   const page = Number.parseInt(req.query.page, 10);
@@ -2956,7 +3054,7 @@ app.get('/api/payments', async (req, res) => {
     console.error('Error fetching payment history:', error);
     res.status(500).json({ message: 'Unable to load payment history.', error: error.message });
   }
-});*/
+});
 
 //Saves Payment History with Billings.js Format to PostgreSQL
 app.post('/save-payment-history', async (req, res) => {
@@ -3002,7 +3100,7 @@ app.post('/save-payment-history', async (req, res) => {
   }
 });
 
-/*Payment API Through Mastercard/Visa
+//Payment API Through Mastercard/Visa
 app.post('/create-payment-intent', async (req, res) => {
   const { amount } = req.body;
   const client_id = req.auth.payload.sub; // Auth0 user ID
@@ -3029,7 +3127,7 @@ app.post('/create-payment-intent', async (req, res) => {
     res.status(500).json({ message: 'Unable to create payment intent.' });
     }
   }
-});*/
+});
 
 // Payment API through Bank Transfer
 app.post('/api/paymongo/bank-transfer-intent', async (req, res) => {
@@ -3080,6 +3178,7 @@ app.post('/api/paymongo/gcash-intent', async (req, res) => {
 //Invoice generator endpoint for Tenant Billing
 // Utility function to generate the invoice PDF
 
+
 async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees, taxRate, totalAmount, deadline) {
   const invoicesDir = path.join(__dirname, 'invoices');
   if (!fs.existsSync(invoicesDir)) {
@@ -3119,9 +3218,8 @@ async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees,
   return invoicePath;
 }
 
-//const nodemailer = require('nodemailer');
 // Utility function to send an email
-/*async function sendEmail(email, subject, invoicePath) {
+async function sendEmail(email, subject, invoicePath) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -3144,7 +3242,7 @@ async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees,
   };
 
   await transporter.sendMail(mailOptions);
-}*/
+}
 
 // Invoice generator endpoint for Tenant Billing
 app.post('/api/send-bill', async (req, res) => {

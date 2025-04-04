@@ -119,6 +119,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
       && bill.paid === false
     );
   });
+  console.log("the filtered bills", filteredBills);
 
   // Sorting functionality
   const handleSort = (key) => {

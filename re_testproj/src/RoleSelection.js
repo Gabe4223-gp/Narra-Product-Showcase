@@ -26,6 +26,7 @@ function RoleSelection({ setRole, setPermissions }) {
   
     // If doesn't exist, go to welcome steps
     if (!exists) {
+      console.log("the welcome page should load", exists);
       navigate('/welcome', {
         replace: true,
         state: { authUserInfo: user, chosenRole: selectedRole },
@@ -45,7 +46,11 @@ function RoleSelection({ setRole, setPermissions }) {
 
   // Logout button
   const handleLogout = () => {
-    logout({ returnTo: window.location.origin });
+    logout();
+    localStorage.setItem("userRole", JSON.stringify(null));
+    navigate('/', {
+      replace: true,
+    });  
   };
 
   return (

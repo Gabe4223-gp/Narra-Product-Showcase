@@ -128,6 +128,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
       totalAmount,
       user_id,
       notes,
+      landlordBankDetails,
     };
 
     console.log("Sending billData:", billData);

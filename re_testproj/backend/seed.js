@@ -6,17 +6,11 @@ const { Sequelize, DataTypes } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 
 // Initialize Sequelize
-const sequelize = new Sequelize("postgresql://postgres:***REMOVED***@narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com:5432/narradatabase", {
-  dialect: 'postgres', // Specifies the PostgreSQL dialect for Sequelize
-  protocol: 'postgres', // Specifies the protocol (not strictly necessary)
-  logging: console.log, // Logs queries to the console (disable in production by setting logging: false)
-  dialectOptions: {
-    ssl: {
-      require: true,   // Enforces SSL connection (required by AWS RDS)
-      rejectUnauthorized: false,  // Allows self-signed certificates (needed for RDS)
-    }
-  }
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: false, // Set to true for debugging
 });
+
 // Define the Payment model
 const Payment = sequelize.define('Payment', {
   id: {

@@ -213,6 +213,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         }
     
         setSelectedReadingIds(updatedSelectedReadingIds);
+        console.log("Readings", updatedSelectedReadingIds);
     };
     
     const handleDeleteReadings = async () => {
@@ -222,6 +223,8 @@ function Utilities({ unit, fetchUnitDetails }) {
           return;
         
         }
+
+        console.log("Selected readings", selectedReadingIds);
         try {
             // Make a DELETE request to the backend with the selected reading IDs
             const response = await fetch(`${process.env.REACT_APP_API_URL}/readings/delete-all`, {
@@ -244,14 +247,15 @@ function Utilities({ unit, fetchUnitDetails }) {
                 return;
             }
 
+            setSelectedReadingIds(new Set())
             fetchUnitDetails();
-    
             setShowDeleteModal(false);
+            
     
         } catch (error) {
             console.error("Error deleting unit:", error);
         }
-      };
+    };
 
     return (
         <div className="unit-readings">
@@ -545,7 +549,7 @@ function Utilities({ unit, fetchUnitDetails }) {
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedReadingIds.has(item.id)}
-                                                    onChange={() => handleCheckboxChange(item.id)}
+                                                    onChange={() => handleCheckboxChange(item.id, currentReadingItem.id)}
                                                 />
                                             </td>
                                             <td>{item.reading || "No Readings"}</td>

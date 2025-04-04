@@ -47,3 +47,4 @@ module.exports = {
     await queryInterface.dropTable('Notifications'); // Ensure case matches
   },
 };
+
