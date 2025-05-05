@@ -259,7 +259,7 @@ async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subje
   });
 
   let mailOptions = {
-    from: `"${landlordName} (via Narra)" <${"joshtylerchan@gmail.com"}>`,
+    from: `"${landlordName} (via Narra)" <${"narra.email.ph@gmail.com"}>`,
     replyTo: landlordEmail,  // The landlord's email will be the reply-to
     to: tenantEmail,
     subject: subject,
@@ -748,10 +748,10 @@ app.post('/units', async (req, res) => {
 
   try {
 
-    // Fetch tenants whose `unit` matches `unitNo`
-    const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo`;
+    //$$$ Fetch tenants whose `unit` matches `unitNo`
+    const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo AND "propertyId" = :propertyId`;
     const tenantResults = await sequelize.query(tenantsQuery, {
-      replacements: { unitNo: unit.unitNo },
+      replacements: { unitNo: unit.unitNo, propertyId: propertyId },
       type: sequelize.QueryTypes.SELECT,
     });
 
@@ -897,10 +897,10 @@ app.post("/units/import", async (req, res) => {
 
     // Prepare the raw SQL query to insert units
     const insertPromises = units.map(async (unit) => {
-      // Fetch tenants whose `unit` matches `unitNo`
-      const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo`;
+      //$$$ Fetch tenants whose `unit` matches `unitNo`
+      const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = CAST(:unitNo AS VARCHAR) AND "propertyId" = :propertyId`;
       const tenantResults = await sequelize.query(tenantsQuery, {
-        replacements: { unitNo: unit.unitNo },
+        replacements: { unitNo: unit.unitNo, propertyId: propertyId },
         type: sequelize.QueryTypes.SELECT,
       });
 
@@ -2023,12 +2023,14 @@ app.post("/tenants/import", async (req, res) => {
       return res.status(400).json({ error: "Property ID is required for tenant import." });
     }
 
+    //$$$ Format array
+    const formattedArray = "{}";
 
     // Prepare the raw SQL query to insert tenants
     const insertPromises = tenants.map(async (tenant) => {
       const query = `
-        INSERT INTO "Tenants"("id", "name", "unit", "phone", "email", "leaseStarted", "leaseExpiry", "moveinDate", "moveoutDate", "billingDeadline", "nationality", "occupation", "image", "eWalletName", "eWalletReferenceNo", "bankName", "bankReferenceNo", "creditCardName", "creditCardNo")
-        VALUES (:id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry, :moveinDate, :moveoutDate, :billingDeadline, :nationality, :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName, :bankReferenceNo, :creditCardName, :creditCardNo)
+        INSERT INTO "Tenants"("id", "name", "unit", "phone", "email", "leaseStarted", "leaseExpiry", "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", "nationality", "occupation", "image", "eWalletName", "eWalletReferenceNo", "bankName", "bankReferenceNo", "creditCardName", "creditCardNo", "govid", "propertyId")
+        VALUES (:id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry, :leaseDocs, :moveinDate, :moveoutDate, :billingDeadline, :nationality, :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName, :bankReferenceNo, :creditCardName, :creditCardNo, :govid, :propertyId)
         RETURNING *;
       `;
 
@@ -2041,6 +2043,7 @@ app.post("/tenants/import", async (req, res) => {
         email: tenant.email || null,
         leaseStarted: tenant.leaseStarted || null,
         leaseExpiry: tenant.leaseExpiry || null,
+        leaseDocs: formattedArray,
         moveinDate: tenant.moveinDate || null,
         moveoutDate: tenant.moveoutDate || null,
         billingDeadline: tenant.billingDeadline || null,
@@ -2053,6 +2056,8 @@ app.post("/tenants/import", async (req, res) => {
         bankReferenceNo: tenant.bankReferenceNo || null,
         creditCardName: tenant.creditCardName || null,
         creditCardNo: tenant.creditCardNo || null,
+        govid: formattedArray,
+        propertyId: propertyId,
       };
 
 
@@ -2416,17 +2421,34 @@ app.post('/tenants/upload-lease', async (req, res) => {
       const propertyName = emailProp[0].propertyName;
       const emailSubject = signed ? 'Lease Updated' : 'Lease Sent for Signing';
       const emailBody = `
-        Hello,
+         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #2c3e50;">Lease Notification</h2>
 
-        ${landlordName} from ${propertyName} has ${signed ? 'updated your lease' : 'sent you a lease for signing'}.
+            <p style="font-size: 16px; color: #333;">
+               <strong>${landlordName}</strong> from <strong>${propertyName}</strong> has ${signed ? 'updated your lease' : 'sent you a lease for signing'} titled <strong>${subject}</strong>.
+            </p>
 
-        Please find the attached lease document here: ${fileUrl}
+            <p style="font-size: 16px; color: #333;">
+                You can view or download the lease document using the link below:
+            </p>
 
-        Thank you.
+            <p style="text-align: center; margin: 30px 0;">
+               <a href="${fileUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px;">
+                  View Document
+               </a>
+            </p>
 
-        Note: Any replies to this email will be send to the landlord/property manager.
-      `;
+            <p style="font-size: 14px; color: #555;">
+                If you have any questions or concerns, feel free to reply to this email. Your response will be forwarded directly to the landlord/property manager.
+            </p>
 
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+
+            <p style="font-size: 12px; color: #999; text-align: center;">
+                This email was sent via <strong>Narra</strong>.
+            </p>
+         </div>
+     `;
       await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
     }
 
