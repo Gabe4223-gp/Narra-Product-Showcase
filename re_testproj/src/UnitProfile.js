@@ -278,7 +278,7 @@ function UnitProfile ({unitId, onBack}) {
                         <label>
                             No.:
                             <input
-                            type="number"
+                            type="text"//$$$
                             value={editedUnit.unitNo || ''}
                             onChange={(e) => handleEditUnitChange("unitNo", e.target.value)}
                             />

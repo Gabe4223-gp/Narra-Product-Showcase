@@ -48,6 +48,7 @@ const corsOptions = {
       'http://localhost:5000',
       'https://narra-ph.com',
       'https://localhost:5000',
+      'http://localhost:3000',
     ];
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
@@ -164,13 +165,13 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
   logging: console.log,
-  dialectOptions: {
+  /*dialectOptions: {
     ssl: {
       require: true,
       ca: fs.readFileSync('/home/ec2-user/rds-combined-ca-bundle.pem').toString(),
       rejectUnauthorized: false
     }
-  }
+  } $$$ local testing*/ 
 });
 
 sequelize.authenticate()
@@ -614,6 +615,46 @@ app.delete('/issues/delete', async (req, res) => {
   } catch (error) {
     console.error("Error deleting issue and updating properties:", error);
     res.status(500).json({ error: "Failed to delete issue and update properties." });
+  }
+});
+
+//Create resolution
+app.post('/issues/resolution', async (req, res) => {
+  const { issueId, resolution } = req.body;
+  console.log("resolution passed2");
+
+  if (!issueId) {
+    return res.status(400).json({ error: 'Missing issueId' });
+  }
+  if (typeof resolution !== 'string') {
+    return res.status(400).json({ error: 'Resolution must be a string' });
+  }
+
+  try {
+    
+    // Run a raw UPDATE with RETURNING, pulling back id & resolution
+    const updated = await sequelize.query(
+      `
+      UPDATE "Issues"
+         SET resolution = :resolution
+         WHERE id = :issueId
+         RETURNING id, resolution;
+      `,
+      {
+        replacements: { issueId, resolution },
+        type: sequelize.QueryTypes.SELECT,    
+      }
+    );
+
+    if (updated.length === 0) {
+      return res.status(404).json({ error: 'Issue not found' });
+    }
+
+    // updated[0] is { id, resolution }
+    res.json({ issue: updated[0] });
+  } catch (err) {
+    console.error('Error updating issue resolution:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

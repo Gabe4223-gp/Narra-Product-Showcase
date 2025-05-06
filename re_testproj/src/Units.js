@@ -435,18 +435,22 @@ function Units() {
   const getSortIndicator = (key) => {
     return sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : " ▲";
   };
-
+ 
   const sortedUnits = [...units].sort((a, b) => {
     if (!sortConfig.key) return 0; // No sorting initially
-    
-    if (sortConfig.key === "unitNo" || sortConfig.key === "sizeValue") {
+  
+    if (sortConfig.key === "sizeValue") {
+      // only sizeValue stays numeric
       return sortConfig.direction === "asc"
-        ? Number(a[sortConfig.key]) - Number(b[sortConfig.key])
-        : Number(b[sortConfig.key]) - Number(a[sortConfig.key]);
+        ? Number(a.sizeValue) - Number(b.sizeValue)
+        : Number(b.sizeValue) - Number(a.sizeValue);
     } else {
+      // everything else (including unitNo) is alphabetical
+      const aVal = (a[sortConfig.key] || "").toString();
+      const bVal = (b[sortConfig.key] || "").toString();
       return sortConfig.direction === "asc"
-        ? (a[sortConfig.key] || "").localeCompare(b[sortConfig.key] || "")
-        : (b[sortConfig.key] || "").localeCompare(a[sortConfig.key] || "");
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
     }
   });
 
@@ -588,7 +592,7 @@ function Units() {
                 <label>
                   No:
                   <input
-                    type="number"
+                    type="text"
                     value={newUnit.unitNo}
                     onChange={(e) => handleAddUnitChange("unitNo", e.target.value)}
                   />
@@ -596,7 +600,7 @@ function Units() {
                 <label>
                   Type:
                   <input
-                    type="text"
+                    type="text"//$$$
                     value={newUnit.type}
                     onChange={(e) => handleAddUnitChange("type", e.target.value)}
                   />

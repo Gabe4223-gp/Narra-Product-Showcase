@@ -33,6 +33,7 @@ function Issues () {
           description: null, 
           unit: null, 
           resolved: false,
+          resolution: null,
           dateRaised: new Date(),
           dateResolved: null, 
           documents: [],
@@ -569,7 +570,7 @@ function Issues () {
                         <label>
                             Unit
                             <input
-                            type="number"
+                            type="text"
                             value={newIssue.unit}
                             onChange={(e) => handleAddIssueChange("unit", e.target.value)}
                             />

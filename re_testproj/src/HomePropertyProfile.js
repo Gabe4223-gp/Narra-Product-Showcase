@@ -272,6 +272,13 @@ function HomePropertyProfile({ property, onBack }) {
                 onChange={handleInputChange}
                 placeholder="Property Address"
               />
+              <input //$$$
+                type="text"
+                name="owner"
+                value={editedProperty?.owner ?? ""}
+                onChange={handleInputChange}
+                placeholder="Owner"
+              /> 
               <button onClick={saveEditedProperty}>Save</button>
               <button onClick={() => setShowEditProperty(false)}>Cancel</button>
             </div>
