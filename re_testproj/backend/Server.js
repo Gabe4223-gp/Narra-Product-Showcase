@@ -1106,6 +1106,20 @@ app.post('/units/update', async (req, res) => {
       RETURNING *;
     `;
 
+    await sequelize.query(
+      `
+      UPDATE "Issues" AS i
+      SET unit = :unitNo
+      FROM "Units" AS u
+      WHERE i.id = ANY(u.issues::uuid[])
+        AND u.id = CAST(:unitId AS uuid)
+      `,
+      {
+        replacements: { unitNo: unit.unitNo, unitId: unit.id },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+
     const [updatedunit] = await sequelize.query(query, {
       replacements: {
         id: unit.id,

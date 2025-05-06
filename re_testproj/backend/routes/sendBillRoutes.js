@@ -42,7 +42,7 @@ async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subje
   });
 
   let mailOptions = {
-    from: `"${landlordName} (via Narra)" <${"joshtylerchan@gmail.com"}>`,
+    from: `"${landlordName} (via Narra)" <${"narra.email.ph@gmail.com"}>`,
     replyTo: landlordEmail,  // The landlord's email will be the reply-to
     to: tenantEmail,
     subject: subject,
@@ -350,15 +350,31 @@ router.post('/generate', async (req, res) => {
       const propertyName = emailProp[0].propertyName;
       const emailSubject = `${propertyName} Invoice - ${subject}`;
       const emailBody = `
-        Hello,
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border: 1px solid #ddd; border-radius:>             <h2 style="color: #2c3e50;">Invoice Notification from ${propertyName}</h2>
 
-        ${landlordName} from ${propertyName} has sent you an invoice titled ${subject}.
+             <p style="font-size: 16px; color: #333;">
+                <strong>${landlordName}</strong> from <strong>${propertyName}</strong> has sent you an invoice titled <strong>${subject}</strong>.
+             </p>
 
-        Please find the attached invoice here: ${fileURL}
+             <p style="font-size: 16px; color: #333;">
+                You can view or download the invoice using the link below:
+             </p>
 
-        Thank you.
+            <p style="text-align: center; margin: 30px 0;">
+               <a href="${fileURL}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #fff; text-decoration: none; b>                  View Invoice
+               </a>
+            </p>
 
-        Note: Any replies to this email will be send to the landlord/property manager.
+            <p style="font-size: 14px; color: #555;">
+                If you have any questions or concerns, feel free to reply to this email. Your response will be forwarded directly to the landlord/property manager.
+            </p>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+
+            <p style="font-size: 12px; color: #999; text-align: center;">
+               This email was sent via <strong>Narra</strong>
+            </p>
+        </div>
       `;
 
       await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
