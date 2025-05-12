@@ -8,14 +8,14 @@ import axios from "axios";
 // We'll still load Stripe but won't use card payments right now
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
-const Pay = ({ bill, onClose }) => {
+const Pay = ({ bill, onClose, landlordData }) => {
   const { userProfile } = useUserProfile();
 
-  // Payment Method States
+  // Payment Method States: "Transfer", "Credit/Debit", "GCash"
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [availableMethods, setAvailableMethods] = useState([]);
 
-  // Tenant Payment Info
+  // Tenant Payment Info: should include Wise account info in tenantBankInfo.wiseAccountId
   const [tenantBankInfo, setTenantBankInfo] = useState(null);
   const [tenantBankName, setTenantBankName] = useState(null);
   const [tenantGcashNumber, setTenantGcashNumber] = useState(null);
@@ -25,18 +25,14 @@ const Pay = ({ bill, onClose }) => {
   const [missingLandlordGcash, setMissingLandlordGcash] = useState(false);
   const [inputLandlordGcash, setInputLandlordGcash] = useState("");
 
-   // Landlord bank details (for Wise) are fetched from Files.landlordBankDetails.
-  // We also allow manual editing if some fields are missing.
-  const [landlordBankDetails, setLandlordBankDetails] = useState({
-    bankName: "",
-    accountName: "",
-    accountNumber: "",
-    routingNumber: "",
-    swiftCode: ""
-  });
-  const [originalBankDetails, setOriginalBankDetails] = useState(null);
-  const [editingBankDetails, setEditingBankDetails] = useState(null);
-  const [isEditingBankDetails, setIsEditingBankDetails] = useState(false);
+  // Enhanced Wise states
+  const [transferStep, setTransferStep] = useState(1); // 1: initial view, 2: confirmation view
+  const [transferDetails, setTransferDetails] = useState(null);
+  const [balanceChecked, setBalanceChecked] = useState(false);
+  const [hasSufficientBalance, setHasSufficientBalance] = useState(true);
+
+  // NEW: Transfer Type Selection (for Wise transfers)
+  const [selectedTransferType, setSelectedTransferType] = useState("BankTransfer");
 
   // UI / Error states
   const [loading, setLoading] = useState(true);
@@ -46,15 +42,24 @@ const Pay = ({ bill, onClose }) => {
   // Payment amount
   const [amountPaid, setAmountPaid] = useState(bill.totalAmount.toFixed(2));
 
-  // We'll disable card for now
+  // Payment method form data for Credit/Debit (if implemented later)
   const [formData, setFormData] = useState({
     cardNumber: "",
     expiryDate: "",
     cvv: "",
   });
 
+  const formatCurrency = (amount) => {
+    // For production (PHP formatting)
+    if (process.env.NODE_ENV === "production") {
+      return `₱${amount.toFixed(2)}`;
+    }
+    // For sandbox (USD formatting)
+    return `$${amount.toFixed(2)}`;
+  };
+
   // -----------------------------
-  // 1) Fetch Tenant & Basic Landlord Data (for GCash)
+  // 1) Fetch Tenant & Basic Landlord Data (for GCash & Transfer)
   // -----------------------------
   useEffect(() => {
     const fetchPaymentData = async () => {
@@ -71,24 +76,21 @@ const Pay = ({ bill, onClose }) => {
         setTenantBankName(bankName || null);
         setTenantGcashNumber(gcashMobileNumber || null);
 
-        // Fetch landlord basic details (for GCash)
+        // Fetch landlord basic details for GCash
         const landlordRes = await axios.get(`/api/payments/get-landlord-details/${bill.landlordId}`);
         const { landlordBankId, landlordGcashMobileNumber } = landlordRes.data || {};
         setLandlordGcashNumber(landlordGcashMobileNumber || null);
 
-        // Determine available methods for user
+        // Determine available payment methods.
         let methods = [];
-        // "Bank & Card" => we do Wise (and potentially card in future)
-        if (storedPaymentMethods) methods.push("Bank & Card");
-        // If user has GCash, push GCash
+        if (storedPaymentMethods) methods.push("Transfer");
+        methods.push("Credit/Debit");
         if (gcashMobileNumber) methods.push("GCash");
 
         setAvailableMethods(methods);
         if (methods.length === 1) {
           setPaymentMethod(methods[0]);
         }
-
-        // If GCash is possible but landlord no GCash => missingLandlordGcash
         if (methods.includes("GCash") && !landlordGcashMobileNumber) {
           setMissingLandlordGcash(true);
         }
@@ -103,103 +105,41 @@ const Pay = ({ bill, onClose }) => {
   }, [userProfile, bill]);
 
   // -----------------------------
-  // 2) If PaymentMethod = "Bank & Card", fetch landlord bank from Files
-  // -----------------------------
-  useEffect(() => {
-    const fetchLandlordBank = async () => {
-      try {
-        const response = await axios.get(`/api/payments/get-landlord-bank/${bill.id}`);
-        if (response.data && response.data.success) {
-          // Store fetched details in all three states
-          setLandlordBankDetails(response.data.bankDetails);
-          setOriginalBankDetails(response.data.bankDetails);
-          setEditingBankDetails(response.data.bankDetails);
-        } else {
-          const emptyDetails = { bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "" };
-          setLandlordBankDetails(emptyDetails);
-          setOriginalBankDetails(emptyDetails);
-          setEditingBankDetails(emptyDetails);
-        }
-      } catch (err) {
-        console.error("Error fetching landlord bank from Files:", err);
-        const emptyDetails = { bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "" };
-        setLandlordBankDetails(emptyDetails);
-        setOriginalBankDetails(emptyDetails);
-        setEditingBankDetails(emptyDetails);
-      }
-    };
-  
-    if (paymentMethod === "Bank & Card") {
-      fetchLandlordBank();
-    }
-  }, [paymentMethod, bill.id]);
-
-  // Handler for toggling manual edit of bank details
-  const toggleEditBankDetails = () => {
-    setIsEditingBankDetails(!isEditingBankDetails);
-  };
-
-  const startEditing = () => {
-    setIsEditingBankDetails(true);
-  };
-  
-  const handleSaveBankDetails = () => {
-    // Update the displayed bank details with the edited values
-    setLandlordBankDetails(editingBankDetails);
-    setOriginalBankDetails(editingBankDetails);
-    setIsEditingBankDetails(false);
-  };
-  
-  const handleCancelEdit = () => {
-    // Revert editing copy to the original values
-    setEditingBankDetails(originalBankDetails);
-    setIsEditingBankDetails(false);
-  };  
-
-  // Helper for card fields if we re-enable them later
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // -----------------------------
-  // 3) Main "Send" button
+  // 2) Main "Send" Button Handler - Payment Processing
   // -----------------------------
   const handleSend = async () => {
     setProcessing(true);
     setError("");
 
     try {
-      // GCash Flow
+      // --- GCash Flow (unchanged) ---
       if (paymentMethod === "GCash") {
         console.log("Initiating GCash Payment with Amount:", amountPaid);
         const response = await axios.post("/api/payments/gcash", {
           amount: Math.round(parseFloat(amountPaid) * 100),
           billId: bill.id,
-          tenantEmail: userProfile.email
+          tenantEmail: userProfile.email,
+          returnUrl: "http://localhost:3000/tenant/dashboard?redirected=true"
         });
 
         if (response.data.success && response.data.checkoutUrl) {
           const sourceId = response.data.sourceId;
           window.location.href = response.data.checkoutUrl;
 
-          // Poll
+          // Poll for payment status
           const interval = setInterval(async () => {
             try {
-              const statusResp = await axios.post("/api/payments/gcash-status", {
-                sourceId
-              });
+              const statusResp = await axios.post("/api/payments/gcash-status", { sourceId });
               const paymentStatus = statusResp.data.status;
               if (paymentStatus === "chargeable") {
                 clearInterval(interval);
                 alert("Payment successful!");
-                await axios.post("/api/payments/update-status", {
-                  billId: bill.id,
-                  status: "Paid"
-                });
-                onClose();
+                await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
+                window.location.href = `/tenant/dashboard?redirected=true&status=success`;
               } else if (paymentStatus === "failed") {
                 clearInterval(interval);
                 alert("Payment failed. Please try again.");
+                window.location.href = `/tenant/dashboard?redirected=true&status=failed`;
               }
             } catch (error) {
               console.error("Error checking payment status:", error);
@@ -209,70 +149,191 @@ const Pay = ({ bill, onClose }) => {
           setError("Failed to initiate GCash payment.");
         }
       }
-
-      // Wise Flow => "Bank & Card"
-      else if (paymentMethod === "Bank & Card") {
-        // For Wise, we require tenantBankInfo to exist (for the tenant's own info)
-        if (!tenantBankInfo) {
-          setError("You have no stored bank info. Please update Payment Settings.");
-          return;
-        }
-        // Ensure that landlordBankDetails is complete – if any field is missing, prompt for manual input.
-        const requiredFields = ["bankName", "accountName", "accountNumber", "routingNumber", "swiftCode"];
-        const missingFields = requiredFields.filter(field => !landlordBankDetails[field]);
-        if (missingFields.length > 0) {
-          setError(`Landlord bank details missing: ${missingFields.join(", ")}. Please enter them manually.`);
-          return;
+      // In the Transfer branch:
+      if (paymentMethod === "Transfer") {
+        // Check for tenant Wise account (for testing, we use a placeholder if not set)
+        let tenantWiseAccountId = userProfile.landlordBankDetails?.wiseAccountId;
+        if (!tenantWiseAccountId) {
+          console.warn("Tenant Wise account not set up. Using placeholder account id for testing.");
+          tenantWiseAccountId = "placeholder-wise-id";
         }
 
-        // Prepare recipient payload based on available fields:
+        // Check Wise balance before proceeding
+        try {
+          const balanceRes = await axios.get(`/api/payments/wise-balance?tenantId=${userProfile.id}`);
+          const tenantWiseBalance = balanceRes.data.balance;
+          // Temporarily bypassing the insufficient funds check:
+          // if (tenantWiseBalance < bill.totalAmount) {
+          //   setError("Insufficient funds in your Wise account.");
+          //   return;
+          // }
+          console.log("Tenant Wise balance (bypassed):", tenantWiseBalance);
+        } catch (balanceError) {
+          console.warn("Could not retrieve Wise balance, proceeding for testing purposes.", balanceError);
+        }
+
+        // Build recipient payload from landlordData (business vs. personal)
         let recipientPayload = {};
-        if (landlordBankDetails.swiftCode) {
-          // Use swift code if available
-          recipientPayload = {
-            bankName: landlordBankDetails.bankName,
-            accountNumber: landlordBankDetails.accountNumber,
-            accountName: landlordBankDetails.accountName || "Landlord Name",
-            routingNumber: landlordBankDetails.routingNumber || "",
-            swiftCode: landlordBankDetails.swiftCode,
-            currency: "PHP",
-            country: "PH",
+        let usingBusiness = false;
+        if (
+          landlordData.businessBankInfo &&
+          landlordData.businessDetails &&
+          landlordData.businessAddressInfo
+        ) {
+          usingBusiness = true;
+          const businessBase = {
+            bankName: landlordData.businessBankInfo.bankName,
+            accountName: landlordData.businessDetails.companyName,
+            currency: landlordData.businessBankInfo.currency || "Philippine Peso",
+            country: landlordData.businessAddressInfo.country || "PH",
+            address: {
+              firstLine: landlordData.businessAddressInfo.companyAddress || "123 Ayala Ave",
+              city: landlordData.businessAddressInfo.city || "Manila",
+              state: 'NY', //Placeholder for testing
+              postCode: landlordData.businessAddressInfo.zipCode || "10001",
+              country: landlordData.businessAddressInfo.country || "PH"
+            }
           };
+
+          switch (selectedTransferType) {
+            case "SWIFT":
+            case "Wire":
+              recipientPayload = {
+                ...businessBase,
+                swiftCode: landlordData.businessBankInfo.swiftBicCode,
+                accountNumber: landlordData.businessBankInfo.accountNumber,
+                routingNumber: landlordData.businessBankInfo.routingNumber,
+                institutionNumber: landlordData.businessBankInfo.institutionNumber
+              };
+              break;
+            case "BankTransfer":
+              recipientPayload = {
+                ...businessBase,
+                accountNumber: landlordData.businessBankInfo.accountNumber,
+                routingNumber: landlordData.businessBankInfo.routingNumber,
+                transitNumber: landlordData.businessBankInfo.transitNumber
+              };
+              break;
+            case "WiseBalance":
+              recipientPayload = {
+                wiseAccountId: landlordData.landlordBankDetails.wiseAccountId,
+                currency: landlordData.businessBankInfo.currency
+              };
+              break;
+            default:
+              break;
+          }
         } else {
-          // Otherwise, use routingNumber (sort code)
-          recipientPayload = {
-            bankName: landlordBankDetails.bankName,
-            accountNumber: landlordBankDetails.accountNumber,
-            accountName: landlordBankDetails.accountName || "Landlord Name",
-            routingNumber: landlordBankDetails.routingNumber || "",
-            currency: "PHP",
-            country: "PH",
+          // Personal account handling
+          const personalBase = {
+            bankName: landlordData.bankName,
+            accountName: landlordData.name,
+            currency: landlordData.landlordBankDetails?.currency || "Philippine Peso",
+            country: landlordData.personalAddressInfo?.country || "PH",
+            address: {
+              firstLine: landlordData.personalAddressInfo?.streetAddress || "123 Ayala Ave",
+              city: landlordData.personalAddressInfo?.city || "Manila",
+              state: 'NY', //Placeholder for testing
+              postCode: landlordData.personalAddressInfo?.zipCode || "10001",
+              country: landlordData.personalAddressInfo?.country || "PH"
+            }
           };
+
+          switch (selectedTransferType) {
+            case "SWIFT":
+            case "Wire":
+              recipientPayload = {
+                ...personalBase,
+                swiftCode: landlordData.landlordBankDetails?.swiftBicCode,
+                accountNumber: landlordData.landlordBankDetails?.accountNumber,
+                routingNumber: landlordData.landlordBankDetails?.routingNumber
+              };
+              break;
+            case "BankTransfer":
+              recipientPayload = {
+                ...personalBase,
+                accountNumber: landlordData.landlordBankDetails?.accountNumber,
+                routingNumber: landlordData.landlordBankDetails?.routingNumber,
+                transitNumber: landlordData.landlordBankDetails?.transitNumber
+              };
+              break;
+            case "WiseBalance":
+              recipientPayload = {
+                wiseAccountId: landlordData.landlordBankDetails?.wiseAccountId,
+                currency: landlordData.landlordBankDetails?.currency
+              };
+              break;
+            default:
+              break;
+          }
         }
 
-        console.log("Creating Wise recipient with payload:", recipientPayload);
+        // Add additional fields required by your backend logic
+        const finalPayload = {
+          ...recipientPayload,
+          legalType: usingBusiness ? "BUSINESS" : "PRIVATE",
+          transferType: selectedTransferType
+        };
 
-        // 1) Create Wise recipient
-        const recipientRes = await axios.post("/api/payments/wise-create-recipient", recipientPayload);
+        // Remove state if not needed (for non-US addresses)
+        if (finalPayload.address && finalPayload.address.country !== "US") {
+          delete finalPayload.address.state;
+        }
+
+        // Sandbox overrides: force currency to USD and use test credentials for BankTransfer
+        if (process.env.NODE_ENV !== "production") {
+          finalPayload.currency = "USD";
+          if (selectedTransferType === "BankTransfer") {
+            finalPayload.routingNumber = "084009519"; // Wise sandbox ABA routing number
+            finalPayload.accountNumber = "123456789"; // Wise sandbox test account number
+          }
+          // Remove transitNumber if it exists
+          if (finalPayload.transitNumber) {
+            delete finalPayload.transitNumber;
+          }
+          // Override address to ensure it includes the required state field.
+          finalPayload.address = {
+            firstLine: "456 Sandbox Ave",
+            city: "New York",
+            state: "NY",  // Explicitly include the state
+            postCode: "10001",
+            country: "US"
+          };
+          console.log("Sandbox finalPayload.address:", finalPayload.address);
+        }                 
+
+        console.log("Final Wise Recipient Payload:", finalPayload);
+
+        // Create recipient via Wise API endpoint
+        const recipientRes = await axios.post("/api/payments/wise-create-recipient", {
+          ...finalPayload,
+          transferType: selectedTransferType
+        });
         if (!recipientRes.data.success) {
           setError("Failed to create recipient on Wise: " + recipientRes.data.message);
           return;
         }
 
-        // 2) Perform the Transfer
+        // Create the transfer (which includes quote creation, transfer creation, and funding in sandbox)
         const wiseRes = await axios.post("/api/payments/wise-transfer", {
           amount: bill.totalAmount,
-          currency: "PHP",
-          recipientId: recipientRes.data.recipientId,
+          currency: "Philippine Peso", // In sandbox, this is mapped to USD; in production, PHP will be used.
+          recipientId: recipientRes.data.recipientId
         });
 
         if (wiseRes.data.success) {
+          // In sandbox mode, the transfer is auto-funded via simulation.
+          // In production, you would provide the sender with funding instructions (bank account details, reference codes, etc.)
           alert("Wise bank transfer processed successfully!");
           await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
           onClose();
         } else {
           setError("Wise bank transfer failed: " + (wiseRes.data.message || ""));
         }
+      }
+      // --- Credit/Debit Flow (Placeholder) ---
+      else if (paymentMethod === "Credit/Debit") {
+        alert("Credit/Debit payment processing not yet implemented.");
       }
     } catch (err) {
       console.error("Error processing payment:", err);
@@ -293,7 +354,7 @@ const Pay = ({ bill, onClose }) => {
           <p>No payment methods set up. Please add one in Payment Settings.</p>
         ) : (
           <>
-            {/* Payment Method Radio */}
+            {/* Payment Method Selection */}
             <div className="pay-methods">
               {availableMethods.map((method) => (
                 <label key={method}>
@@ -309,14 +370,13 @@ const Pay = ({ bill, onClose }) => {
               ))}
             </div>
 
-            {/* GCash */}
+            {/* GCash Section */}
             {paymentMethod === "GCash" && tenantGcashNumber && (
               <div className="pay-gcash-section">
                 <h4>Your GCash:</h4>
                 <p>
                   <strong>Mobile Number:</strong> {tenantGcashNumber}
                 </p>
-
                 {missingLandlordGcash && (
                   <div className="pay-landlord-gcash-input">
                     <label>
@@ -336,97 +396,80 @@ const Pay = ({ bill, onClose }) => {
               </div>
             )}
 
-            {/* Bank & Card => Actually only Wise for now */}
-            {paymentMethod === "Bank & Card" && (
-              <div className="pay-wise-section">
+            {/* Transfer Section (Wise) */}
+            {paymentMethod === "Transfer" && transferStep === 1 && (
+              <div className="pay-transfer-section">
                 <h4>Wise Bank Transfer</h4>
-                <p>
-                  <strong>Landlord Bank Details:</strong>
-                </p>
-                {isEditingBankDetails ? (
-                  <div className="bank-details-edit">
-                    <div className="bank-detail-field">
-                      <label>Bank Name:</label>
-                      <input
-                        type="text"
-                        value={editingBankDetails.bankName}
-                        placeholder="Full bank Name"
-                        onChange={(e) =>
-                          setEditingBankDetails({ ...editingBankDetails, bankName: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="bank-detail-field">
-                      <label>Account Name:</label>
-                      <input
-                        type="text"
-                        value={editingBankDetails.accountName}
-                        placeholder={"Landlord's Full Name"}
-                        onChange={(e) =>
-                          setEditingBankDetails({ ...editingBankDetails, accountName: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="bank-detail-field">
-                      <label>Account Number:</label>
-                      <input
-                        type="text"
-                        value={editingBankDetails.accountNumber}
-                        onChange={(e) =>
-                          setEditingBankDetails({ ...editingBankDetails, accountNumber: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="bank-detail-field">
-                      <label>Routing Number:</label>
-                      <input
-                        type="text"
-                        value={editingBankDetails.routingNumber}
-                        onChange={(e) =>
-                          setEditingBankDetails({ ...editingBankDetails, routingNumber: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="bank-detail-field">
-                      <label>SWIFT Code:</label>
-                      <input
-                        type="text"
-                        value={editingBankDetails.swiftCode}
-                        onChange={(e) =>
-                          setEditingBankDetails({ ...editingBankDetails, swiftCode: e.target.value })
-                        }
-                      />
-                    </div>
-                    <button onClick={handleSaveBankDetails}>Save</button>
-                    <button onClick={handleCancelEdit}>Cancel Edit</button>
-                  </div>
-                ) : (
-                  <div className="bank-details-view">
-                    <div className="bank-detail-field">
-                      <span>Bank Name: </span>
-                      <span>{landlordBankDetails.bankName || "No info. Please input manually and verify with your landlord."}</span>
-                    </div>
-                    <div className="bank-detail-field">
-                      <span>Account Name: </span>
-                      <span>{landlordBankDetails.accountName || "No info. Please input manually and verify with your landlord."}</span>
-                    </div>
-                    <div className="bank-detail-field">
-                      <span>Account Number: </span>
-                      <span>{landlordBankDetails.accountNumber || "No info. Please input manually and verify with your landlord."}</span>
-                    </div>
-                    <div className="bank-detail-field">
-                      <span>Routing Number: </span>
-                      <span>{landlordBankDetails.routingNumber || "No info. Please input manually and verify with your landlord."}</span>
-                    </div>
-                    <div className="bank-detail-field">
-                      <span>SWIFT Code: </span>
-                      <span>{landlordBankDetails.swiftCode || "No info. Please input manually and verify with your landlord."}</span>
-                    </div>
-                    <button onClick={startEditing}>Edit Bank Details</button>
+                
+                {/* Transfer Type Selector - add radio buttons or dropdown for selecting transfer type if desired */}
+                {process.env.NODE_ENV !== "production" && (
+                  <div className="sandbox-notice">
+                    Sandbox Mode: USD transfers only, using test credentials
                   </div>
                 )}
-                <button className="pay-submit" onClick={handleSend} disabled={processing}>
-                  {processing ? "Processing..." : "Confirm & Pay via Wise"}
+
+                {selectedTransferType !== "WiseBalance" && (
+                  <div className="landlord-data-summary">
+                    <h5>Recipient Information:</h5>
+                    {landlordData ? (
+                      <>
+                        {landlordData.businessDetails ? (
+                          <>
+                            <p><strong>Business:</strong> {landlordData.businessDetails.companyName}</p>
+                            <p><strong>Bank:</strong> {landlordData.businessBankInfo?.bankName}</p>
+                            <p><strong>Account:</strong> {landlordData.businessBankInfo?.accountNumber}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p><strong>Name:</strong> {landlordData.name}</p>
+                            <p><strong>Bank:</strong> {landlordData.bankName}</p>
+                            <p><strong>Account:</strong> {landlordData.landlordBankDetails?.accountNumber}</p>
+                          </>
+                        )}
+                        {selectedTransferType === "SWIFT" && (
+                          <p><strong>SWIFT/BIC:</strong> {landlordData.businessBankInfo?.swiftBicCode || landlordData.landlordBankDetails?.swiftBicCode}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p>No recipient data available</p>
+                    )}
+                  </div>
+                )}
+
+                {error && <div className="error-banner">{error}</div>}
+
+                <button 
+                  className="pay-submit" 
+                  onClick={handleSend} 
+                  disabled={processing || !landlordData}
+                >
+                  {processing ? "Processing..." : `Pay ${formatCurrency(bill.totalAmount)} via Wise`}
+                </button>
+              </div>
+            )}
+
+            {paymentMethod === "Transfer" && transferStep === 2 && transferDetails && (
+              <div className="transfer-confirmation">
+                <h4>Transfer Confirmation</h4>
+                <p>Your transfer has been initiated successfully.</p>
+                <p><strong>Transfer ID:</strong> {transferDetails.transferId}</p>
+                <p><strong>Amount:</strong> {formatCurrency(transferDetails.amount)}</p>
+                <p><strong>Fee:</strong> {formatCurrency(transferDetails.fee)}</p>
+                <p><strong>Exchange Rate:</strong> {transferDetails.rate}</p>
+                {process.env.NODE_ENV === "production" && (
+                  <p>Please follow the instructions provided by Wise to complete funding the transfer.</p>
+                )}
+                <button className="pay-exit" onClick={onClose}>Close</button>
+              </div>
+            )}
+
+            {/* Credit/Debit Section (Placeholder) */}
+            {paymentMethod === "Credit/Debit" && (
+              <div className="pay-credit-debit-section">
+                <h4>Credit/Debit Payment</h4>
+                <p>This payment method is not yet implemented.</p>
+                <button onClick={() => alert("Credit/Debit processing not implemented.")}>
+                  Proceed
                 </button>
               </div>
             )}
@@ -434,10 +477,7 @@ const Pay = ({ bill, onClose }) => {
         )}
 
         {error && <p style={{ color: "red" }}>{error}</p>}
-
-        <button className="pay-exit" onClick={onClose}>
-          Exit
-        </button>
+        <button className="pay-exit" onClick={onClose}>Exit</button>
       </div>
     </div>
   );
