@@ -23,7 +23,7 @@ function HomePage({ onLogout }) {
   const fetchProperties = useCallback(async () => {
     if (!userProfile?.id) return;
     try {
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +89,7 @@ function HomePage({ onLogout }) {
     
     try {
       // Make a POST request to the backend
-      const response = await fetch(`/properties`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,15 +195,6 @@ function HomePage({ onLogout }) {
               <label>
                 <h6>Owner:</h6>
                 <input type="text" id="owner" required />
-              </label>
-              <label>
-                <h6>Upload Image:</h6>
-                <input
-                  type="file"
-                  id="property-image"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
               </label>
               <button type="submit">Save</button>
               <button

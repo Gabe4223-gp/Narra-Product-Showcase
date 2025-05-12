@@ -33,7 +33,7 @@ export function TeamProvider({ children }) {
     }
     try {
       setLoadingTeams(true);
-      const res = await axios.get('/api/teams', {
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/teams`, {
         headers: { 'user-email': user.email }
       });
       if (res.data.success) {
@@ -81,8 +81,9 @@ export function TeamProvider({ children }) {
     try {
       setHasCreatedDefaultTeam(true);
       console.log('Creating default team for new user...');
+      console.log('Here is the new react app api url', process.env.REACT_APP_API_URL);
       const res = await axios.post(
-        '/api/teams',
+        `${process.env.REACT_APP_API_URL}/api/teams`,
         { teamName: 'Default Team' }, // or "My First Team"
         { headers: { 'user-email': user.email } }
       );
@@ -109,7 +110,7 @@ export function TeamProvider({ children }) {
       }
       try {
         const memRes = await axios.get(
-          `/api/teams/${activeTeamId}/my-membership`,
+          `${process.env.REACT_APP_API_URL}/api/teams/${activeTeamId}/my-membership`,
           { headers: { 'user-email': user.email } }
         );
         if (memRes.data.success) {

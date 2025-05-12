@@ -42,7 +42,7 @@ function Welcome({ onProfileCreated }) {
   const handleSave = async () => {
     if (!validateFields()) return;
     try {
-      await axios.post('/api/user-profile/welcome', {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/user-profile/welcome`, {
         name,
         phoneNumber: phone,
         dateofBirth: dob,
@@ -58,10 +58,20 @@ function Welcome({ onProfileCreated }) {
     }
   };
 
+  // Handle back navigation to RoleSelection
+  const handleBack = () => {
+    navigate('/role-selection', {
+      replace: true,
+      state: {
+        authUserInfo,
+      },
+    });
+  };
+
   return (
     <div className="welcome-container">
-      <h2>Welcome to Narra!</h2>
-      <p>Let's set up your profile</p>
+      <h2>Welcome to Narra</h2>
+      <p>Set up your profile</p>
 
       {authUserInfo && (
         <div>
@@ -133,6 +143,9 @@ function Welcome({ onProfileCreated }) {
 
       <button className="btn-role" onClick={handleSave}>
         Save
+      </button>
+      <button className="btn-role back-btn" onClick={handleBack}>
+        Back
       </button>
     </div>
   );

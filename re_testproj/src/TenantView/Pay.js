@@ -1,8 +1,6 @@
 // src/Pay.js
 import React, { useState, useEffect } from "react";
 import { useUserProfile } from "../UserProfileContext";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
 
 // We'll still load Stripe but won't use card payments right now
@@ -68,7 +66,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
 
         // Fetch tenant payment methods
         const userPaymentRes = await axios.get(
-          `/api/payments/user-payment-methods/${userProfile.id}`
+          `${process.env.REACT_APP_API_URL}/api/payments/user-payment-methods/${userProfile.id}`
         );
         const { storedPaymentMethods, gcashMobileNumber, bankName } = userPaymentRes.data || {};
 
@@ -115,7 +113,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
       // --- GCash Flow (unchanged) ---
       if (paymentMethod === "GCash") {
         console.log("Initiating GCash Payment with Amount:", amountPaid);
-        const response = await axios.post("/api/payments/gcash", {
+        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/gcash`, {
           amount: Math.round(parseFloat(amountPaid) * 100),
           billId: bill.id,
           tenantEmail: userProfile.email,
@@ -325,7 +323,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
           // In sandbox mode, the transfer is auto-funded via simulation.
           // In production, you would provide the sender with funding instructions (bank account details, reference codes, etc.)
           alert("Wise bank transfer processed successfully!");
-          await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
+          await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/update-status`, { billId: bill.id, status: "Paid" });
           onClose();
         } else {
           setError("Wise bank transfer failed: " + (wiseRes.data.message || ""));
@@ -344,8 +342,8 @@ const Pay = ({ bill, onClose, landlordData }) => {
   };
 
   return (
-    <div className="pay-overlay">
-      <div className="pay-modal">
+    <div className="overlay">
+      <div className="modal">
         <h3>Pay</h3>
 
         {loading ? (
@@ -483,10 +481,4 @@ const Pay = ({ bill, onClose, landlordData }) => {
   );
 };
 
-const WrappedPay = (props) => (
-  <Elements stripe={stripePromise}>
-    <Pay {...props} />
-  </Elements>
-);
-
-export default WrappedPay;
+export default Pay;

@@ -9,6 +9,10 @@ function RoleSelection({ setRole, setPermissions }) {
   const { user, logout } = useAuth0();
   const navigate = useNavigate();
 
+  const apiUrl = process.env.REACT_APP_API_URL;
+  console.log("This is the URL", apiUrl);
+  
+
   const handleRoleSelection = async (selectedRole) => {
     const email = user?.email;
     if (!email) {
@@ -17,11 +21,12 @@ function RoleSelection({ setRole, setPermissions }) {
     }
   
     // (Optional) Check if user profile exists
-    const res = await axios.get(`/api/user-profile/existing?email=${encodeURIComponent(email)}`);
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/existing?email=${encodeURIComponent(email)}`);
     const { exists } = res.data;
   
     // If doesn't exist, go to welcome steps
     if (!exists) {
+      console.log("the welcome page should load", exists);
       navigate('/welcome', {
         replace: true,
         state: { authUserInfo: user, chosenRole: selectedRole },
@@ -41,13 +46,17 @@ function RoleSelection({ setRole, setPermissions }) {
 
   // Logout button
   const handleLogout = () => {
-    logout({ returnTo: window.location.origin });
+    logout();
+    localStorage.setItem("userRole", JSON.stringify(null));
+    navigate('/', {
+      replace: true,
+    });  
   };
 
   return (
     <div className="role-selection-container">
       <button className="btn-role" onClick={() => handleRoleSelection('landlord')}>Manager</button>
-      <button className="btn-role" onClick={() => handleRoleSelection('tenant')}>Tenant</button>
+      {/*<button className="btn-role" onClick={() => handleRoleSelection('tenant')}>Tenant</button>*/}
       <button className="btn-role" onClick={handleLogout}>Back to Login</button>
     </div>
   );

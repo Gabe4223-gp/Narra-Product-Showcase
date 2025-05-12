@@ -4,7 +4,7 @@
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     margin-top: 20px;
-    width: 50%;
+    width: 70%;
     margin-left: 2.5%;
     font-size: 13px;
     display: flex;
@@ -280,14 +280,14 @@ table-layout: fixed;
   
 /* Modal box styling */
 .lease-modal-box {
-background-color: white;
-padding: 20px;
-border-radius: 8px;
-width: 80%;
-max-width: 700px;
-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-position: relative;
-animation: fadeIn 0.3s ease-in-out;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 700px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .modal {

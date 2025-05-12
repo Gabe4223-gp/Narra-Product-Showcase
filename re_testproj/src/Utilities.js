@@ -1,5 +1,6 @@
 import React, { useState, useEffect} from 'react';
 import './Utilities.css';
+import { v4 as uuidv4 } from 'uuid';
 
 function Utilities({ unit, fetchUnitDetails }) {
     // Generate last 10 years for selection
@@ -7,13 +8,15 @@ function Utilities({ unit, fetchUnitDetails }) {
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
     const [showWaterReadingModal, setShowWaterReadingModal] = useState(false);
     const [showElectricityReadingModal, setShowElectricityReadingModal] = useState(false);
-    const [tempReading, setTempReading] = useState({ last: '', current: '' }); // Temporary storage
+    const [tempReading, setTempReading] = useState({ id1: null, last: '', lastDate: '', id2: '', current: '', currentDate: '' }); // Temporary storage
     const [editedUnit, setEditedUnit] = useState(unit);
     const [editingIndex, setEditingIndex] = useState(null)
     const [showModal, setShowModal] = useState(false); // Manage modal visibility
     const [modalType, setModalType] = useState(''); // 'water' or 'electricity'
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [selectedYear2, setSelectedYear2] = useState(currentYear);
+    const [selectedReadingIds, setSelectedReadingIds] = useState(new Set());
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     
 
     useEffect(() => {
@@ -48,9 +51,10 @@ function Utilities({ unit, fetchUnitDetails }) {
     const saveReading = async (type) => {
         const lastReading = parseFloat(tempReading.last);
         const currentReading = parseFloat(tempReading.current);
+        const lastReadingDate = new Date(tempReading.lastDate + "T00:00:00").toISOString().split("T")[0];
+        const currentReadingDate = new Date(tempReading.currentDate + "T00:00:00").toISOString().split("T")[0];
 
-        console.log("Step 1", lastReading);
-        console.log("Step 2", editedUnit);
+        console.log("dfasdfasdf", currentReadingDate);
 
         if (isNaN(lastReading) || isNaN(currentReading)) {
             alert('Please enter valid readings.');
@@ -62,11 +66,11 @@ function Utilities({ unit, fetchUnitDetails }) {
             ...editedUnit,
             [`${type}LastReading`]: [
                 ...editedUnit[`${type}LastReading`],
-                { reading: lastReading, date: new Date() },
+                { id: uuidv4(), reading: lastReading, date: lastReadingDate },
             ],
             [`${type}CurrentReading`]: [
                 ...editedUnit[`${type}CurrentReading`],
-                { reading: currentReading, date: new Date() },
+                { id: uuidv4(), reading: currentReading, date: currentReadingDate },
             ],
         };
 
@@ -75,7 +79,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -108,21 +112,36 @@ function Utilities({ unit, fetchUnitDetails }) {
         if (type === 'electricity') setShowElectricityReadingModal(false);
     };
 
-    const openEditModal = (type, index) => {
+    const openEditModal = (type, index, id) => {
         setModalType(type);
         setEditingIndex(index);
-
+        const lastID = editedUnit[`${type}LastReading`]?.[index]?.id || '';
+        const currentID = editedUnit[`${type}CurrentReading`]?.[index]?.id || '';
         const lastReading = editedUnit[`${type}LastReading`]?.[index]?.reading || '';
         const currentReading = editedUnit[`${type}CurrentReading`]?.[index]?.reading || '';
-        setTempReading({ last: lastReading, current: currentReading });
-
+        const lastReadingDate = editedUnit[`${type}LastReading`]?.[index]?.date || '';
+        const currentReadingDate = editedUnit[`${type}CurrentReading`]?.[index]?.date || '';
+    
+        setTempReading({ 
+            id1: lastID,
+            id2: currentID,
+            last: lastReading, 
+            lastDate: lastReadingDate, 
+            current: currentReading, 
+            currentDate: currentReadingDate 
+        });
+    
         setShowModal(true);
     };
+    
 
     const saveEditedReading = async () => {
         
+
         const lastReading = parseFloat(tempReading.last);
         const currentReading = parseFloat(tempReading.current);
+        const lastReadingDate = new Date(tempReading.lastDate + "T00:00:00").toISOString().split("T")[0];
+        const currentReadingDate = new Date(tempReading.currentDate + "T00:00:00").toISOString().split("T")[0];
 
         if (isNaN(lastReading) || isNaN(currentReading)) {
             alert('Please enter valid readings.');
@@ -132,8 +151,8 @@ function Utilities({ unit, fetchUnitDetails }) {
         const updatedLastReadings = [...editedUnit[`${modalType}LastReading`]];
         const updatedCurrentReadings = [...editedUnit[`${modalType}CurrentReading`]];
 
-        updatedLastReadings[editingIndex] = { reading: lastReading, date: new Date() };
-        updatedCurrentReadings[editingIndex] = { reading: currentReading, date: new Date() };
+        updatedLastReadings[editingIndex] = { id: tempReading.id1, reading: lastReading, date: lastReadingDate };
+        updatedCurrentReadings[editingIndex] = { id: tempReading.id2, reading: currentReading, date: currentReadingDate };
 
         console.log("Step 1", updatedCurrentReadings);
 
@@ -148,7 +167,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         try {
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -175,8 +194,67 @@ function Utilities({ unit, fetchUnitDetails }) {
         setEditedUnit(updatedUnit);
 
         setShowModal(false);
-        setTempReading({ last: '', current: '' });
+        setTempReading({ id1: null, last: '', lastDate: '', id2: '', current: '', currentDate: '' });
         setEditingIndex(null);
+    };
+
+    const handleCheckboxChange = (id1, id2) => {
+        const updatedSelectedReadingIds = new Set(selectedReadingIds);
+    
+        // Check if either id1 or id2 is already selected
+        if (updatedSelectedReadingIds.has(id1) || updatedSelectedReadingIds.has(id2)) {
+            // Deselect the ids if they are already selected
+            updatedSelectedReadingIds.delete(id1);
+            updatedSelectedReadingIds.delete(id2);
+        } else {
+            // Select the ids if they are not already selected
+            updatedSelectedReadingIds.add(id1);
+            updatedSelectedReadingIds.add(id2);
+        }
+    
+        setSelectedReadingIds(updatedSelectedReadingIds);
+        console.log("Readings", updatedSelectedReadingIds);
+    };
+    
+    const handleDeleteReadings = async () => {
+
+        if (selectedReadingIds.size === 0) {
+          console.error("No readings selected for deletion.");
+          return;
+        
+        }
+
+        console.log("Selected readings", selectedReadingIds);
+        try {
+            // Make a DELETE request to the backend with the selected reading IDs
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/readings/delete-all`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    readingIds: Array.from(selectedReadingIds), 
+                    unitId: unit.id, 
+                }),
+            });
+
+            // Optionally handle the backend response
+            const data = await response.json();
+            console.log("Readings deleted successfully:", data);
+
+            if (!response.ok) {
+                console.error("Failed to delete readings:", response.statusText);
+                return;
+            }
+
+            setSelectedReadingIds(new Set())
+            fetchUnitDetails();
+            setShowDeleteModal(false);
+            
+    
+        } catch (error) {
+            console.error("Error deleting unit:", error);
+        }
     };
 
     return (
@@ -197,11 +275,27 @@ function Utilities({ unit, fetchUnitDetails }) {
                                 />
                             </label>
                             <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.lastDate}
+                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+                                />
+                            </label>
+                            <label>
                                 Current Reading
                                 <input
                                     type="number"
                                     value={tempReading.current}
                                     onChange={(e) => handleReadingChange('current', e.target.value)}
+                                />
+                            </label>
+                            <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.currentDate}
+                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
                                 />
                             </label>
                         </form>
@@ -226,6 +320,16 @@ function Utilities({ unit, fetchUnitDetails }) {
                                     type="number"
                                     value={tempReading.last}
                                     onChange={(e) => handleReadingChange('last', e.target.value)}
+                                    required
+                                />
+                            </label>
+                            <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.lastDate}
+                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+                                    required
                                 />
                             </label>
                             <label>
@@ -234,6 +338,16 @@ function Utilities({ unit, fetchUnitDetails }) {
                                     type="number"
                                     value={tempReading.current}
                                     onChange={(e) => handleReadingChange('current', e.target.value)}
+                                    required
+                                />
+                            </label>
+                            <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.currentDate}
+                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
+                                    required
                                 />
                             </label>
                         </form>
@@ -259,6 +373,16 @@ function Utilities({ unit, fetchUnitDetails }) {
                                     type="number"
                                     value={tempReading.last}
                                     onChange={(e) => handleReadingChange('last', e.target.value)}
+                                    required
+                                />
+                            </label>
+                            <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.lastDate}
+                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+                                    required
                                 />
                             </label>
                             <label>
@@ -267,6 +391,16 @@ function Utilities({ unit, fetchUnitDetails }) {
                                     type="number"
                                     value={tempReading.current}
                                     onChange={(e) => handleReadingChange('current', e.target.value)}
+                                    required
+                                />
+                            </label>
+                            <label>
+                                Date of Reading
+                                <input
+                                    type="date"
+                                    value={tempReading.currentDate}
+                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
+                                    required
                                 />
                             </label>
                         </form>
@@ -305,6 +439,7 @@ function Utilities({ unit, fetchUnitDetails }) {
                 <table>
                     <thead>
                         <tr>
+                            <th> </th>
                             <th>Last Reading</th>
                             <th>Date</th>
                             <th>Current Reading</th>
@@ -316,7 +451,7 @@ function Utilities({ unit, fetchUnitDetails }) {
                     <tbody>
                         {unit?.waterLastReading?.length > 0 ? (
                             unit.waterLastReading
-                                .filter(item => {
+                                ?.filter(item => {
                                     const itemDate = new Date(item.date);
                                     return itemDate.getFullYear() === selectedYear;
                                 })
@@ -328,6 +463,13 @@ function Utilities({ unit, fetchUnitDetails }) {
 
                                     return (
                                         <tr key={index}>
+                                            <td style={{ width: "5%" }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedReadingIds.has(item.id)}
+                                                    onChange={() => handleCheckboxChange(item.id, currentReadingItem.id)}
+                                                />
+                                            </td>
                                             <td>{item.reading || "No Readings"}</td>
                                             <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
                                             <td>{currentReadingItem?.reading || "No Readings"}</td>
@@ -348,6 +490,9 @@ function Utilities({ unit, fetchUnitDetails }) {
                         )}
                     </tbody>
                 </table>
+                <div>
+                    <button onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
+                </div>
             </div>
 
             {/* Electricity Readings */}
@@ -376,6 +521,7 @@ function Utilities({ unit, fetchUnitDetails }) {
                 <table>
                     <thead>
                         <tr>
+                            <th> </th>
                             <th>Last Reading</th>
                             <th>Date</th>
                             <th>Current Reading</th>
@@ -399,6 +545,13 @@ function Utilities({ unit, fetchUnitDetails }) {
 
                                     return (
                                         <tr key={index}>
+                                            <td style={{ width: "5%" }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedReadingIds.has(item.id)}
+                                                    onChange={() => handleCheckboxChange(item.id, currentReadingItem.id)}
+                                                />
+                                            </td>
                                             <td>{item.reading || "No Readings"}</td>
                                             <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
                                             <td>{currentReadingItem?.reading || "No Readings"}</td>
@@ -419,6 +572,23 @@ function Utilities({ unit, fetchUnitDetails }) {
                         )}
                     </tbody>
                 </table>
+
+                <div>
+                <button onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
+                </div>
+
+
+                {showDeleteModal && (
+                    <div className='overlay'>
+                    <div className='modal'>
+                        <div>
+                            Are you sure you want to delete these readings?
+                        </div>
+                        <button onClick={handleDeleteReadings}>Confirm</button>
+                        <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                    </div>
+                    </div>
+                )}
             </div>
         </div>
     );

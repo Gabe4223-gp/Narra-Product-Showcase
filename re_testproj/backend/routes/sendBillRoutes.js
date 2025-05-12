@@ -1,6 +1,9 @@
 // routes/sendBillRoutes.js
 require('dotenv').config();
 const express = require('express');
+//NodeMailer
+const nodemailer = require('nodemailer');
+
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
@@ -9,12 +12,14 @@ const AWS = require('aws-sdk');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sequelize } = require('../models'); 
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
 // Import models – note Files is our reintroduced model
 const { Tenant, Files, UserProfile } = require('../models');
 
-const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
+const STORAGE_TYPE = 's3'; //set to s3 for testing
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
+const AWS_REGION = process.env.AWS_REGION;
 
 let s3;
 if (STORAGE_TYPE === 's3') {
@@ -25,43 +30,192 @@ if (STORAGE_TYPE === 's3') {
   });
 }
 
-function generatePDF(data, outputPath) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
-    const stream = fs.createWriteStream(outputPath);
-    doc.pipe(stream);
+//Send Mail/////////////////////////////////////////////////////////////////////////////////////
+async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  let transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,  // 587 for TLS
+    auth: {
+      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
+      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+    },
+  });
 
-    doc.fontSize(20).text(`Bill Subject: ${data.subject}`, { underline: true });
-    doc.moveDown();
-    doc.fontSize(14).text(`Rental Amount: PHP ${data.rentalAmount}`);
-    doc.moveDown();
+  let mailOptions = {
+    from: `"${landlordName} (via Narra)" <${"narra.email.ph@gmail.com"}>`,
+    replyTo: landlordEmail,  // The landlord's email will be the reply-to
+    to: tenantEmail,
+    subject: subject,
+    text: text,
+  };
 
-    doc.text(`Utility Fees:`);
-    (data.utilityFees || []).forEach((fee) => {
-      doc.text(` - ${fee.name}: PHP ${fee.amount}`);
-    });
-    doc.moveDown();
+  try {
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ' + info.response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+}
 
-    doc.text(`Other Fees:`);
-    (data.otherFees || []).forEach((fee) => {
-      doc.text(` - ${fee.name}: PHP ${fee.amount}`);
-    });
-    doc.moveDown();
+const { PassThrough } = require("stream");
 
-    doc.text(`Tax Rate: ${data.taxRate}%`);
-    doc.moveDown();
-    doc.text(`Total Amount: PHP ${data.totalAmount.toFixed(2)}`);
-    doc.moveDown();
-    doc.text(`Deadline: ${data.deadline}`);
+function generatePDF(data) {
 
-    // IDs are not printed on the PDF
+  return new Promise( async (resolve, reject) => {
 
-    doc.end();
+    const doc = new PDFDocument({ margin: 50 });
+    const passThrough = new PassThrough();  // STREAM
 
-    stream.on('finish', () => resolve(outputPath));
-    stream.on('error', reject);
+    // Setup S3 upload parameters
+    const uploadParams = {
+      Bucket: S3_BUCKET_NAME,
+      Key: data.pdfFileName,
+      Body: passThrough,  // STREAMING into S3
+      ContentType: "application/pdf",
+    };
+
+    // Upload stream to S3
+    const uploadPromise = s3.upload(uploadParams).promise();
+
+    doc.pipe(passThrough);  // Write PDF to the stream
+
+    // Convert numeric values
+    const rentalAmount = Number(data.rentalAmount) || 0;
+    const taxRate = Number(data.taxRate) || 0;
+    const totalAmount = Number(data.totalAmount) || 0;
+
+    // Calculate Tax Amount
+    const taxableAmount =
+      rentalAmount +
+      (data.utilityFees || []).reduce((sum, fee) => sum + Number(fee.amount), 0) +
+      (data.otherFees || []).reduce((sum, fee) => sum + Number(fee.amount), 0);
+    const taxAmount = (taxableAmount * taxRate) / 100;
+
+    try {
+      // === QUERY DATABASE TO GET PROPERTY DETAILS ===
+      const query = 'SELECT * FROM "Properties" WHERE id = :propertyId';
+      const [results] = await sequelize.query(query, {
+        replacements: { propertyId: data.propertyId },
+        type: sequelize.QueryTypes.SELECT,
+      });
+
+      const property = results || {};
+      const propertyName = property.propertyName || "Unknown Property";
+      const propertyAddress = property.address || "No Address Available";
+      const companyName = property.companyName || "No Company Name";
+
+      // === PROPERTY DETAILS ===
+      doc.fontSize(10).fillColor("#666666").text("PROPERTY DETAILS", 50, 50);
+      doc.fillColor("black").text(`Name: ${propertyName}`, 50, 65);
+      doc.text(`Address: ${propertyAddress}`, 50, 80);
+      doc.text(`Company: ${companyName}`, 50, 95);
+
+      // === RIGHT HEADER DETAILS ===
+      const headerX = 400;
+      const headerStartY = 50;
+      doc.fillColor("#666666").fontSize(10).text("INVOICE", headerX, headerStartY);
+      doc.fillColor("black").text(data.pdfId.substring(0, 5), headerX + 80, headerStartY);
+      doc.fillColor("#666666").text("DATE", headerX, headerStartY + 15);
+      doc.fillColor("black").text(new Date().toLocaleDateString(), headerX + 80, headerStartY + 15);
+      doc.fillColor("#666666").text("TERMS", headerX, headerStartY + 30);
+      doc.fillColor("black").text("Due on receipt", headerX + 80, headerStartY + 30);
+      doc.fillColor("#666666").text("DUE DATE", headerX, headerStartY + 45);
+      doc.fillColor("black").text(data.deadline || "N/A", headerX + 80, headerStartY + 45);
+
+      // === MAIN INVOICE HEADER ===
+      doc.fontSize(20).fillColor("#0096D6").text("INVOICE", 50, 160);
+      let yPosition = 190; // Adjusted for better spacing
+
+      // === TABLE HEADERS ===
+      doc.fillColor("white").rect(50, yPosition, 500, 20).fill("#6699CC");
+      doc.fillColor("white").fontSize(10).text("DATE", 60, yPosition + 5);
+      doc.text("DESCRIPTION", 160, yPosition + 5);
+      doc.text("AMOUNT", 450, yPosition + 5);
+      doc.fillColor("black");
+      yPosition += 25;
+
+      // === RENTAL AMOUNT ===
+      doc.fontSize(10).text(data.deadline || "N/A", 60, yPosition);
+      doc.text("Rental", 160, yPosition);
+      doc.text(`PHP ${rentalAmount.toFixed(2)}`, 450, yPosition);
+      yPosition += 20;
+
+      // === UTILITY FEES ===
+      if (data.utilityFees?.length) {
+        data.utilityFees.forEach((fee) => {
+          doc.fontSize(10).text(new Date(fee.date).toLocaleDateString() || "N/A", 60, yPosition);
+          doc.text(fee.name, 160, yPosition);
+          doc.text(`PHP ${Number(fee.amount).toFixed(2)}`, 450, yPosition);
+          yPosition += 20;
+        });
+      }
+
+      // === OTHER FEES ===
+      if (data.otherFees?.length) {
+        data.otherFees.forEach((fee) => {
+          doc.fontSize(10).text(new Date(fee.date).toLocaleDateString() || "N/A", 60, yPosition);
+          doc.text(fee.name, 160, yPosition);
+          doc.text(`PHP ${Number(fee.amount).toFixed(2)}`, 450, yPosition);
+          yPosition += 20;
+        });
+      }
+
+      // === TAX SECTION ===
+      yPosition += 15;
+      doc.fontSize(10).text(`Tax Rate: ${taxRate}%`, 160, yPosition);
+      doc.text(`PHP ${taxAmount.toFixed(2)}`, 450, yPosition);
+      yPosition += 20;
+
+      // === TOTAL AMOUNT ===
+      yPosition += 20;
+      doc.moveTo(50, yPosition).lineTo(550, yPosition).stroke();
+      yPosition += 5;
+      doc.fontSize(12).text("BALANCE DUE", 60, yPosition);
+      doc.text(`PHP ${totalAmount.toFixed(2)}`, 450, yPosition);
+
+      // === FOOTER ===
+      yPosition += 40;
+      doc.fontSize(8).fillColor("#666666").text("Thank you for your prompt payment.", 50, yPosition);
+      yPosition += 12; // Adjust spacing
+
+      if (data.notes) {
+        const noteLines = data.notes.split("\n"); // Split text into lines
+        noteLines.forEach((line) => {
+          doc.text(line, 50, yPosition, { width: 500, align: "left" });
+          yPosition += 12; // Maintain line spacing
+        });
+      }
+
+      // === Place "Powered by Narra. Visit narra-ph.com" at the bottom center of the page ===
+      const pageHeight = doc.page.height - doc.page.margins.top - doc.page.margins.bottom;  // Total height of the page excluding margins
+      const footerY = pageHeight - 10;  // 20 is a little gap from the very bottom of the page
+
+      // Place footer at the bottom center of the page
+      doc.font("Helvetica")
+        .fontSize(10)
+        .fillColor("#000000")
+        .text("Powered by Narra. Visit narra-ph.com", 0, footerY, { align: "center", width: 600 });
+
+      doc.end();
+
+      // Wait for upload to finish, then return the S3 link
+      try {
+        await uploadPromise;  // Wait for upload to complete
+
+        const fileURL = `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${data.pdfFileName}`;
+
+        resolve(fileURL);  // Resolve with file URL
+      } catch (uploadError) {
+        reject(uploadError);  // Reject on upload error
+      }
+
+    } catch (error) {
+      reject(error);  // Reject on any error
+    }
   });
 }
+
+
 
 router.post('/generate', async (req, res) => {
   try {
@@ -76,56 +230,157 @@ router.post('/generate', async (req, res) => {
       otherFees,
       taxRate,
       deadline,
-      totalAmount
+      totalAmount,
+      user_id,
+      notes
     } = req.body;
+    
+    const pdfId = uuidv4();
+
+    const safeSubject = subject.replace(/[^\w\d-]/g, "_");
+    const pdfFileName = `${safeSubject}_${pdfId}.pdf`;
+
+    //Retrieve landlord
+    const landlord = await UserProfile.findOne({
+      where: { id: landlordId },
+      attributes: ['landlordBankId', 'bankName', 'landlordBankDetails', 'personalAddressInfo']
+    });
+
+    if (!landlord) {
+      return res.status(404).json({ message: 'Landlord not found' });
+    }
 
     if (!tenantEmail || !subject || !deadline) {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Generate PDF invoice
-    const safeSubject = subject.replace(/[^\w\d-]/g, '_');
-    const pdfFileName = `${safeSubject}.pdf`;
-    const localDir = path.join(__dirname, '..', 'lease_bills');
-    if (!fs.existsSync(localDir)) fs.mkdirSync(localDir);
-    const localPDFPath = path.join(localDir, pdfFileName);
+    const fileURL = await generatePDF({ pdfId, pdfFileName, subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount, propertyId, landlordId, notes});
 
-    await generatePDF({ subject, rentalAmount, utilityFees, otherFees, taxRate, deadline, totalAmount }, localPDFPath);
+    const [newFileRecord] = await sequelize.query(
+      `
+      INSERT INTO "Files" 
+        ("id", "fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", 
+        "tenantEmail", "landlordId", "deadline", "updatedAt", landlordBankId)
+      VALUES 
+        (:id, :fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, 
+        :tenantEmail, :landlordId, :deadline, :updatedAt, :landlordBankId)
+      RETURNING *;
+      `,
+      {
+        replacements: {
+          id: pdfId,
+          fileName: pdfFileName,
+          fileType: 'pdf',
+          url: fileURL,
+          subject: subject,
+          totalAmount: totalAmount,
+          paid: false,
+          propertyId: propertyId,
+          tenantEmail: tenantEmail,
+          landlordId: landlordId,
+          deadline: deadline,
+          updatedAt: null, //set to null cuz this attribute will be set when bill is paid
+          landlordBankId: landlord.landlordBankId,
+        },
+        type: sequelize.QueryTypes.INSERT,
+      }
+    );
+    
+    console.log("Bill generated. File record:", newFileRecord);
 
-    // Store file on local server or AWS S3
-    let fileURL;
-    if (STORAGE_TYPE === 'local') {
-      fileURL = `http://localhost:5000/lease_bills/${encodeURIComponent(pdfFileName)}`;
-    } else {
-      const fileData = fs.readFileSync(localPDFPath);
-      await s3.putObject({
-        Bucket: S3_BUCKET_NAME,
-        Key: pdfFileName,
-        Body: fileData,
-        ContentType: 'application/pdf',
-      }).promise();
-      fs.unlinkSync(localPDFPath);
-      fileURL = s3.getSignedUrl('getObject', { Bucket: S3_BUCKET_NAME, Key: pdfFileName, Expires: 3600 });
-    }
-
-    // Save bill to database
-    const newFile = await Files.create({
-      fileName: pdfFileName,
-      fileType: 'pdf',
-      url: fileURL,
-      subject,
-      totalAmount,
-      paid: false,
-      propertyId,
-      tenantEmail,
-      landlordId,
-      landlordEmail,
-      deadline
+    // Fetch the property details
+    const propQuery = `SELECT * FROM "Properties" WHERE id = :propertyId`;
+    const [propertyResults] = await sequelize.query(propQuery, {
+      replacements: { propertyId: newFileRecord[0]?.propertyId }, // Corrected typo
+      type: sequelize.QueryTypes.SELECT, // Fetching a record
     });
 
-    console.log("Bill generated:", newFile);
+    // Ensure property exists
+    if (!propertyResults) {
+      throw new Error("Property not found");
+    }
+    
+    console.log("Property results", [propertyResults]);
+    
+    //used currency P
+    const notificationQuery = `
+      INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+      SELECT 
+        gen_random_uuid(), 
+        :user_id,  
+        CONCAT(up."name", ' from ', :propertyName, ' has sent you a bill of P', :totalAmount, ' due ', :deadline), 
+        'lease', 
+        NOW()
+      FROM "userProfile" up
+      WHERE up.id = :landlordId  
+      RETURNING *;
+    `;
 
-    return res.json({ message: 'Bill generated successfully.', fileRecord: newFile });
+    const notifications = await sequelize.query(notificationQuery, {
+      replacements: { 
+        user_id: user_id, // The user_id to send the notification to
+        deadline: deadline,
+        totalAmount: totalAmount,
+        landlordId: landlordId,
+        propertyName: propertyResults.propertyName,
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
+
+    //Send email to tenant
+    const landlordEmailQuery = `
+      SELECT email, name FROM "userProfile" WHERE id = :landlordId
+    `;
+    const emailLandlord = await sequelize.query(landlordEmailQuery, {
+      replacements: { landlordId: landlordId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    const propEmailQuery = `
+      SELECT "propertyName" FROM "Properties" WHERE id = :propertyId
+    `;
+    const emailProp = await sequelize.query(propEmailQuery, {
+      replacements: { propertyId: propertyId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (emailLandlord && emailProp && emailLandlord.length > 0 && emailProp.length > 0) {
+      const landlordEmail = emailLandlord[0].email;
+      const landlordName = emailLandlord[0].name;
+      const propertyName = emailProp[0].propertyName;
+      const emailSubject = `${propertyName} Invoice - ${subject}`;
+      const emailBody = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border: 1px solid #ddd; border-radius:>             <h2 style="color: #2c3e50;">Invoice Notification from ${propertyName}</h2>
+
+             <p style="font-size: 16px; color: #333;">
+                <strong>${landlordName}</strong> from <strong>${propertyName}</strong> has sent you an invoice titled <strong>${subject}</strong>.
+             </p>
+
+             <p style="font-size: 16px; color: #333;">
+                You can view or download the invoice using the link below:
+             </p>
+
+            <p style="text-align: center; margin: 30px 0;">
+               <a href="${fileURL}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #fff; text-decoration: none; b>                  View Invoice
+               </a>
+            </p>
+
+            <p style="font-size: 14px; color: #555;">
+                If you have any questions or concerns, feel free to reply to this email. Your response will be forwarded directly to the landlord/property manager.
+            </p>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+
+            <p style="font-size: 12px; color: #999; text-align: center;">
+               This email was sent via <strong>Narra</strong>
+            </p>
+        </div>
+      `;
+
+      await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
+    }
+
+    return res.json({ file: newFileRecord });
   } catch (error) {
     console.error('Error generating bill:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -411,7 +666,34 @@ router.delete('/delete-all', async (req, res) => {
   }
 
   try {
-    // Raw SQL query to delete the selected bills associated with the given property
+
+    // Step 1: Find the S3 keys of the files to be deleted
+    const files = await sequelize.query(
+      `SELECT * FROM "Leases" WHERE "id" IN (:bills) AND "propertyId" = :propertyId`,
+      {
+        replacements: { bills, propertyId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const s3Keys = files.map(file => ({ Key: file.fileName }));
+
+    console.log("these are the keys", s3Keys);
+
+    // Step 2: Delete files from S3 (only if keys are found)
+    if (s3Keys.length > 0) {
+      const s3Params = {
+        Bucket: S3_BUCKET_NAME, // Make sure this is set
+        Delete: {
+          Objects: s3Keys,
+          Quiet: false,
+        },
+      };
+
+      await s3.deleteObjects(s3Params).promise();
+    }
+
+    //3. Database delete the selected bills associated with the given property
     const query = `
       DELETE FROM "Files"
       WHERE "id" IN (:bills) AND "propertyId" = :propertyId;

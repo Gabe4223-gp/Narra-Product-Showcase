@@ -2,7 +2,7 @@
 
 .sidebar {
   width: 170px;
-  background-color: #4a6385;
+  background-color: #ffffff;
   color: #ecf0f1;
   transition: width 0.3s ease;
   overflow: hidden;
@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   padding: 15px 20px;
-  color: #ecf0f1;
+  color: #000000;
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease;
 }

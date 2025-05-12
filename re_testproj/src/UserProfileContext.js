@@ -22,11 +22,17 @@ export function UserProfileProvider({ children }) {
     if (!isAuthenticated || !user?.email) {
       setLoadingProfile(false);
       return;
-    }
+    } 
     try {
       setLoadingProfile(true);
-      const res = await axios.get(`/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
-      setUserProfile(res.data.userProfile);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
+      setUserProfile(res.data.userProfile); 
+      console.log("Fetched user profile:", res.data.userProfile);
+      
+
+      // Store in local storage
+      localStorage.setItem('userProfile', JSON.stringify(res.data.userProfile));
+
       setError(null);
     } catch (err) {
       console.error("Error fetching userProfile:", err);

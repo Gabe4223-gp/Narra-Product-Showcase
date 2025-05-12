@@ -37,7 +37,7 @@ function Sidebar({ isCollapsed, role }) {
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/tenant/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
+                <NavLink to="/tenant/tenant-settings" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaCog className="sidebar-icon" />
                   {!isCollapsed && <span>Settings</span>}
                 </NavLink>
@@ -51,15 +51,6 @@ function Sidebar({ isCollapsed, role }) {
                   {!isCollapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
-
-              {permissions.applications && (
-                <li>
-                  <NavLink to="/applications" className={({ isActive }) => (isActive ? 'active' : '')}>
-                    <AiOutlineForm className="sidebar-icon" />
-                    {!isCollapsed && <span>Applications</span>}
-                  </NavLink>
-                </li>
-              )}
 
               {permissions.tenants && (
                 <li>

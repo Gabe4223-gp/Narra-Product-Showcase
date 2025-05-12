@@ -20,11 +20,12 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
     const [selectedDocIds, setSelectedDocIds] = useState(new Set());
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const {userProfile} = useUserProfile();
+    const baseUrl = process.env.REACT_APP_API_URL;
    
     //Lease Generation const
     const [leaseStartDate, setLeaseStartDate] = useState('');
     const [leaseEndDate, setLeaseEndDate] = useState('');
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    const allowedTypes = ['application/pdf'];
 
     //Lease upload
 
@@ -53,7 +54,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                 const newDoc = {
                     id: uuidid,
                     fileName: uuidid,
-                    url: `http://localhost:5000/lease_bills/${encodeURIComponent(uuidid)}`,
+                    url: `${baseUrl}/lease_bills/${encodeURIComponent(uuidid)}`,
                     fileContent: reader.result,
                     landlordId: userProfile.id,
                     tenantEmail: tenantDetails.email,
@@ -75,7 +76,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
 
         try {
            
-            const response = await fetch('/tenants/upload-lease', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/upload-lease`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -93,6 +94,8 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                     leaseEndDate: leaseEndDate,
                     signed: signed,
                     subject: subject,
+                    propertyId: tenantDetails.propertyId,
+                    user_id: tenantDetails.user_id,
                 }),
             });
 
@@ -123,7 +126,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-lease?tenantId=${tenantId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -174,7 +177,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
         
         try {
             // Make a DELETE request to the backend
-            const response = await fetch(`/leases/delete-all`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/leases/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -240,11 +243,13 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
             <table>
                 <thead>
                     <tr>
-                        <th> </th>
+                        <th style={{ width: "5%" }}> </th>
                         <th>Uploaded At</th>
                         <th>Subject</th>
-                        <th>Signed</th>
-                        <th>Action</th>
+                        <th>Lease Start</th>
+                        <th>Lease Expiry</th>
+                        <th style={{ width: "10%" }}>Signed</th>
+                        <th style={{ width: "10%" }}>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -263,8 +268,10 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
                                     </td>
                                     <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
                                     <td>{doc.subject}</td>
-                                    <td>{doc.signed ? 'Signed' : 'Not Signed'}</td>
-                                    <td>
+                                    <td>{new Date(doc.leaseStarted).toLocaleString()}</td>
+                                    <td>{new Date(doc.leaseExpiry).toLocaleString()}</td>
+                                    <td style={{ width: "10%" }}>{doc.signed ? 'Signed' : 'Not Signed'}</td>
+                                    <td style={{ width: "10%" }}>
                                         <button onClick={() => handleViewLease(tenantDetails?.id, doc.fileName)}>
                                             View
                                         </button>
@@ -282,14 +289,15 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
             </table>
 
             <div>
-                <button className="delete-leases" onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+                <button className="delete-leases" onClick={() => setShowDeleteModal(true)} 
+                disabled={selectedDocIds.size === 0}>Delete Selected</button>
             </div>
 
             {showDeleteModal && (
                 <div className='overlay'>
                     <div className='modal'>
                         <div>
-                            Are you sure you want to delete these tenants?
+                            Are you sure you want to delete these leases?
                         </div>
                         <button onClick={handleDeleteLeases}>Confirm</button>
                         <button onClick={() => setShowDeleteModal(false)}>Cancel</button>

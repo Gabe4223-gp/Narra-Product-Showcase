@@ -1,4 +1,3 @@
-// src/FulfilledBills.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -6,6 +5,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   const [bills, setBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
   const [error, setError] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'tenantName', direction: 'asc' });
 
   console.log("refresh", refresh);
   
@@ -24,7 +24,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     if (!url) return "#";
     if (url.startsWith("http")) return url;
     // Use your environment variable or default to localhost for development
-    const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+    const baseUrl = process.env.REACT_APP_API_URL;
     return `${baseUrl}/${url}`;
   };
 
@@ -32,7 +32,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
   useEffect(() => {
     async function fetchBills() {
       try {
-        const res = await fetch(`/api/sendBill/fulfilled?propertyId=${propertyId}`);
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/fulfilled?propertyId=${propertyId}`);
         const data = await res.json();
         setBills(data);
         setError(null);
@@ -54,7 +54,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
       // Use the already-filtered bills array (you may use filteredBills or currentFiles)
       for (const bill of filteredBills) {
         try {
-          const res = await axios.get('/api/sendBill/fetch-proof', {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/fetch-proof`, {
             params: {
               landlordEmail: bill.landlordEmail,
               subject: bill.subject
@@ -104,7 +104,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     console.log("Selectedbullids", selectedBillIds);
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/api/sendBill/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     
     try {
       // Make the API call to update the status of the selected bills
-      const res = await fetch('/api/sendBill/markAsUnpaid', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/markAsUnpaid`, {
         method: 'PUT', // or 'PUT' depending on your backend design
         headers: {
           'Content-Type': 'application/json',
@@ -166,6 +166,22 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
       billedDate.getMonth() === selectedMonth &&
       bill.paid === true
     );
+  });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedBills = [...filteredBills].sort((a, b) => {
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
   });
 
   return (
@@ -203,21 +219,33 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
         <table>
           <thead>
             <tr>
-              <th></th>
-              <th>Tenant Name</th>
-              <th>Subject</th>
-              <th>Total Amount</th>
-              <th>Date Billed</th>
-              <th>Deadline</th>
-              <th>Date Paid</th>
+              <th ></th>
+              <th onClick={() => handleSort('tenantName')}>
+                Tenant Name <span>{sortConfig.key === 'tenantName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('subject')}>
+                Subject <span>{sortConfig.key === 'subject' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('totalAmount')}>
+                Total Amount <span>{sortConfig.key === 'totalAmount' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('createdAt')}>
+                Date Billed <span>{sortConfig.key === 'createdAt' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('deadline')}>
+                Deadline <span>{sortConfig.key === 'deadline' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('updatedAt')}>
+                Date Paid <span>{sortConfig.key === 'updatedAt' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
               <th>Status</th>
               <th>Invoice</th>
               <th>Proof of Payment</th>
             </tr>
           </thead>
           <tbody>
-            {filteredBills.length > 0 ? (
-              filteredBills.map((bill) => {
+            {sortedBills.length > 0 ? (
+              sortedBills.map((bill) => {
                 const dateBilled = bill.createdAt ? new Date(bill.createdAt).toLocaleString() : 'N/A';
                 return (
                   <tr key={bill.id}>
@@ -228,7 +256,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
                         onChange={() => handleCheckboxChange(bill.id)}
                       />
                     </td>
-                    <td>{bill.name}</td>
+                    <td>{bill.tenantName}</td>
                     <td>{bill.subject}</td>
                     <td>{bill.totalAmount?.toFixed(2)}</td>
                     <td>{dateBilled}</td>
@@ -274,7 +302,6 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
           </button>
         </div>
       </div>
-
 
       {showDeleteModal && (
         <div className='overlay'>

@@ -53,7 +53,7 @@ function Tenants() {
     
     try {
 
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +104,7 @@ function Tenants() {
 
     try {
  
-      const response = await fetch('/tenants/byIds', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/byIds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ function Tenants() {
       }
       
       // Call the /emails-by-ids endpoint to get emails for the given tenant IDs
-      const response = await fetch('/emails-by-ids', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/emails-by-ids`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +195,7 @@ function Tenants() {
         const emails = data.emails;
   
         // Update the userProfile.tenants field via your existing API endpoint
-        const updateResponse = await fetch(`/api/user-profile/${userProfile.id}/tenants`, {
+        const updateResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/tenants`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -225,7 +225,7 @@ function Tenants() {
       };
  
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('/tenants', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -273,8 +273,6 @@ function Tenants() {
 
      
       const responseData = await response.json(); // Get the response data
-
-      console.log("Aflooie", responseData);
 
       // Optionally: If you have a function that fetches tenants by IDs
       const updatedTenantIds = await fetchTenants(responseData.tenants);
@@ -346,7 +344,7 @@ function Tenants() {
           }
  
           // Send the imported tenants and selected property ID to the backend
-          const response = await fetch("/tenants/import", {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/import`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -405,7 +403,7 @@ function Tenants() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/tenants/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -480,7 +478,30 @@ function Tenants() {
   };
 
 
- 
+  const [sortConfig, setSortConfig] = useState({ key: "unit", direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIndicator = (key) => {
+    return sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : " ▲";
+  };
+
+  const sortedTenants = [...tenants].sort((a, b) => {
+    if (sortConfig.key === "unit" || sortConfig.key === "leaseStarted" || sortConfig.key === "leaseExpiry") {
+      return sortConfig.direction === "asc"
+        ? new Date(a[sortConfig.key]) - new Date(b[sortConfig.key])
+        : new Date(b[sortConfig.key]) - new Date(a[sortConfig.key]);
+    } else {
+      return sortConfig.direction === "asc"
+        ? a[sortConfig.key].localeCompare(b[sortConfig.key])
+        : b[sortConfig.key].localeCompare(a[sortConfig.key]);
+    }
+  });
 
 
   if (selectedTenant !== null) {
@@ -500,6 +521,13 @@ function Tenants() {
     <div className="tenant-container">
       <div className='tenant-list-top'>
         <h3>Tenant List</h3>
+        <a 
+          className='tenant-download'
+          href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/tenant+list+test.xlsx"
+          download="tenant.xlsx"
+        >
+          Download import template
+        </a>
         <select
           id="property-select"
           onChange={handlePropertyChange}
@@ -519,64 +547,56 @@ function Tenants() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: "5%" }}> </th>
-              <th style={{ width: "10%" }}>Name</th>
-              <th style={{ width: "10%" }}>Unit No.</th>
-              <th style={{ width: "20%" }}>Email</th>
+              <th style={{ width: "5%" }}></th>
+              <th style={{ width: "10%", cursor: "pointer" }} onClick={() => handleSort("name")}>
+                Name{getSortIndicator("name")}
+              </th>
+              <th style={{ width: "10%", cursor: "pointer" }} onClick={() => handleSort("unit")}>
+                Unit No.{getSortIndicator("unit")}
+              </th>
+              <th style={{ width: "20%", cursor: "pointer" }} onClick={() => handleSort("email")}>
+                Email{getSortIndicator("email")}
+              </th>
               <th style={{ width: "15%" }}>Phone No.</th>
-              <th style={{ width: "15%" }}>Lease Started</th>
-              <th style={{ width: "15%" }}>Lease Expiry</th>
+              <th style={{ width: "15%", cursor: "pointer" }} onClick={() => handleSort("leaseStarted")}>
+                Lease Started{getSortIndicator("leaseStarted")}
+              </th>
+              <th style={{ width: "15%", cursor: "pointer" }} onClick={() => handleSort("leaseExpiry")}>
+                Lease Expiry{getSortIndicator("leaseExpiry")}
+              </th>
               <th style={{ width: "10%" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {tenants.length > 0 ? (
-              [...tenants]
-                .sort((a, b) => Number(a.unit) - Number(b.unit))
-                .map((tenant, index) => (
-                  <tr key={index}>
-                    <td style={{ width: "5%" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTenantIds.has(tenant.id)}
-                        onChange={() => handleCheckboxChange(tenant.id)}
-                      />
-                    </td>
-                    <td style={{ width: "10%" }}>{tenant.name}</td>
-                    <td style={{ width: "10%" }}>{tenant.unit}</td>
-                    <td
-                      style={{
-                        width: "20%",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {tenant.email}
-                    </td>
-                    <td style={{ width: "15%" }}>{tenant.phone}</td>
-                    <td style={{ width: "15%" }}>
-                      {tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}
-                    </td>
-                    <td style={{ width: "15%" }}>
-                      {tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}
-                    </td>
-                    <td style={{ width: "10%" }}>
-                      <button onClick={() => handleViewProfile(tenant)}>View</button>
-                    </td>
-                  </tr>
-                ))
+            {sortedTenants.length > 0 ? (
+              sortedTenants.map((tenant, index) => (
+                <tr key={index}>
+                  <td style={{ width: "5%" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTenantIds.has(tenant.id)}
+                      onChange={() => handleCheckboxChange(tenant.id)}
+                    />
+                  </td>
+                  <td style={{ width: "10%" }}>{tenant.name}</td>
+                  <td style={{ width: "10%" }}>{tenant.unit}</td>
+                  <td style={{ width: "20%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {tenant.email}
+                  </td>
+                  <td style={{ width: "15%" }}>{tenant.phone}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleDateString() : ""}</td>
+                  <td style={{ width: "15%" }}>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleDateString() : ""}</td>
+                  <td style={{ width: "10%" }}>
+                    <button onClick={() => handleViewProfile(tenant)}>View</button>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
-                  No tenants added yet.
-                </td>
+                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>No tenants added yet.</td>
               </tr>
             )}
           </tbody>
-
-
-          
         </table>
       </div>
 
@@ -598,9 +618,9 @@ function Tenants() {
         >
           Import From Excel
         </button>
-        <button onClick={handleSelectAll}>Select All</button>
-        <button onClick={handleDeselectAll}>Unselect All</button>
-        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+        <button onClick={handleSelectAll} >Select All</button>
+        <button onClick={handleDeselectAll} disabled={selectedTenantIds.size === 0}>Unselect All</button>
+        <button onClick={() => setShowDeleteModal(true)} disabled={selectedTenantIds.size === 0}>Delete Selected</button>
       </div>
 
 

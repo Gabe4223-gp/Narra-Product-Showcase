@@ -33,6 +33,7 @@ function Issues () {
           description: null, 
           unit: null, 
           resolved: false,
+          resolution: null,
           dateRaised: new Date(),
           dateResolved: null, 
           documents: [],
@@ -52,7 +53,7 @@ function Issues () {
     const fetchProperties = async () => {
 
         try {
-            const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -95,7 +96,7 @@ function Issues () {
     
         try {
      
-          const response = await fetch('/issues/byIds', {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/byIds`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ function Issues () {
             };
     
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('/issues', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ function Issues () {
             // Upload documents only if issue creation succeeds
             if (documents.length > 0) {
                 const uploadPromises = documents.map(async (doc) => {
-                    const response = await fetch('/issues/upload-issue-doc', {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/upload-issue-doc`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ function Issues () {
         try {
             const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('/issues/resolve', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/resolve`, {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -295,7 +296,7 @@ function Issues () {
         try {
             const issueIdsArray = Array.from(selectedIssueIds); // Convert Set to an array
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('/issues/unresolve', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/unresolve`, {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -398,7 +399,7 @@ function Issues () {
         }
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/issues/delete-all`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/delete-all`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -528,7 +529,7 @@ function Issues () {
                                     />
                                     </td>
                                     <td>{issue.id.substring(0, 4)}</td>
-                                    <td>{issue.dateRaised}</td>
+                                    <td>{new Date(issue.dateRaised).toLocaleString()}</td>
                                     <td>{issue.unit}</td>
                                     <td>{issue.type}</td>
                                     <td>{issue.subject}</td>
@@ -553,8 +554,8 @@ function Issues () {
                         Add Issue
                     </button>
                     <button onClick={handleSelectAllUnResolved}>Select All</button>
-                    <button onClick={handleDeselectAll}>Unselect All</button>
-                    <button onClick={() => markSelectedAsResolved(selectedIssueIds)}>Mark Selected as Resolved</button>
+                    <button onClick={handleDeselectAll} disabled={selectedIssueIds.size === 0}>Unselect All</button>
+                    <button onClick={() => markSelectedAsResolved(selectedIssueIds)} disabled={selectedIssueIds.size === 0}>Mark Selected as Resolved</button>
                 </div>
             
             </div>
@@ -569,7 +570,7 @@ function Issues () {
                         <label>
                             Unit
                             <input
-                            type="number"
+                            type="text"
                             value={newIssue.unit}
                             onChange={(e) => handleAddIssueChange("unit", e.target.value)}
                             />
@@ -739,20 +740,20 @@ function Issues () {
 
                 <div className="actions">
                     <button onClick={handleSelectAllResvolved}>Select All</button>
-                    <button onClick={handleDeselectAll}>Unselect All</button>
-                    <button onClick={() => markSelectedAsUnresolved()}>Mark as Unresolved</button>
+                    <button onClick={handleDeselectAll} disabled={selectedIssueIds.size === 0}>Unselect All</button>
+                    <button onClick={() => markSelectedAsUnresolved()} disabled={selectedIssueIds.size === 0}>Mark as Unresolved</button>
                 </div>
             </div>
 
             <div>
-                <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+                <button onClick={() => setShowDeleteModal(true)} disabled={selectedIssueIds.size === 0}>Delete Selected</button>
             </div>
 
             {showDeleteModal && (
                 <div className='overlay'>
                     <div className='modal'>
                         <div>
-                            Are you sure you want to delete these tenants?
+                            Are you sure you want to delete these issues?
                         </div>
                         <button onClick={handleDeleteIssues}>Confirm</button>
                         <button onClick={() => setShowDeleteModal(false)}>Cancel</button>

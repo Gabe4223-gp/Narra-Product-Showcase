@@ -13,7 +13,7 @@ function Units() {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState(new Set());
   const [showSizeUnitModal, setshowSizeUnitModal] = useState(false);
-  const [sizeUnits, setsizeUnits] = useState("sqft");
+  const [sizeUnits, setsizeUnits] = useState("");
   const [selectedPropertyID, setSelectedPropertyID] = useState(() => {
       console.log("Selected Property", localStorage.getItem('selectedPropertyIDUnit'));
       return localStorage.getItem('selectedPropertyIDUnit') || "";
@@ -39,7 +39,7 @@ function Units() {
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ function Units() {
 
     try {
  
-      const response = await fetch('/units/byIds', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/units/byIds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,10 +152,11 @@ function Units() {
         const unitWithUUID = {
           ...newUnit,
           id: uuidv4(), // Generate UUID for id
+          sizeUnit: sizeUnits,
         };
    
         // Send tenant and selectedPropertyID to the backend
-        const response = await fetch('/units', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/units`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -171,6 +172,8 @@ function Units() {
           console.error('Backend error:', errorMsg);
           throw new Error('Failed to create unit');
         }
+
+        console.log("alsjdfhlaksdhf", sizeUnits);
   
         // Clear the form
         setNewUnit({
@@ -179,7 +182,7 @@ function Units() {
           type: null,
           mode: null,
           sizeValue: null,
-          sizeUnit: "sqft",
+          sizeUnit: sizeUnits,
           petsAllowed: false,
           tenants: [],
           waterLastReading: [],
@@ -216,10 +219,11 @@ function Units() {
   };
 
   const saveSizeUnitChange = async () => {
+    console.log("size sldjfhalskdhf", sizeUnits);
     try {
  
       // Send tenant and selectedPropertyID to the backend
-      const response = await fetch('/units/size', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/units/size`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,6 +246,7 @@ function Units() {
       fetchUnits(responseData.units);
 
       setsizeUnits(responseData.sizeUnits);
+      console.log("size units", sizeUnits);
 
       setshowSizeUnitModal(false);
     } catch (error) {
@@ -295,7 +300,7 @@ function Units() {
           }
   
           // Send the imported units and selected property ID to the backend
-          const response = await fetch(`/units/import`, {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/units/import`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -354,7 +359,7 @@ function Units() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/units/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/units/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -417,6 +422,38 @@ function Units() {
     // Update the selectedTenantIds state to include all tenant IDs
     setSelectedUnitIds(allUnitIds); // Assuming setSelectedTenantIds is the function for updating selected tenants
   };
+  
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIndicator = (key) => {
+    return sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : " ▲";
+  };
+ 
+  const sortedUnits = [...units].sort((a, b) => {
+    if (!sortConfig.key) return 0; // No sorting initially
+  
+    if (sortConfig.key === "sizeValue") {
+      // only sizeValue stays numeric
+      return sortConfig.direction === "asc"
+        ? Number(a.sizeValue) - Number(b.sizeValue)
+        : Number(b.sizeValue) - Number(a.sizeValue);
+    } else {
+      // everything else (including unitNo) is alphabetical
+      const aVal = (a[sortConfig.key] || "").toString();
+      const bVal = (b[sortConfig.key] || "").toString();
+      return sortConfig.direction === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+  });
+
 
   if (selectedUnit !== null) {
     return (
@@ -431,6 +468,13 @@ function Units() {
     <div className="unit-container">
       <div className='unit-list-top'>
         <h3>Unit List</h3>
+        <a 
+          className='unit-download'
+          href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/unit+list+test.xlsx"
+          download="unit.xlsx"
+        >
+          Download import template
+        </a>
         <select
           id="property-select"
           onChange={handlePropertyChange}
@@ -451,47 +495,45 @@ function Units() {
           <thead>
             <tr>
               <th> </th>
-              <th>No.</th>
-              <th>Type</th>
-              <th>Mode</th>
-              <th>Size</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("unitNo")}>No.{getSortIndicator("unitNo")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("type")}>Type{getSortIndicator("type")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("mode")}>Mode{getSortIndicator("mode")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("sizeValue")}>Size{getSortIndicator("sizeValue")}</th>
               <th>   
                 <button onClick={() => setshowSizeUnitModal(true)}>unit</button>
               </th>
-              <th>Pets Allowed</th>
-              <th>Occupants</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("petsAllowed")}>Pets Allowed{getSortIndicator("petsAllowed")}</th>
+              <th style={{ cursor: "pointer" }} onClick={() => handleSort("tenants")}>Occupants{getSortIndicator("tenants")}</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {units?.length > 0 ? (
-              [...units]
-                .sort((a, b) => Number(a.unitNo) - Number(b.unitNo))
-                .map((unit, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedUnitIds.has(unit?.id)}
-                        onChange={() => handleCheckboxChange(unit?.id)}
-                      />
-                    </td>
-                    <td>{unit.unitNo}</td>
-                    <td>{unit.type}</td>
-                    <td>{unit.mode}</td>
-                    <td>{unit.sizeValue}</td>
-                    <td>{unit.sizeUnit}</td>
-                    <td>{unit.petsAllowed ? "Yes" : "No"}</td>
-                    <td>
-                      {unit.tenants && unit.tenants?.length > 0 
-                        ? unit.tenants.length
-                        : "No tenants"}
-                    </td>
-                    <td>
-                      <button onClick={() => handleViewUnit(unit)}>View</button>
-                    </td>
-                  </tr>
-                ))
+            {sortedUnits?.length > 0 ? (
+              sortedUnits.map((unit, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedUnitIds.has(unit?.id)}
+                      onChange={() => handleCheckboxChange(unit?.id)}
+                    />
+                  </td>
+                  <td>{unit.unitNo}</td>
+                  <td>{unit.type}</td>
+                  <td>{unit.mode}</td>
+                  <td>{unit.sizeValue}</td>
+                  <td>{unit.sizeUnit}</td>
+                  <td>{unit.petsAllowed ? "Yes" : "No"}</td>
+                  <td>
+                    {unit.tenants && unit.tenants?.length > 0 
+                      ? unit.tenants.length
+                      : "No tenants"}
+                  </td>
+                  <td>
+                    <button onClick={() => handleViewUnit(unit)}>View</button>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
                 <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
@@ -542,9 +584,9 @@ function Units() {
         
         <button onClick={handleSelectAll}>Select All</button>
       
-        <button onClick={handleDeselectAll}>Unselect All</button>
+        <button onClick={handleDeselectAll} disabled={selectedUnitIds.size === 0}>Unselect All</button>
 
-        <button onClick={() => setShowDeleteModal(true)}>Delete Selected</button>
+        <button onClick={() => setShowDeleteModal(true)} disabled={selectedUnitIds.size === 0}>Delete Selected</button>
       
         
       </div>
@@ -557,7 +599,7 @@ function Units() {
                 <label>
                   No:
                   <input
-                    type="number"
+                    type="text"
                     value={newUnit.unitNo}
                     onChange={(e) => handleAddUnitChange("unitNo", e.target.value)}
                   />
@@ -565,7 +607,7 @@ function Units() {
                 <label>
                   Type:
                   <input
-                    type="text"
+                    type="text"//$$$
                     value={newUnit.type}
                     onChange={(e) => handleAddUnitChange("type", e.target.value)}
                   />
@@ -610,7 +652,7 @@ function Units() {
         <div className='overlay'>
           <div className='modal'>
               <div>
-                  Are you sure you want to delete these tenants?
+                  Are you sure you want to delete these units?
               </div>
               <button onClick={handleDeleteUnits}>Confirm</button>
               <button onClick={() => setShowDeleteModal(false)}>Cancel</button>

@@ -1,4 +1,3 @@
-// src/UnfulfilledBills.js
 import React, { useState, useEffect } from 'react';
 
 function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
@@ -7,7 +6,8 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   const [tenantBills, setTenantBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
   const [error, setError] = useState(null);
-  // Month/year filter state
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = Array.from({ length: 12 }, (_, i) =>
@@ -16,14 +16,14 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedBillIds, setSelectedBillIds] = useState(new Set());
-   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     async function fetchBills() {
       try {
-        const res = await fetch(`/api/sendBill/unfulfilled?propertyId=${propertyId}`);
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/unfulfilled?propertyId=${propertyId}`);
         const data = await res.json();
-        
+
         setBills(data);
         console.log("00", bills);
         setError(null);
@@ -57,8 +57,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
     }
     console.log("Selectedbullids", selectedBillIds);
     try {
-        // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`/api/sendBill/delete-all`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,7 +70,6 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
             return;
         }
 
-        // Optionally handle the backend response
         const data = await response.json();
         console.log("Bills deleted successfully:", data);
 
@@ -84,22 +82,19 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   };
 
   const handleMarkAsPaid = async () => {
-    // Show an alert with the selected bills' IDs
     alert(`Mark selected bills as paid: ${Array.from(selectedBillIds).join(', ')}`);
     
     try {
-      // Make the API call to update the status of the selected bills
-      const res = await fetch('/api/sendBill/markAsPaid', {
-        method: 'PUT', // or 'PUT' depending on your backend design
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/markAsPaid`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          billIds: Array.from(selectedBillIds), // Convert Set to Array
+          billIds: Array.from(selectedBillIds), 
         }),
       });
   
-      // Check if the response is successful
       if (res.ok) {
         const data = await res.json();
         alert(`Successfully marked the selected bills as paid.`);
@@ -115,12 +110,34 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
   
   const filteredBills = bills?.filter((bill) => {
     const billedDate = new Date(bill.createdAt);
+    const billYear = billedDate.getFullYear();
+    const billMonth = billedDate.getMonth();
     return (
-      billedDate.getFullYear() === selectedYear &&
-      billedDate.getMonth() === selectedMonth &&
-      bill.paid === false
+      ((billYear === selectedYear && billMonth === selectedMonth) ||
+       (billYear === selectedYear && billMonth < selectedMonth) ||
+       (billYear < selectedYear))
+      && bill.paid === false
     );
   });
+  console.log("the filtered bills", filteredBills);
+
+  // Sorting functionality
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+
+    setSortConfig({ key, direction });
+
+    const sortedBills = [...filteredBills].sort((a, b) => {
+      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    setBills(sortedBills);
+  };
 
   return (
     <div className="bills-container">
@@ -158,11 +175,21 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
           <thead>
             <tr>
               <th></th>
-              <th>Tenant Name</th>
-              <th>Subject</th>
-              <th>Total Amount</th>
-              <th>Date Billed</th>
-              <th>Deadline</th>
+              <th onClick={() => handleSort('tenantName')}>
+                Tenant Name <span>{sortConfig.key === 'tenantName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('subject')}>
+                Subject <span>{sortConfig.key === 'subject' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('totalAmount')}>
+                Total Amount <span>{sortConfig.key === 'totalAmount' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('createdAt')}>
+                Date Billed <span>{sortConfig.key === 'createdAt' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
+              <th onClick={() => handleSort('deadline')}>
+                Deadline <span>{sortConfig.key === 'deadline' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ' ▲'}</span>
+              </th>
               <th>Status</th>
               <th>Invoice</th>
             </tr>
@@ -234,3 +261,4 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
 }
 
 export default UnfulfilledBills;
+

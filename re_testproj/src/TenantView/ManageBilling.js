@@ -51,7 +51,7 @@ const ManageBilling = ({ tenantEmail }) => {
 
   const fetchFiles = async () => {
     try {
-      const res = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/files`);
       const filteredFiles = res.data.files
         .filter(file => file.url && (file.fileType === 'pdf' || file.subject.toLowerCase().includes("proof of payment")))
         .filter(file => {
@@ -77,7 +77,7 @@ const ManageBilling = ({ tenantEmail }) => {
   useEffect(() => {
     async function checkPaymentMethod() {
       try {
-        const res = await axios.get('/api/user-profile/payment-methods', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/payment-methods`, {
           params: { userProfileId: userProfile.id },
         });
         setValidPaymentMethod(res.data.paymentMethods.length > 0);
@@ -107,7 +107,7 @@ const ManageBilling = ({ tenantEmail }) => {
   
       try {
         setLoadingLandlordData(true);
-        const response = await axios.get(`/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/profileData`);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/tenant/${encodeURIComponent(tenantEmail)}/profileData`);
         console.log("Landlord data response:", response.data);
         if (response.data.userProfile) {
           setLandlordData(response.data.userProfile);
@@ -216,7 +216,7 @@ const ManageBilling = ({ tenantEmail }) => {
     formData.append("tenantEmail", tenantEmail);
     
     try {
-      const res = await axios.post("/api/payments/upload-proof", formData, {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/upload-proof`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.success) {
@@ -264,29 +264,30 @@ const ManageBilling = ({ tenantEmail }) => {
 
       <div className="manage-billing-header">
         <h5>Manage Billing</h5>
-        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-          {/* Year Selection */}
-          <div>
-            <label>
-              Select Year:
-              <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}>
-                {years.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-  
-          {/* Status Filter */}
-          <div>
-            <label>
-              Status:
-              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
-                <option value="all">All</option>
-              </select>
-            </label>
+        <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between"}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                      <span>Select Year:</span>
+                      <select
+                          style={{ fontSize: "12px"}}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                      >
+                          {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                          ))}
+                      </select>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", margin:"0" }}>
+                    Status:
+                    <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                      <option value="unpaid">Unpaid</option>
+                      <option value="paid">Paid</option>
+                      <option value="all">All</option>
+                    </select>
+                  </label>
+              </div>
           </div>
         </div>
       </div>
@@ -295,8 +296,6 @@ const ManageBilling = ({ tenantEmail }) => {
         <p>Loading bills...</p>
       ) : error ? (
         <div className="error-banner">{error}</div>
-      ) : files.length === 0 ? (
-        <p>No bills found.</p>
       ) : (
         <>
           <table className="billing-table">
@@ -306,37 +305,54 @@ const ManageBilling = ({ tenantEmail }) => {
                 <th>Full Amount</th>
                 <th>Subject</th>
                 <th>Date Billed</th>
+                <th>Deadline</th>
                 <th>Invoice</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {currentFiles.map((file) => {
-                const dateBilled = file.createdAt ? new Date(file.createdAt).toLocaleString() : 'N/A';
-                return (
-                  <tr key={file.id}>
-                    <td>{file.paid ? 'Yes' : 'No'}</td>
-                    <td>{file.totalAmount?.toFixed(2)}</td>
-                    <td>{file.subject}</td>
-                    <td>{dateBilled}</td>
-                    <td>
-                      <a href={file.url} target="_blank" rel="noreferrer">View PDF</a>
-                    </td>
-                    <td>
-                      {!file.paid && validPaymentMethod && (
-                        <button onClick={() => handlePayClick(file)}>Pay</button>
-                      )}
-                      {file.paid && (
-                        proofStatus[file.id] ? (
-                          <span style={{ color: "green", fontWeight: "bold" }}>Done</span>
-                        ) : (
-                          <button onClick={() => handleProofClick(file)}>Proof of Pay</button>
-                        )
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {currentFiles
+                .filter((file) => {
+                  const dateBilled = new Date(file.createdAt);
+                  return dateBilled.getFullYear() === selectedYear;
+                })
+                .length > 0 ? (
+                currentFiles
+                  .filter((file) => {
+                    const dateBilled = new Date(file.createdAt);
+                    return dateBilled.getFullYear() === selectedYear;
+                  })
+                  .map((file) => {
+                    const dateBilled = file.createdAt
+                      ? new Date(file.createdAt).toLocaleString()
+                      : 'N/A';
+                    return (
+                      <tr key={file.id}>
+                        <td>{file.paid ? 'Yes' : 'No'}</td>
+                        <td>{file.totalAmount?.toFixed(2)}</td>
+                        <td>{file.subject}</td>
+                        <td>{dateBilled}</td>
+                        <td>{file.deadline ? new Date(file.deadline).toLocaleDateString() : ""}</td>
+                        <td>
+                          <a href={file.url} target="_blank" rel="noreferrer">
+                            View PDF
+                          </a>
+                        </td>
+                        <td>
+                          {!file.paid && (
+                            <button onClick={() => handlePayClick(file)}>Pay</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+              ) : (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
+                    No bills found for the selected year.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
   

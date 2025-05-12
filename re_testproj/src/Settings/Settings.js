@@ -1,4 +1,4 @@
-// src/TenantSettings.js
+// src/Settings.js
 import React, { useState, useEffect } from 'react';
 import { useUserProfile } from '../UserProfileContext';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import TeamSettings from './TeamSettings';
 import BusinessSettings from './BusinessSettings';
 import './Settings.css';
 
-function TenantSettings() {
+function Settings() {
   const {
     userProfile,
     loadingProfile,
@@ -156,7 +156,7 @@ function TenantSettings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.put(`/api/user-profile/${formData.id}`, {
+      const res = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`, {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
@@ -180,7 +180,7 @@ function TenantSettings() {
 
   const saveAddressDetails = async () => {
     try {
-      const response = await axios.put(`/api/user-profile/${userProfile.id}/address-details`, {
+      const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/address-details`, {
         personalAddressInfo: addressDetails,
       });
       if (response.data.success) {
@@ -196,14 +196,24 @@ function TenantSettings() {
   };  
 
   const saveBankDetails = async () => {
+    if (!userProfile?.id) {
+      alert('User profile is not loaded yet.');
+      return;
+    }
+  
+    if (!bankFormData.bankName) {
+      alert('Please enter a bank name.');
+      return;
+    }
+
     try {
-      const response = await axios.post('/api/user-profile/register-bank', {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/user-profile/register-bank`, {
         userId: userProfile.id,
         bankName: bankFormData.bankName
       });
       if (response.data.success) {
         alert('Bank details registered successfully!');
-        refreshUserProfile();
+        await refreshUserProfile(); // Ensure update before re-render
       } else {
         alert(response.data.message || 'Failed to register bank.');
       }
@@ -240,7 +250,7 @@ function TenantSettings() {
         return alert('No user ID found. Please log in again.');
       }
       const response = await axios.post(
-        `/api/user-profile/${userProfile.id}/landlord-bank-details`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`,
         { landlordBankDetails: userBankDetails }
       );
       if (response.data.success) {
@@ -258,7 +268,7 @@ function TenantSettings() {
   const saveCurrency = async () => {
     try {
       const response = await axios.put(
-        `/api/user-profile/${userProfile.id}/landlord-bank-details/currency`,
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details/currency`,
         { currency }
       );
       if (response.data.success) {
@@ -276,7 +286,7 @@ function TenantSettings() {
   const deleteAddressDetails = async () => {
     if (!window.confirm("Are you sure you want to delete your address details?")) return;
     try {
-      const response = await axios.delete(`/api/user-profile/${userProfile.id}/address-details`);
+      const response = await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/address-details`);
       if (response.data.success) {
         alert("Address details deleted successfully!");
         setAddressDetails({
@@ -303,7 +313,7 @@ function TenantSettings() {
     try {
       // This route will clear userProfile.bank and userProfile.landlordBankId
       const response = await axios.delete(
-        `/api/user-profile/${userProfile.id}/delete-bank-info`
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/delete-bank-info`
       );
   
       if (response.data.success) {
@@ -322,7 +332,9 @@ function TenantSettings() {
   const deleteUserBankDetails = async () => {
     if (!window.confirm('Are you sure you want to delete these bank details?')) return;
     try {
-      const response = await axios.delete(`/api/user-profile/${userProfile.id}/landlord-bank-details`);
+      const response = await axios.delete(
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${userProfile.id}/landlord-bank-details`
+      );
       if (response.data.success) {
         alert('User bank details deleted successfully!');
         refreshUserProfile();
@@ -342,7 +354,7 @@ function TenantSettings() {
 
   const confirmDeleteAccount = async () => {
     try {
-      await axios.delete(`/api/user-profile/${formData.id}`);
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`);
       setShowDeleteConfirmation(false);
       window.location.href = '/login';
     } catch (error) {
@@ -524,6 +536,7 @@ function TenantSettings() {
       <p><strong>Bank Registered:</strong> {bankFormData.landlordBankId ? '✔️ Registered' : '❌ Not Registered'}</p>
       <p><strong>Current Bank:</strong> {userProfile.bankName ? userProfile.bankName : "None"}</p>
 
+      {/* Popup Buttons */}    
       <div className="popup-actions">
         <button
           className="link-btn danger"
@@ -666,7 +679,7 @@ function TenantSettings() {
       
       {/* ====================== Team Settings, Language & Currency, etc. ====================== */}
       <h4>Team Settings</h4>
-      <button onClick={() => setShowTeamSettings(true)} className="link-btn">
+      <button onClick={() => setShowTeamSettings(true)} className="team-setting-btn">
         View Team
       </button>
       {showTeamSettings && (
@@ -742,4 +755,4 @@ function TenantSettings() {
   );
 }
 
-export default TenantSettings;
+export default Settings;

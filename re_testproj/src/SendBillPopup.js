@@ -3,14 +3,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
 
-function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordEmail }) {
+function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, propertyId, landlordId, landlordEmail }) {
   console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
-  const [utilityFees, setUtilityFees] = useState([{ name: '', amount: '' }]);
-  const [otherFees, setOtherFees] = useState([{ name: '', amount: '' }]);
+  const [utilityFees, setUtilityFees] = useState([{ date: '', name: '', amount: '' }]);
+  const [otherFees, setOtherFees] = useState([{ date: '', name: '', amount: '' }]);
   const [taxRate, setTaxRate] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [notes, setNotes] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
   const [errors, setErrors] = useState({});
   const [landlordBankId, setLandlordBankId] = useState(null);
@@ -23,7 +24,7 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
   useEffect(() => {
     const fetchLandlordBankDetails = async () => {
       try {
-        const res = await axios.get(`/api/sendBill/get-landlord-payment/${landlordId}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/sendBill/get-landlord-payment/${landlordId}`);
         if (res.data) {
           setLandlordBankId(res.data.landlordBankId);
           setBankName(res.data.bankName);
@@ -125,17 +126,21 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
       taxRate,
       deadline,
       totalAmount,
+      user_id,
+      notes,
+      landlordBankDetails,
     };
 
     console.log("Sending billData:", billData);
     try {
-      await axios.post('/api/sendBill/generate', billData);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/sendBill/generate`, billData);
       alert('Bill sent successfully.');
     } catch (error) {
       console.error('Error generating bill:', error);
       alert('Failed to send the bill.');
     }
     onClose();
+    onRefreshPayments();
   };
 
   return (
@@ -167,6 +172,16 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
           <h3>Utility Fees</h3>
           {utilityFees.map((fee, index) => (
             <div key={index} className="fee-row">
+              <input
+                type="date"
+                placeholder="Bill Date"
+                value={fee.date}
+                onChange={(e) => {
+                  const updated = [...utilityFees];
+                  updated[index].date = e.target.value;
+                  setUtilityFees(updated);
+                }}
+              />
               <input
                 type="text"
                 placeholder="e.g., Water"
@@ -205,8 +220,18 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
           {otherFees.map((fee, index) => (
             <div key={index} className="fee-row">
               <input
+                type="date"
+                placeholder="Bill date"
+                value={fee.name}
+                onChange={(e) => {
+                  const updated = [...otherFees];
+                  updated[index].date = e.target.value;
+                  setOtherFees(updated);
+                }}
+              />
+              <input
                 type="text"
-                placeholder="e.g., Repairs"
+                placeholder="e.g., Parking"
                 value={fee.name}
                 onChange={(e) => {
                   setOtherFees(prevFees => {
@@ -232,6 +257,7 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
                 ❌
               </button>
             </div>
+
           ))}
           <button onClick={() => setOtherFees(prevFees => [...prevFees, { name: '', amount: '' }])}>
             ➕ Add Other Fee
@@ -250,8 +276,19 @@ function SendBillPopup({ onClose, tenantEmail, propertyId, landlordId, landlordE
         </label>
 
         <h4>Your Bank: {bankName || '❌ Not Registered'}</h4>
+        <label>
+          Notes:
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4} // Adjust rows as needed
+            cols={50} // Adjust cols as needed
+            style={{ width: "100%" }} // Ensures full width
+          />
+        </label>
         <div className="total-amount">
           <h3>Total Amount: PHP {isNaN(totalAmount) ? '0.00' : totalAmount.toFixed(2)}</h3>
+          <h7 style={{fontWeight:'normal', fontSize:'9px', color:'black'}}>Note: Minimum bill is P21.0</h7>
         </div>
         <div className="popup-actions">
           <button onClick={onClose} className="cancel-button">Cancel</button>

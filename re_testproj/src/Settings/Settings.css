@@ -107,11 +107,9 @@
     cursor: pointer;
     font-size: 14px;
     margin-top: 10px;
-    transition: background-color 0.2s;
-  }
-  
-  .edit-btn:hover,
-  .link-btn:hover {
+}
+
+.edit-btn:hover {
     background-color: #0056b3;
   }
   
@@ -121,17 +119,29 @@
     text-decoration: underline;
     border: none;
     padding: 0;
-    margin-top: 0; /* Remove top margin for inline links if needed */
-  }
-  
-  .link-btn:hover {
+    text-align: left;
+}
+
+.team-setting-btn {
+    background: none;
+    color: #007bff;
+    text-decoration: underline;
+    border: none;
+    padding: 0;
+    text-align: left;
+}
+
+.team-setting-btn:hover {
     color: #0056b3;
-  }
-  
-  /* 
-    6) Danger/Destructive Buttons: 
-  */
-  .link-btn.danger {
+}
+
+.link-btn:hover {
+    color: #0056b3;
+    text-align: left;
+}
+
+/* Danger Button */
+.link-btn.danger {
     color: #dc3545;
     text-align: left;
     margin-top: 10px;

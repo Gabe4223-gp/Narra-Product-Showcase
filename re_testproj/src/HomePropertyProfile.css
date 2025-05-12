@@ -280,6 +280,7 @@
 .modal button:last-of-type {
   background-color: #f0f0f0;
   color: #333;
+  margin-top: 5%;
 }
 
 .action-buttons {

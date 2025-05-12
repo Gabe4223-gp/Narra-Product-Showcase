@@ -37,17 +37,17 @@ const ManageLease = ({ leaseData }) => {
     console.log("ManageLease received new leaseData:", leaseData); // Debugging line
   }, [leaseData]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!isFetched && leaseData?.currentLeaseDoc) {
       fetchLeaseDocument();
       setIsFetched(true);
     }
-  }, [isFetched, leaseData]);
+  }, [isFetched, leaseData]);*/
 
   const fetchLeaseDocument = async () => {
     try {
       console.log("Fetching lease document...");
-      const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const ManageLease = ({ leaseData }) => {
       return;
     }
     try {
-      const res = await axios.post('/api/leaseAgreement/end-request', {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/leaseAgreement/end-request`, {
         tenantEmail: inputEmail,
         subject: "Tenant wants to end lease",
       });
@@ -117,7 +117,6 @@ const ManageLease = ({ leaseData }) => {
       </p>
       <div className="manage-lease-actions">
         <button onClick={fetchLeaseDocument}>View Lease</button>
-        <button onClick={handleRequestEndLease}>Request to End Lease</button>
       </div>
       
       {previewLease && (

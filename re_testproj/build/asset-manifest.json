@@ -1,0 +1,20 @@
+{
+  "files": {
+    "main.css": "/static/css/main.1a562cf4.css",
+    "main.js": "/static/js/main.45429b2b.js",
+    "static/js/488.44099f4a.chunk.js": "/static/js/488.44099f4a.chunk.js",
+    "static/media/settings.png": "/static/media/settings.407dbd177f1ce9d484ee.png",
+    "static/media/squidward.png": "/static/media/squidward.ad315edc74e55846d20c.png",
+    "static/media/tenent.png": "/static/media/tenent.681306fd5e46b34c3905.png",
+    "static/media/message.png": "/static/media/message.c48677d170552a769558.png",
+    "static/media/notifs.png": "/static/media/notifs.3e87704e176d4ab525d1.png",
+    "index.html": "/index.html",
+    "main.1a562cf4.css.map": "/static/css/main.1a562cf4.css.map",
+    "main.45429b2b.js.map": "/static/js/main.45429b2b.js.map",
+    "488.44099f4a.chunk.js.map": "/static/js/488.44099f4a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.1a562cf4.css",
+    "static/js/main.45429b2b.js"
+  ]
+}

@@ -19,6 +19,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     const [editedTenant, setEditedTenant] = useState(null);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [forPreview, setForPreview] = useState(false);
+    const [refresh, setRefresh] = useState(false);
     const [uploadLeaseDoc, setUploadLeaseDoc] = useState(null);
     const [viewGovernmentID, setViewGovernmentID] = useState(null);
     const [showSendBillPopup, setShowSendBillPopup] = useState(false);
@@ -67,7 +68,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           }
    
           // Make a request to the backend
-          const response = await fetch(`/tenants/${tenantId}`, {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/${tenantId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
 
     const fetchLeaseDocs = async () => {
       try {
-        const response = await fetch(`/tenants/${tenantId}/leaseDocs`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/${tenantId}/leaseDocs`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -137,7 +138,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
 
 
             // Send tenant and selectedPropertyID to the backend
-            const response = await fetch('/tenants/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     }
 
     const handleUploadGovernmentId = (event) => {
-        const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
+        const allowedTypes = ["image/jpeg", "application/pdf"];
         const files = event.target.files;
     
         if (files.length > 1) {
@@ -190,7 +191,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
     
         if (file) {
             if (!allowedTypes.includes(file.type)) {
-                alert("Invalid file type. Please upload a PDF or image.");
+                alert("Invalid file type. Please upload a PDF or JPG image.");
                 return;
             }
     
@@ -204,7 +205,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                 };
     
                 try {
-                    const response = await fetch('/tenants/upload-govid', {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/upload-govid`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -239,7 +240,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-id?tenantId=${tenantId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -251,18 +252,26 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             }
     
             const data = await response.json();
-            
-            const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
-            console.log("Here's the doc", data);
-            console.log("Here's the cleanedBased", cleanedBase64);
+
+            // Check if the file is an image
+            let cleanedBase64;
+
+            if (data.fileType.startsWith("image/")) {
+              console.log("Starts with image");
+                // Handle image (e.g., png, jpeg)
+                cleanedBase64 = data.fileContent.replace(/dataimage\/(png|jpeg|jpg)base64/, ""); 
+            } else if (data.fileType === "application/pdf") {
+                // Handle PDF (if applicable)
+                cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
+            } else {
+                throw new Error("Unsupported file type");
+            }
 
             const loadedDoc = {
-                fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
-                fileName: fileName,  
-                fileType: data.fileType,
-            };
-
-            console.log("Here's the loadedDoc", loadedDoc);
+              fileContent: `data:${data.fileType};base64,${cleanedBase64}`,  // Convert to data URL format
+              fileName: fileName,  
+              fileType: data.fileType,
+          }
   
             setViewGovernmentID(loadedDoc);
     
@@ -277,7 +286,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/tenants/delete`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -383,12 +392,12 @@ function TenantProfile({tenantId, onBack, propertyId}) {
             </div>
       
             <div className="tenant-billing-details">
-              <h5>Billing Details</h5>
+              <h5>Payment Methods</h5>
               <div className="billing-details-row">
                 <div className="left-billing-details">
                   <p>eWallet Name: {tenantDetails?.eWalletName ?? "NA"}</p>
                   <p>Bank Name: {tenantDetails?.bankName ?? "NA"}</p>
-                  <p>Credit Card Name: {tenantDetails?.creditcardName ?? "NA"}</p>
+                  <p>Credit Card Name: {tenantDetails?.creditCardName ?? "NA"}</p>
                 </div>
                 <div className="right-billing-details">
                   
@@ -398,7 +407,10 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           </div>
       
           <div className="tenant-mid-section">
-            <PaymentHistory />
+            <PaymentHistory 
+              tenantDetails={tenantDetails}
+              refresh={refresh}
+            />
           </div>
       
           <div className="tenant-bottom-section">
@@ -426,6 +438,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           {viewGovernmentID && (
             <div className="overlay">
               <div className="govid-modal">
+                {console.log("Image Source:", viewGovernmentID?.fileContent)}
                 {viewGovernmentID?.fileContent ? (
                   viewGovernmentID?.fileType === 'image/png' ||
                   viewGovernmentID?.fileType === 'image/jpeg' ||
@@ -438,6 +451,7 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                         width: "100%",
                         height: "auto",
                         border: "1px solid #ccc",
+                        maxHeight: "500px",
                       }}
                     />
                   ) : viewGovernmentID?.fileType === 'application/pdf' ? (
@@ -485,7 +499,9 @@ function TenantProfile({tenantId, onBack, propertyId}) {
           {showSendBillPopup && (
             <SendBillPopup
               onClose={() => setShowSendBillPopup(false)}
+              onRefreshPayments={() => setRefresh(prev => !prev)}
               tenantEmail={tenantDetails.email}
+              user_id={tenantDetails.user_id}
               landlordId={userProfile.id}
               propertyId={propertyId}
               landlordEmail={userProfile.email}
@@ -553,6 +569,14 @@ function TenantProfile({tenantId, onBack, propertyId}) {
                       type="text"
                       value={editedTenant.occupation}
                       onChange={(e) => handleEditTenantChange("occupation", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Move-In Date:
+                    <input
+                      type="date"
+                      value={editedTenant.moveinDate}
+                      onChange={(e) => handleEditTenantChange("moveinDate", e.target.value)}
                     />
                   </label>
                 </form>

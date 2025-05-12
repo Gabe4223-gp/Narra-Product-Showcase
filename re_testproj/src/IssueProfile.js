@@ -7,12 +7,14 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showModal, setShowModal] = useState(false); // Modal visibility state
 
+    const [resolution, setResolution] = useState("");
+
     // Function to handle document click (opens document viewer)
     const handleViewDocument = async (issueId, fileName) => {
         
         try {
             // Use query parameters instead of body
-            const response = await fetch(`/issues/get-doc?issueId=${issueId}&fileName=${fileName}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/get-doc?issueId=${issueId}&fileName=${fileName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,7 +52,31 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
         setSelectedDoc(null);
     };
 
-    const handleConfirmResolved = () => {
+    const handleConfirmResolved = async () => {
+
+        console.log("resolution pass");
+
+        // send resolution to server
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/issues/resolution`,
+            {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                issueId: issue.id,
+                resolution,        // your long string variable
+            }),
+            }
+        );
+
+        if (!response.ok) {
+            // optional: handle error
+            console.error('Failed to save resolution', await response.text());
+        }
+        console.log("resolution passed");
+
         onMarkasResolved(new Set([issue.id]))
         setShowModal(false);
         onBack();
@@ -62,7 +88,7 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/issues/delete`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -129,6 +155,16 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
                         </div>
                     </div>
                 </div>
+                <div className="issue-resolution">
+                    <div className="issue-header">
+                        <h5>Resolution</h5>
+                    </div>
+                    <div className="issue-row">
+                        <div className="description-box">
+                            {issue.resolution|| "No resolution yet."}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="issue-mid-section">
@@ -174,7 +210,7 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
                 <div className='overlay'>
                     <div className='modal'>
                         <div>
-                            Are you sure you want to delete this tenant?
+                            Are you sure you want to delete this issue?
                         </div>
                         <button onClick={handleDeleteIssue}>Confirm</button>
                         <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
@@ -187,10 +223,26 @@ function IssueProfile({ issue, onBack, onMarkasResolved }) {
             {showModal && (
                 <div className='overlay'>
                     <div className="modal">
-                        <h4>Confirm Resolution</h4>
-                        <p>Are you sure you want to mark this issue as resolved?</p>
-                        <button onClick={handleConfirmResolved}>Yes</button>
-                        <button onClick={() => setShowModal(false)}>No</button>
+                        <label>
+                        Resolution:
+                        <textarea
+                            value={resolution}
+                            onChange={(e) =>
+                                setResolution(e.target.value)
+                            }
+                            rows="4"
+                            cols="50"
+                            placeholder="Enter resolution..."
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => handleConfirmResolved()}
+                            disabled={!resolution.trim()}
+                        >
+                            Resolve
+                        </button>
+                        <button onClick={() => setShowModal(false)}>Cancel</button>
                     </div>
                 </div>
                 

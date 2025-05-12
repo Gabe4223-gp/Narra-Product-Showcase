@@ -21,7 +21,7 @@ function Billings() {
   const fetchProperties = async () => {
     if (!userProfile) return;
     try {
-      const response = await fetch(`/properties?user_id=${userProfile.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/properties?user_id=${userProfile.id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -42,7 +42,6 @@ function Billings() {
         setSelectedPropertyID(savedPropertyId);
       }
 
-
       setProperties(data); // Set tenants fetched from the database
 
     } catch (error) {
@@ -62,6 +61,7 @@ function Billings() {
     const propertyId = e.target.value;
     setSelectedPropertyID(propertyId);
     localStorage.setItem('selectedPropertyIDBilling', propertyId);
+    console.log('selectedPropertyIDBilling', propertyId);
   };
 
   if (loadingProperties) {
@@ -84,7 +84,7 @@ function Billings() {
               Select a property
             </option>
             {properties.map((property) => (
-              <option key={property.id} value={property.id}>
+              <option key={property?.id} value={property?.id}>
                 {property.propertyName}
               </option>
             ))}

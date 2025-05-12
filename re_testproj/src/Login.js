@@ -2,14 +2,24 @@
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import './Login.css'; // Import the CSS file for styling
+import { useNavigate } from 'react-router-dom';//$
 
 function Login() {
   const { loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
+  
+  const apiUrl = process.env.REACT_APP_API_URL;
+  console.log("This is the URL", apiUrl);
+  const navigate = useNavigate();//$
 
+  //$
   React.useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      console.log("Login got triggered", isLoading);
       // If user is already authenticated, direct them to role selection or a homepage
-      window.location.href = '/select-role';  // or /homepage, etc.
+      navigate('/select-role', {
+        replace: true,
+        state: { authUserInfo: user },
+      });  // or /homepage, etc.//$
     }
   }, [isAuthenticated, isLoading]);
 
@@ -20,6 +30,7 @@ function Login() {
         scope: 'openid profile email',
       },
     });
+    console.log("login with redirect got triggered");
   };
 
   // If you want to remove sign up and forgot password, just comment them out

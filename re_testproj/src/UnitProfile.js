@@ -4,7 +4,6 @@ import Utilities from './Utilities';
 import TenantProfile from './TenantProfile';
 
 function UnitProfile ({unitId, onBack}) {
-    const defaultImage = "https://via.placeholder.com/150";
     const [unitDetails, setUnitDetails] = useState(null);
     const [showEditUnitDetails, setshowEditUnitDetails] = useState(false);
     const [selectedTenant, setSelectedTenant] = useState(null);
@@ -47,7 +46,7 @@ function UnitProfile ({unitId, onBack}) {
           }
    
           // Make a request to the backend
-          const response = await fetch(`/units/${unitId}`, {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/units/${unitId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -90,7 +89,7 @@ function UnitProfile ({unitId, onBack}) {
             console.log("Step 1", editedUnit);
 
             // Send unit and selectedPropertyID to the backend
-            const response = await fetch('/units/update', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/update`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -119,7 +118,7 @@ function UnitProfile ({unitId, onBack}) {
    
         try {
             // Make a DELETE request to the backend with the propertyId
-            const response = await fetch(`/units/delete`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/units/delete`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,7 +204,6 @@ function UnitProfile ({unitId, onBack}) {
                                     <th>Phone</th>
                                     <th>Lease Start Date</th>
                                     <th>Lease End Date</th>
-                                    <th>Billing Deadline</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -217,7 +215,6 @@ function UnitProfile ({unitId, onBack}) {
                                         <td>{tenant.phone}</td>
                                         <td>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}</td>
                                         <td>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}</td>
-                                        <td>{tenant.billingDeadline}</td>
                                         <td>
                                             <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>
                                         </td>
@@ -281,7 +278,7 @@ function UnitProfile ({unitId, onBack}) {
                         <label>
                             No.:
                             <input
-                            type="number"
+                            type="text"//$$$
                             value={editedUnit.unitNo || ''}
                             onChange={(e) => handleEditUnitChange("unitNo", e.target.value)}
                             />

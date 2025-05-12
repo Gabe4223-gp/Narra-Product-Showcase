@@ -2,7 +2,7 @@ require('dotenv').config({ path: './backend/.env' });
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.REACT_APP_STRIPE_SECRET_KEY);
-const { UserProfile, Files } = require('../models');
+const { UserProfile, Files, sequelize} = require('../models');
 const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
@@ -106,6 +106,8 @@ router.post('/gcash', async (req, res) => {
 
     console.log("Creating GCash Source in PayMongo:", { amount, billId, tenantEmail });
 
+    const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
+    const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
     const BASE_URL = process.env.REACT_APP_API_URL_PROD === "production"
       ? "https://narra-ph.com"
       : "http://localhost:3000";
@@ -142,6 +144,28 @@ router.post('/gcash', async (req, res) => {
     });    
   } catch (error) {
     console.error("Error creating GCash payment:", error);
+
+    // Check if error.response exists (i.e., error is from the API call)
+    if (error.response) {
+      // Capture specific response data for a 400 error or other statuses
+      console.error("Error response data:", error.response.data); 
+      
+      // Send a more specific response if it's a 400 error
+      if (error.response.status === 400) {
+        return res.status(400).json({
+          message: "Bad request: " + (error.response.data.message || "Invalid request parameters."),
+          details: error.response.data
+        });
+      }
+      
+      // Handle other status codes as necessary
+      return res.status(error.response.status).json({
+        message: error.response.data.message || "Error with PayMongo API request.",
+        details: error.response.data
+      });
+    }
+
+    // Fallback for non-response errors (e.g., network issues)
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -623,13 +647,62 @@ router.post("/update-status", async (req, res) => {
 // ================== PayMongo Redirects ==================
 router.get('/payment-success', async (req, res) => {
   try {
-    const { billId } = req.query;
-    if (!billId) {
-      return res.status(400).json({ message: 'Missing billId.' });
-    }
+      const { billId, tenantEmail } = req.query;
 
-    await Files.update({ paid: true }, { where: { id: billId } });
-    return res.redirect(`${process.env.FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=success&redirected=true`);
+      if (!billId) {
+          return res.status(400).json({ message: 'Missing billId.' });
+      }
+
+      // Mark the bill as paid and fetch the updated record
+      await Files.update({ paid: true }, { where: { id: billId } });
+
+      // Fetch the updated bill details separately
+      const updatedFile = await Files.findOne({ where: { id: billId } });
+
+      if (!updatedFile) {
+        throw new Error("Bill not found");
+      }
+
+      // Fetch the property details
+      const propQuery = `SELECT * FROM "Properties" WHERE id = :propertyId`;
+      const [propertyResults] = await sequelize.query(propQuery, {
+        replacements: { propertyId: updatedFile.propertyId }, // Corrected typo
+        type: sequelize.QueryTypes.SELECT, // Fetching a record
+      });
+
+      // Ensure property exists
+      if (!propertyResults) {
+        throw new Error("Property not found");
+      }
+
+      // Insert a notification for the landlord
+      const notificationQuery = `
+        INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+        SELECT 
+          gen_random_uuid(), 
+          :user_id,  
+          CONCAT(up."name", ' from ', :propertyName, ' has paid ', :totalAmount, ' on the bill due ', :deadline), 
+          'bill', 
+          NOW()
+        FROM "userProfile" up
+        WHERE up."email" = :tenantEmail  
+        RETURNING *;
+      `;
+
+      // Execute notification query
+      const result = await sequelize.query(notificationQuery, {
+        replacements: {
+          user_id: updatedFile.landlordId,    // Correctly fetched landlord ID
+          totalAmount: updatedFile.totalAmount,
+          deadline: updatedFile.deadline,
+          tenantEmail,  // Ensure this is defined earlier
+          propertyName: propertyResults.propertyName // Correct way to access property name
+        },
+        type: sequelize.QueryTypes.INSERT,
+      });
+
+      // Redirect back to Tenant Dashboard & Force Reload Billing
+      return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=success&redirected=true`); //fixed to narra-ph.com for testing
   } catch (error) {
     console.error('Error processing payment success:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -637,7 +710,7 @@ router.get('/payment-success', async (req, res) => {
 });
 
 router.get('/payment-failed', (req, res) => {
-  return res.redirect(`${process.env.FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=failed&redirected=true`);
+  return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=failed&redirected=true`); //fixed to narra-ph.com for testing
 });
 
 // ================== Proof of Payments ==================

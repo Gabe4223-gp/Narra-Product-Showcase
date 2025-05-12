@@ -9,6 +9,10 @@ const app = express();
 // Error handling
 const morgan = require('morgan');
 
+//NodeMailer
+const nodemailer = require('nodemailer');
+
+
 //Routes
 const emailMessageRoutes = require('./routes/emailMessageRoutes');
 const tenantApplicationRoutes = require('./routes/tenantApplicationRoutes');
@@ -38,10 +42,14 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('Origin:', origin); //For Debug
     const allowedOrigins = [
       'https://www.narra-ph.com',
-      'http://localhost:5000/',
-    ];    
+      'http://localhost:5000',
+      'https://narra-ph.com',
+      'https://localhost:5000',
+      'http://localhost:3000',
+    ];
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
       callback(null, true);
@@ -106,11 +114,13 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
 const { Tenant } = require('./models'); // Adjust if your models are in a different path
+const { getMaxListeners } = require('events');
 
 
 //Configure with Frontend
 const limit = '50mb';
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); //enable preflight
 app.use(morgan('combined'));
 app.get('/', (req, res) => {res.send('Backend is running successfully!');});
 app.use(express.json({ limit: '50mb' }));
@@ -149,11 +159,19 @@ app.use('/uploads', express.static('uploads'));
 
 
 //Sequelize Connection
+console.log("NODE_ENV:", process.env.NODE_ENV);
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
-  logging: console.log, // You might want to disable logging in production by setting logging: false.
+  logging: console.log,
+  /*dialectOptions: {
+    ssl: {
+      require: true,
+      ca: fs.readFileSync('/home/ec2-user/rds-combined-ca-bundle.pem').toString(),
+      rejectUnauthorized: false
+    }
+  } $$$ local testing*/ 
 });
 
 sequelize.authenticate()
@@ -229,6 +247,33 @@ sequelize.sync()
   .catch((error) => {
     console.error('Error syncing with the database:', error);
 });
+
+//Send Mail/////////////////////////////////////////////////////////////////////////////////////
+async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  let transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,  // 587 for TLS
+    auth: {
+      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
+      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+    },
+  });
+
+  let mailOptions = {
+    from: `"${landlordName} (via Narra)" <${"narra.email.ph@gmail.com"}>`,
+    replyTo: landlordEmail,  // The landlord's email will be the reply-to
+    to: tenantEmail,
+    subject: subject,
+    text: text,
+  };
+
+  try {
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ' + info.response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+}
 
 //Issue functions///////////////////////////////////////////////////////////////////////////////
 
@@ -573,6 +618,46 @@ app.delete('/issues/delete', async (req, res) => {
   }
 });
 
+//Create resolution
+app.post('/issues/resolution', async (req, res) => {
+  const { issueId, resolution } = req.body;
+  console.log("resolution passed2");
+
+  if (!issueId) {
+    return res.status(400).json({ error: 'Missing issueId' });
+  }
+  if (typeof resolution !== 'string') {
+    return res.status(400).json({ error: 'Resolution must be a string' });
+  }
+
+  try {
+    
+    // Run a raw UPDATE with RETURNING, pulling back id & resolution
+    const updated = await sequelize.query(
+      `
+      UPDATE "Issues"
+         SET resolution = :resolution
+         WHERE id = :issueId
+         RETURNING id, resolution;
+      `,
+      {
+        replacements: { issueId, resolution },
+        type: sequelize.QueryTypes.SELECT,    
+      }
+    );
+
+    if (updated.length === 0) {
+      return res.status(404).json({ error: 'Issue not found' });
+    }
+
+    // updated[0] is { id, resolution }
+    res.json({ issue: updated[0] });
+  } catch (err) {
+    console.error('Error updating issue resolution:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.delete('/issues/delete-all', async (req, res) => {
   const { issueIds, propertyId } = req.body; // Assuming issueIds is an array
 
@@ -704,10 +789,10 @@ app.post('/units', async (req, res) => {
 
   try {
 
-    // Fetch tenants whose `unit` matches `unitNo`
-    const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo`;
+    //$$$ Fetch tenants whose `unit` matches `unitNo`
+    const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo AND "propertyId" = :propertyId`;
     const tenantResults = await sequelize.query(tenantsQuery, {
-      replacements: { unitNo: unit.unitNo },
+      replacements: { unitNo: unit.unitNo, propertyId: propertyId },
       type: sequelize.QueryTypes.SELECT,
     });
 
@@ -853,10 +938,10 @@ app.post("/units/import", async (req, res) => {
 
     // Prepare the raw SQL query to insert units
     const insertPromises = units.map(async (unit) => {
-      // Fetch tenants whose `unit` matches `unitNo`
-      const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = :unitNo`;
+      //$$$ Fetch tenants whose `unit` matches `unitNo`
+      const tenantsQuery = `SELECT id FROM "Tenants" WHERE unit = CAST(:unitNo AS VARCHAR) AND "propertyId" = :propertyId`;
       const tenantResults = await sequelize.query(tenantsQuery, {
-        replacements: { unitNo: unit.unitNo },
+        replacements: { unitNo: unit.unitNo, propertyId: propertyId },
         type: sequelize.QueryTypes.SELECT,
       });
 
@@ -1020,6 +1105,20 @@ app.post('/units/update', async (req, res) => {
       WHERE id = :id
       RETURNING *;
     `;
+
+    await sequelize.query(
+      `
+      UPDATE "Issues" AS i
+      SET unit = :unitNo
+      FROM "Units" AS u
+      WHERE i.id = ANY(u.issues::uuid[])
+        AND u.id = CAST(:unitId AS uuid)
+      `,
+      {
+        replacements: { unitNo: unit.unitNo, unitId: unit.id },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
 
     const [updatedunit] = await sequelize.query(query, {
       replacements: {
@@ -1979,12 +2078,14 @@ app.post("/tenants/import", async (req, res) => {
       return res.status(400).json({ error: "Property ID is required for tenant import." });
     }
 
+    //$$$ Format array
+    const formattedArray = "{}";
 
     // Prepare the raw SQL query to insert tenants
     const insertPromises = tenants.map(async (tenant) => {
       const query = `
-        INSERT INTO "Tenants"("id", "name", "unit", "phone", "email", "leaseStarted", "leaseExpiry", "moveinDate", "moveoutDate", "billingDeadline", "nationality", "occupation", "image", "eWalletName", "eWalletReferenceNo", "bankName", "bankReferenceNo", "creditCardName", "creditCardNo")
-        VALUES (:id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry, :moveinDate, :moveoutDate, :billingDeadline, :nationality, :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName, :bankReferenceNo, :creditCardName, :creditCardNo)
+        INSERT INTO "Tenants"("id", "name", "unit", "phone", "email", "leaseStarted", "leaseExpiry", "leaseDocs", "moveinDate", "moveoutDate", "billingDeadline", "nationality", "occupation", "image", "eWalletName", "eWalletReferenceNo", "bankName", "bankReferenceNo", "creditCardName", "creditCardNo", "govid", "propertyId")
+        VALUES (:id, :name, :unit, :phone, :email, :leaseStarted, :leaseExpiry, :leaseDocs, :moveinDate, :moveoutDate, :billingDeadline, :nationality, :occupation, :image, :eWalletName, :eWalletReferenceNo, :bankName, :bankReferenceNo, :creditCardName, :creditCardNo, :govid, :propertyId)
         RETURNING *;
       `;
 
@@ -1997,6 +2098,7 @@ app.post("/tenants/import", async (req, res) => {
         email: tenant.email || null,
         leaseStarted: tenant.leaseStarted || null,
         leaseExpiry: tenant.leaseExpiry || null,
+        leaseDocs: formattedArray,
         moveinDate: tenant.moveinDate || null,
         moveoutDate: tenant.moveoutDate || null,
         billingDeadline: tenant.billingDeadline || null,
@@ -2009,6 +2111,8 @@ app.post("/tenants/import", async (req, res) => {
         bankReferenceNo: tenant.bankReferenceNo || null,
         creditCardName: tenant.creditCardName || null,
         creditCardNo: tenant.creditCardNo || null,
+        govid: formattedArray,
+        propertyId: propertyId,
       };
 
 
@@ -2241,27 +2345,29 @@ app.delete('/tenants/delete-all', async (req, res) => {
 //Tenant lease upload
 app.post('/tenants/upload-lease', async (req, res) => {
   console.log("the function works");
-  const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject} = req.body; //Adjust based on frontend implementation
+  const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
   
-  console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
+  const newBuffer = fileContent.replace(/^data:.+;base64,/, ""); // Strips the data URI prefix
+  const buffer = Buffer.from(newBuffer, 'base64');
 
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
+    Body: buffer,
+    ContentEncoding: 'base64',
+    ContentType: 'application/pdf',
   };
 
   try {
     const data = await s3.upload(params).promise();
-    const fileUrl = data.Location;
+    const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     console.log("FileUrl", fileUrl)
 
     //Store file in Files table
     const fileQuery = `
-      INSERT INTO "Leases" (id, "fileName", "fileType", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry")
-      VALUES (:id, :fileName, :fileType, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry)
+      INSERT INTO "Leases" (id, "fileName", "fileType", url, "landlordId", "tenantEmail", "signed", "subject", "leaseStarted", "leaseExpiry", "propertyId")
+      VALUES (:id, :fileName, :fileType, :url, :landlordId, :tenantEmail, :signed, :subject, :leaseStarted, :leaseExpiry, :propertyId)
       RETURNING *;
     `
 
@@ -2277,6 +2383,7 @@ app.post('/tenants/upload-lease', async (req, res) => {
         subject: subject,
         leaseStarted: leaseStartDate,
         leaseExpiry: leaseEndDate,
+        propertyId: propertyId,
       },
       type: sequelize.QueryTypes.INSERT, // Specify the query type
     });
@@ -2318,8 +2425,87 @@ app.post('/tenants/upload-lease', async (req, res) => {
         type: sequelize.QueryTypes.UPDATE,
       });
     }
+    
+    const notificationMessage = signed 
+      ? 'updated your lease' 
+      : 'sent you a lease for signing';
+    
+    const notificationQuery = `
+      INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+      SELECT 
+        gen_random_uuid(), 
+        :user_id,  
+        CONCAT(up."name", ' from ', p."propertyName", ' has ', :notificationMessage), 
+        'lease', 
+        NOW()
+      FROM "Properties" p
+      JOIN "userProfile" up ON up.id = p."user_id"  
+      WHERE p."id" = :propertyId
+      RETURNING *;
+    `;
+   
+    const notifications = await sequelize.query(notificationQuery, {
+      replacements: { 
+        user_id: user_id, // The user_id to send the notification to
+        propertyId: propertyId, // The property_id to match the owner
+        notificationMessage: notificationMessage,
+      },
+      type: sequelize.QueryTypes.INSERT,
+    });
 
-    console.log(result[0][0].leaseDocs);
+    //Send email to tenant
+    const landlordQuery = `
+      SELECT email, name FROM "userProfile" WHERE id = :landlordId
+    `;
+    const emailLandlord = await sequelize.query(landlordQuery, {
+      replacements: { landlordId: landlordId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    const propQuery = `
+      SELECT "propertyName" FROM "Properties" WHERE id = :propertyId
+    `;
+    const emailProp = await sequelize.query(propQuery, {
+      replacements: { propertyId: propertyId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (emailLandlord && emailProp && emailLandlord.length > 0 && emailProp.length > 0) {
+      const landlordEmail = emailLandlord[0].email;
+      const landlordName = emailLandlord[0].name;
+      const propertyName = emailProp[0].propertyName;
+      const emailSubject = signed ? 'Lease Updated' : 'Lease Sent for Signing';
+      const emailBody = `
+         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #2c3e50;">Lease Notification</h2>
+
+            <p style="font-size: 16px; color: #333;">
+               <strong>${landlordName}</strong> from <strong>${propertyName}</strong> has ${signed ? 'updated your lease' : 'sent you a lease for signing'} titled <strong>${subject}</strong>.
+            </p>
+
+            <p style="font-size: 16px; color: #333;">
+                You can view or download the lease document using the link below:
+            </p>
+
+            <p style="text-align: center; margin: 30px 0;">
+               <a href="${fileUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px;">
+                  View Document
+               </a>
+            </p>
+
+            <p style="font-size: 14px; color: #555;">
+                If you have any questions or concerns, feel free to reply to this email. Your response will be forwarded directly to the landlord/property manager.
+            </p>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+
+            <p style="font-size: 12px; color: #999; text-align: center;">
+                This email was sent via <strong>Narra</strong>.
+            </p>
+         </div>
+     `;
+      await sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, emailSubject, emailBody);
+    }
 
     res.json({message: "Lease uploaded successfully", fileUrl, leaseDocs: result1[0][0]?.leaseDocs})
 
@@ -2426,6 +2612,10 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
       }
     );
 
+    if (typeof leaseDocs === 'undefined' || !leaseDocs?.[0]?.leaseDocs) {
+       return res.status(200).json([]);
+    }
+
     // Convert leaseDocs array to a string formatted as an array literal
     const leaseDocsArray = `{${leaseDocs.leaseDocs.join(',')}}`;
    
@@ -2433,7 +2623,7 @@ app.get('/unsigned-leases/:tenantId', async (req, res) => {
     const files = await sequelize.query(
       `SELECT *
        FROM "Leases"
-       WHERE "id" = ANY (:leaseDocs::UUID[])
+       WHERE "id" = ANY(:leaseDocs::UUID[])
        AND "signed" = false`,
       {
         replacements: { leaseDocs: leaseDocsArray },
@@ -2517,6 +2707,28 @@ app.put('/tenants/update-lease', async (req, res) => {
           type: sequelize.QueryTypes.UPDATE,
         });
       }
+
+      const notificationQuery = `
+        INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+        SELECT 
+            gen_random_uuid(), 
+            p."user_id", 
+            CONCAT(up."name", ' has signed your lease - ', l."subject", ', lease started ', l."leaseStarted", ' and ends at ', l."leaseExpiry"), 
+            'lease', 
+            NOW()
+        FROM "Properties" p
+        JOIN "Leases" l ON p."id" = l."propertyId"
+        JOIN "userProfile" up ON up."email" = l."tenantEmail" 
+        WHERE l."id" = :id
+        RETURNING *;
+      `;
+
+      const result3 = await sequelize.query(notificationQuery, {
+        replacements: { id: id },
+        type: sequelize.QueryTypes.INSERT,
+      });
+
+      console.log("laksjdf", result3);
       
       if (updatedFile) {
           res.status(200).json({
@@ -2600,21 +2812,47 @@ app.delete('/leases/delete-all', async (req, res) => {
   }
 
   try {
-    // Step 1: Delete all documents specified in docIds
+    // Step 1: Find the S3 keys of the files to be deleted
+    const files = await sequelize.query(
+      `SELECT "fileName" FROM "Files" WHERE id = ANY(:docIds::uuid[])`,
+      {
+        replacements: { docIds: `{${docIds.join(',')}}` },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const s3Keys = files.map(file => ({ Key: file.fileName }));
+
+    console.log("these are the keys", s3Keys);
+
+    // Step 2: Delete files from S3 (only if keys are found)
+    if (s3Keys.length > 0) {
+      const s3Params = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME, // Make sure this is set
+        Delete: {
+          Objects: s3Keys,
+          Quiet: false,
+        },
+      };
+
+      await s3.deleteObjects(s3Params).promise();
+    }
+
+    // Step 2: Delete all documents specified in docIds
     const deleteDocsQuery = `DELETE FROM "Leases" WHERE id = ANY(:docIds::uuid[])`;
     await sequelize.query(deleteDocsQuery, {
       replacements: { docIds: `{${docIds.join(',')}}` }, // Format docIds as a PostgreSQL array
       type: sequelize.QueryTypes.DELETE,
     });
 
-    // Step 2: Fetch the tenant by tenantId
+    // Step 3: Fetch the tenant by tenantId
     const fetchTenantQuery = `SELECT * FROM "Tenants" WHERE id = :tenantId;`;
     const [tenant] = await sequelize.query(fetchTenantQuery, {
       replacements: { tenantId }, // Use tenantId directly
       type: sequelize.QueryTypes.SELECT,
     });
 
-    // Step 3: Update the tenant to remove deleted Lease Doc ids
+    // Step 4: Update the tenant to remove deleted Lease Doc ids
     const updatedLeaseDocs = tenant.leaseDocs.filter(
       (fileId) => !docIds.includes(fileId)
     );
@@ -2645,6 +2883,173 @@ app.delete('/leases/delete-all', async (req, res) => {
   } catch (error) {
     console.error("Error deleting leases and updating properties:", error);
     res.status(500).json({ error: "Failed to delete leases and update properties." });
+  }
+});
+
+//Readings/Utilities////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// DELETE endpoint for removing readings by ID from multiple attributes (arrays)
+app.delete('/readings/delete-all', async (req, res) => {
+  const { readingIds, unitId } = req.body;
+
+  if (!readingIds || readingIds.length === 0) {
+      return res.status(400).json({ error: 'No reading IDs provided.' });
+  }
+
+  try {
+      // Construct the raw SQL query for updating the readings on each Unit
+      const query = `
+        UPDATE "Units"
+        SET 
+            "waterLastReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("waterLastReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "waterCurrentReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("waterCurrentReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "electricityLastReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("electricityLastReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb),  
+            "electricityCurrentReading" = COALESCE((
+                SELECT jsonb_agg(reading)
+                FROM jsonb_array_elements("electricityCurrentReading") AS reading
+                WHERE (reading->>'id')::uuid NOT IN (:readingIds)
+            ), '[]'::jsonb)
+        WHERE id = :unitId;
+    `;
+      // Execute the query with the parameters
+      const result = await sequelize.query(query, {
+          replacements: {
+              readingIds: readingIds,
+              unitId: unitId,
+          },
+          type: sequelize.QueryTypes.UPDATE,
+      });
+
+      if (result[1] > 0) { // Check if any rows were affected (deleted readings)
+          return res.json({ success: true, message: 'Readings deleted successfully' });
+      } else {
+          return res.status(404).json({ error: 'No readings found or could not be deleted.' });
+      }
+
+  } catch (error) {
+      console.error('Error deleting readings:', error);
+      return res.status(500).json({ error: 'An error occurred while deleting readings.' });
+  }
+});
+
+// Notifications //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/api/notifications/:user_id', async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Raw SQL query to fetch notifications
+    const notifications = await sequelize.query(
+      `SELECT * FROM "Notifications" WHERE "user_id" = :user_id`, 
+      {
+        replacements: { user_id }, // Safely replace the user_id in the query
+        type: sequelize.QueryTypes.SELECT // Ensures the query returns rows
+      }
+    );
+
+    // Send notifications as response
+    res.json(notifications); // Directly returning the result
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/notify-paid', async (req, res) => {
+  const { user_id, totalAmount, deadline, tenantEmail } = req.body;  // Extract values from the request body
+  
+  try {
+    // Raw SQL query to insert a notification
+    const notificationQuery = `
+    INSERT INTO "Notifications" ("id", "user_id", "message", "type", "created_at")
+    SELECT 
+      gen_random_uuid(), 
+      :user_id,  
+      CONCAT(up."name", ' has paid ', :totalAmount, ' on the bill due ', :deadline), 
+      'bill', 
+      NOW()
+    FROM "userProfile" up
+    WHERE up."email" = :tenantEmail  
+    RETURNING *;
+  `;
+
+    // Execute the raw query with the necessary replacements
+    const result = await sequelize.query(notificationQuery, {
+      replacements: {
+        user_id,           // The user_id (landlord's user ID)
+        totalAmount,       // The total bill amount
+        deadline,
+        tenantEmail,          // The bill due date
+      },
+      type: sequelize.QueryTypes.INSERT, // Insert operation
+    });
+
+    // Respond with the notification data if successful
+    res.json({
+      message: 'Notification sent successfully',
+      notification: result[0],  // result[0] contains the inserted notification
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post("/api/notifications/:userId/mark-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const query = `
+      UPDATE "Notifications"
+      SET is_read = TRUE
+      WHERE user_id = :userId AND is_read = FALSE
+    `;
+
+    const [result] = await sequelize.query(query, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+
+    res.status(200).json({ message: "Notifications marked as read", affectedRows: result });
+  } catch (error) {
+    console.error("Error updating notifications:", error);
+    res.status(500).json({ error: "Failed to update notifications" });
+  }
+});
+
+//Billing//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/api/payments/:tenantEmail', async (req, res) => {
+  
+  const { tenantEmail } = req.params;
+  console.log('Query Params:', tenantEmail);
+
+  try {
+    const query = `
+      SELECT * FROM "Files"
+      WHERE "tenantEmail" = :tenantEmail
+    `;
+
+    const response = await sequelize.query(query, {
+      replacements: { tenantEmail},
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    res.json({ message: "Tenant's bills", payments: response });
+
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    res.status(500).json({ message: 'Unable to load payment history.', error: error.message });
   }
 });
 
@@ -2849,7 +3254,8 @@ app.post('/api/paymongo/gcash-intent', async (req, res) => {
 
 //Invoice generator endpoint for Tenant Billing
 // Utility function to generate the invoice PDF
-const nodemailer = require('nodemailer');
+
+
 async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees, taxRate, totalAmount, deadline) {
   const invoicesDir = path.join(__dirname, 'invoices');
   if (!fs.existsSync(invoicesDir)) {

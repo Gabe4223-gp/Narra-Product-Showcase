@@ -21,9 +21,18 @@ module.exports = {
   production: {
     "username": "postgres",
     "password": "***REMOVED***",
-    "database": "narra_database",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "database": "narradatabase",
+    "host": "narra-database.cvqogko42aeu.us-east-2.rds.amazonaws.com",
+    "dialect": "postgres",
+    "dialectOptions": {
+        "ssl": {
+            "require": true,
+            "rejectUnauthorized": false
+        }
+    }
   }
 };
-console.log('Sequelize development config:', module.exports.development);
+
+const env = process.env.NODE_ENV;
+const config = module.exports[env];
+console.log(`Sequelize ${env} config:`, config);
