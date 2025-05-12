@@ -8,13 +8,13 @@
   padding: 0 20px;
   z-index: 1000;
   flex-shrink: 0;
-  border-bottom: 1px solid #cfcfcf;
+  border-bottom: 1px solid #cfcfcf57;
 }
 
 .narra-logo {
   font-size: 30px;
   font-family: "Montserrat";
-  color: #ddd;
+  color: #000000;
   font-weight: normal;
   margin-right: 20.5px;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -24,7 +24,7 @@
 .left-section {
   display: flex;
   align-items: center;
-  background-color: #4a6385;
+  background-color: #ffffff;
   color: #fff;
   height: 100%;
   padding: 0 15px;
@@ -40,7 +40,7 @@
 .toggle-button {
   background: none;
   border: none;
-  color: #ecf0f1;
+  color: #000000;
   font-size: 1.5em;
   cursor: pointer;
   margin-right: 10px;

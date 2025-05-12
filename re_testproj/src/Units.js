@@ -468,6 +468,13 @@ function Units() {
     <div className="unit-container">
       <div className='unit-list-top'>
         <h3>Unit List</h3>
+        <a 
+          className='unit-download'
+          href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/unit+list+test.xlsx"
+          download="unit.xlsx"
+        >
+          Download import template
+        </a>
         <select
           id="property-select"
           onChange={handlePropertyChange}

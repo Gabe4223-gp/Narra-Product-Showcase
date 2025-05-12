@@ -133,11 +133,12 @@ function AppContent() {
     console.log()
     if (teams.length <= 1) return null;
     return (
-      <div style={{ padding: '8px', background: '#ddd' }}>
+      <div style={{ padding: '8px', background: '#ffff', borderBottom:'1px solid #cfcfcf57'}}>
         <label>Active Team:</label>
         <select
           value={activeTeamId || ''}
           onChange={(e) => setActiveTeamId(e.target.value)}
+          style={{marginLeft:'10px'}}
         >
           <option value="">(none)</option>
           {teams.map(t => (

@@ -521,6 +521,13 @@ function Tenants() {
     <div className="tenant-container">
       <div className='tenant-list-top'>
         <h3>Tenant List</h3>
+        <a 
+          className='tenant-download'
+          href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/tenant+list+test.xlsx"
+          download="tenant.xlsx"
+        >
+          Download import template
+        </a>
         <select
           id="property-select"
           onChange={handlePropertyChange}

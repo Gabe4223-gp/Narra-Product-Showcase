@@ -11,6 +11,12 @@
     z-index: 1000;
 }
 
+.tenant-download {
+    font-size: 10px;
+    margin-right: 60%;
+    margin-top: 5px;
+}
+
 .modal h3 {
     font-size: 13px;
     color: #333;
