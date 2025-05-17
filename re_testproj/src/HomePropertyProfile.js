@@ -300,7 +300,7 @@ function HomePropertyProfile({ property, onBack }) {
         {/*Tenant Leases w/ Lease Contracts ending in 2 months*/}
         <div className='leases-dashboard'>
           <div className='leases-header'>
-            <h3 className='leases-title'>Leases ending in less than 2 months</h3>
+            <h3 className='leases-title'>Leases Ending in Less than 2 Months</h3>
           </div>
           <table className="leases-table">
             <thead>
