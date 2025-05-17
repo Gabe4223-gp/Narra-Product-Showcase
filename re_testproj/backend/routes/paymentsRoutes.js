@@ -111,10 +111,7 @@ router.post('/gcash', async (req, res) => {
     const BASE_URL = process.env.REACT_APP_API_URL_PROD === "production"
       ? "https://narra-ph.com"
       : "http://localhost:3000";
-
-    const successUrl = `${BASE_URL}/tenant/dashboard?redirected=true&status=success`;
-    const failedUrl = `${BASE_URL}/tenant/dashboard?redirected=true&status=failed`;      
-      
+    
     const returnUrl = `${BASE_URL}/tenant/dashboard?redirected=true`;
 
     const paymongoResponse = await axios.post('https://api.paymongo.com/v1/sources', {

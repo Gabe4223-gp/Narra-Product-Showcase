@@ -466,48 +466,68 @@ function Units() {
 
   return (
     <div className="unit-container">
-      <div className='unit-list-top'>
-        <h3>Unit List</h3>
-        <a 
-          className='unit-download'
-          href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/unit+list+test.xlsx"
-          download="unit.xlsx"
-        >
-          Download import template
-        </a>
-        <select
-          id="property-select"
-          onChange={handlePropertyChange}
-          value={selectedPropertyID || ""}
-        >
-          <option value="" disabled>
-            Select a property
-          </option>
-          {properties.map((property) => (
-            <option key={property?.id} value={property?.id}>
-              {property.propertyName}
-            </option>
-          ))}
-        </select>
+      {/* Header */}
+      <div className="unit-header">
+        <h2>Unit List</h2>
+        <div className="unit-controls">
+          <a
+            className="unit-download"
+            href="https://amzn-s3-narra-bucket.s3.us-east-2.amazonaws.com/unit+list+test.xlsx"
+            download="unit.xlsx"
+          >
+            Download Template
+          </a>
+
+          <button className="primary-btn" onClick={() => setIsAddingUnits(true)}>
+            Add Unit
+          </button>
+
+          <button className="secondary-btn" onClick={() => document.getElementById("file-upload").click()}>
+            Import From Excel
+          </button>
+
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={importFromExcel}
+            id="file-upload"
+            style={{ display: "none" }}
+          />
+
+          <select
+            id="property-select"
+            className="property-dropdown"
+            value={selectedPropertyID || ""}
+            onChange={handlePropertyChange}
+          >
+            <option value="" disabled>Select Property</option>
+            {properties.map((property) => (
+              <option key={property?.id} value={property?.id}>
+                {property.propertyName}
+              </option>
+            ))}
+          </select>
+
+        </div>
       </div>
-      <div className="unit-list">
-        <table>
+
+      {/* Unit Table */}
+      <div className="unit-table-wrapper">
+        <table className="unit-table">
           <thead>
             <tr>
-              <th> </th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("unitNo")}>No.{getSortIndicator("unitNo")}</th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("type")}>Type{getSortIndicator("type")}</th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("mode")}>Mode{getSortIndicator("mode")}</th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("sizeValue")}>Size{getSortIndicator("sizeValue")}</th>
-              <th>   
-                <button onClick={() => setshowSizeUnitModal(true)}>unit</button>
-              </th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("petsAllowed")}>Pets Allowed{getSortIndicator("petsAllowed")}</th>
-              <th style={{ cursor: "pointer" }} onClick={() => handleSort("tenants")}>Occupants{getSortIndicator("tenants")}</th>
+              <th></th>
+              <th>No.</th>
+              <th>Type</th>
+              <th>Mode</th>
+              <th>Size</th>
+              <th><span className="unit-size-label" onClick={() => setshowSizeUnitModal(true)}>Unit</span></th>
+              <th>Pets</th>
+              <th>Occupants</th>
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="unit-table-body">
             {sortedUnits?.length > 0 ? (
               sortedUnits.map((unit, index) => (
                 <tr key={index}>
@@ -524,27 +544,45 @@ function Units() {
                   <td>{unit.sizeValue}</td>
                   <td>{unit.sizeUnit}</td>
                   <td>{unit.petsAllowed ? "Yes" : "No"}</td>
+                  <td>{unit.tenants?.length > 0 ? unit.tenants.length : "No tenants"}</td>
                   <td>
-                    {unit.tenants && unit.tenants?.length > 0 
-                      ? unit.tenants.length
-                      : "No tenants"}
-                  </td>
-                  <td>
-                    <button onClick={() => handleViewUnit(unit)}>View</button>
+                    <button className="view-btn" onClick={() => handleViewUnit(unit)}>View</button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
-                  No units added yet.
-                </td>
+                <td colSpan="9" className="no-units-msg">No units added yet.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
+      {/* Footer Actions */}
+      <div className="unit-footer-actions">
+        <button className="blue-btn" onClick={handleSelectAll}>
+          Select All
+        </button>
+
+        <button
+          onClick={handleDeselectAll}
+          className={selectedUnitIds.size === 0 ? 'disabled-btn' : 'red-btn'}
+          disabled={selectedUnitIds.size === 0}
+        >
+          Unselect All
+        </button>
+
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className={selectedUnitIds.size === 0 ? 'disabled-btn' : 'red-btn'}
+          disabled={selectedUnitIds.size === 0}
+        >
+          Delete Selected
+        </button>
+      </div>
+
+      {/* Modals */}
       {showSizeUnitModal && (
         <div className='overlay'>
           <div className='modal'>
@@ -563,33 +601,6 @@ function Units() {
         </div>
         
       )}
-
-      <div className="actions">
-        <button className="addUnit" onClick={() => setIsAddingUnits(true)}>
-          Add Unit
-        </button>
-        <input
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={importFromExcel}
-          style={{ display: "none" }}
-          id="file-upload"
-        />
-        <button
-          onClick={() => document.getElementById("file-upload").click()}
-          className="importUnits"
-        >
-          Import From Excel
-        </button>
-        
-        <button onClick={handleSelectAll}>Select All</button>
-      
-        <button onClick={handleDeselectAll} disabled={selectedUnitIds.size === 0}>Unselect All</button>
-
-        <button onClick={() => setShowDeleteModal(true)} disabled={selectedUnitIds.size === 0}>Delete Selected</button>
-      
-        
-      </div>
 
       {isAddingUnits && (
         <div className='overlay'>

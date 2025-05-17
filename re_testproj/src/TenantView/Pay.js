@@ -4,7 +4,7 @@ import { useUserProfile } from "../UserProfileContext";
 import axios from "axios";
 
 // We'll still load Stripe but won't use card payments right now
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+//const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 const Pay = ({ bill, onClose, landlordData }) => {
   const { userProfile } = useUserProfile();

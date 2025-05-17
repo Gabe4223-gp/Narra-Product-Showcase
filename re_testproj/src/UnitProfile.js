@@ -9,9 +9,8 @@ function UnitProfile ({unitId, onBack}) {
     const [selectedTenant, setSelectedTenant] = useState(null);
     const [tenants, setTenants] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [editedUnit, setEditedUnit] = useState({
-        
-    });
+    const [editedUnit, setEditedUnit] = useState({});
+    const [activeTab, setActiveTab] = useState('Details');
 
     useEffect(() => {
         if (unitDetails) {
@@ -163,97 +162,113 @@ function UnitProfile ({unitId, onBack}) {
 
     return (
         <div className="unit-profile">
-            <button onClick={onBack}>Back</button>
-            <div className="unit-top-section">
-
-                <div className="unit-details">
-                        <div className='unit-header'>
-                            <h5>Unit Details</h5>
-                            <button className='unit-edit-button' onClick={() => setshowEditUnitDetails(true)}>Edit</button>
-                        </div>
-                        <div className="unit-row">
-                            {console.log("Step 0", editedUnit.sizeUnit)}
-                            <div className="left-unit-details">
-                                <p>No.:  {editedUnit.unitNo}</p>
-                                <p>Type:  {editedUnit.type}</p>
-                                <p>Mode:  {editedUnit.mode}</p>
-                                <p>Size:  {editedUnit.sizeValue} {editedUnit.sizeUnit}</p>
-                            </div>
-                            <div className="right-unit-details">
-                                <p>Pets Allowed:  {editedUnit.petsAllowed ? "Yes" : "No"}</p>
-                                <p>
-                                    Occupants: 
-                                    {tenants?.length > 0 ? (
-                                        <span> {tenants.length}</span>
-                                    ) : (
-                                        <span> NA</span>
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
+            <div className="unit-profile-header">
+                <button onClick={onBack} className="back-button">Back</button>
+                <div className="unit-tab-bar">
+                {['Details', 'Tenants', 'Utilities', 'Actions'].map((tab) => (
+                    <button
+                    key={tab}
+                    className={`tab-button ${activeTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab)}
+                    >
+                    {tab}
+                    </button>
+                ))}
                 </div>
+            </div>
 
-                <div className='unit-tenants'>
-                    <h5>Tenants</h5>
-                    <div className='tenant-history'>
-                        <table>
-                            <thead>
-                                <tr> 
-                                    <th>Name</th>
-                                    <th>Phone</th>
-                                    <th>Lease Start Date</th>
-                                    <th>Lease End Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tenants?.length > 0 ? (
-                                    tenants.map((tenant, index) => (
-                                    <tr key={index}>
-                                        <td>{tenant.name}</td>
-                                        <td>{tenant.phone}</td>
-                                        <td>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleString() : ""}</td>
-                                        <td>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleString() : ""}</td>
-                                        <td>
-                                            <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>
-                                        </td>
-                                    </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                                            No tenant history
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+            {/* SINGLE tab content container */}
+            <div className="unit-tab-content">
+                {activeTab === 'Details' && (
+                    <div className="unit-details full-width">
+                        <div className="unit-header">
+                        <h5>Unit Details</h5>
+                        <button className="unit-edit-button" onClick={() => setshowEditUnitDetails(true)}>Edit</button>
+                        </div>
+
+                        <div className="unit-info-grid">
+                        <div className="unit-info-item">
+                            <label>No.:</label>
+                            <span>{editedUnit.unitNo}</span>
+                        </div>
+                        <div className="unit-info-item">
+                            <label>Pets Allowed:</label>
+                            <span>{editedUnit.petsAllowed ? "Yes" : "No"}</span>
+                        </div>
+                        <div className="unit-info-item">
+                            <label>Type:</label>
+                            <span>{editedUnit.type}</span>
+                        </div>
+                        <div className="unit-info-item">
+                            <label>Occupants:</label>
+                            <span>{tenants?.length > 0 ? tenants.length : "NA"}</span>
+                        </div>
+                        <div className="unit-info-item">
+                            <label>Mode:</label>
+                            <span>{editedUnit.mode}</span>
+                        </div>
+                        <div className="unit-info-item">
+                            <label>Size:</label>
+                            <span>{editedUnit.sizeValue} {editedUnit.sizeUnit}</span>
+                        </div>
+                        </div>
+                    </div>
+                    )}
+
+                {activeTab === 'Tenants' && (
+                <div className="unit-tenants full-width">
+                    <h5 className="tab-section-title">Tenants</h5>
+                    <div className="tenant-history">
+                    <table className="tenant-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Lease Start Date</th>
+                            <th>Lease End Date</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {tenants?.length > 0 ? (
+                            tenants.map((tenant, index) => (
+                            <tr key={index}>
+                                <td>{tenant.name}</td>
+                                <td>{tenant.phone}</td>
+                                <td>{tenant.leaseStarted ? new Date(tenant.leaseStarted).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "—"}</td>
+                                <td>{tenant.leaseExpiry ? new Date(tenant.leaseExpiry).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "—"}</td>
+                                <td>
+                                <button className="view-button" onClick={() => handleViewProfile(tenant)}>View</button>
+                                </td>
+                            </tr>
+                            ))
+                        ) : (
+                            <tr>
+                            <td colSpan="5" className="no-tenant-msg">No tenant history</td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
                     </div>
                 </div>
-                
-            </div>
+                )}
 
-            <div className='unit-mid-section'>
-
-                <div className="utility-details">    
-                    <Utilities
-                        unit={unitDetails}
-                        fetchUnitDetails={fetchUnitDetails}
-                    />
+                {activeTab === 'Utilities' && (
+                <div className="utility-details full-width">
+                    <Utilities unit={unitDetails} fetchUnitDetails={fetchUnitDetails} />
                 </div>
+                )}
 
-                <div className="issues-details">
-                    
+                {activeTab === 'Actions' && (
+                <div className="unit-actions full-width">
+                    <h5 className="tab-section-title">Unit Actions</h5>
+                    <div className="action-buttons">
+                    <button className="btn-danger" onClick={() => setShowDeleteModal(true)}>
+                        Delete Unit
+                    </button>
+                    </div>
                 </div>
-            </div>
-
-            <div className="unit-actions">
-                <div className='action-header'>
-                    <h5>Actions</h5>
-                </div>
-                
-                <button onClick={() => setShowDeleteModal(true)}>Delete Unit</button>
+                )}
             </div>
 
             {showDeleteModal && (
@@ -324,8 +339,6 @@ function UnitProfile ({unitId, onBack}) {
                         </div>
                     </div>
                 </div>
-                
-    
             )}
         </div>
     );

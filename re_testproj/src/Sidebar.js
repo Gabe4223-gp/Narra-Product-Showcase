@@ -74,7 +74,7 @@ function Sidebar({ isCollapsed, role }) {
                 <li>
                   <NavLink to="/issues" className={({ isActive }) => (isActive ? 'active' : '')}>
                     <FaWrench className="sidebar-icon" />
-                    {!isCollapsed && <span>Issues</span>}
+                    {!isCollapsed && <span>Maintenance</span>}
                   </NavLink>
                 </li>
               )}
