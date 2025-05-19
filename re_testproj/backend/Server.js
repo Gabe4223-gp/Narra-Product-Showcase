@@ -161,18 +161,17 @@ app.use('/uploads', express.static('uploads'));
 //Sequelize Connection
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  protocol: 'postgres',
-  logging: console.log,
-  /*dialectOptions: {
-    ssl: {
-      require: true,
-      ca: fs.readFileSync('/home/ec2-user/rds-combined-ca-bundle.pem').toString(),
-      rejectUnauthorized: false
-    }
-  } $$$ local testing*/ 
-});
+const sequelize = new Sequelize(
+  process.env.DB_NAME     || 'narra_database',
+  process.env.DB_USER     || 'postgres',
+  process.env.DB_PASSWORD || '1111',
+  {
+    host:     process.env.DB_HOST || '127.0.0.1',
+    port:     process.env.DB_PORT || 5432,
+    dialect:  'postgres',
+    logging:  console.log,
+  }
+);
 
 sequelize.authenticate()
   .then(() => console.log('Database connection has been established successfully.'))
@@ -3433,5 +3432,5 @@ invoiceQueue.on('failed', (job, err) => {
 
 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
