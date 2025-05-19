@@ -1,0 +1,325 @@
+/* General Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    color: #1f2937;
+    background-color: #f9fafb;
+  }
+  
+  /* Page Layout */
+  .receivables-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .page-content {
+    padding: 24px;
+    flex: 1;
+  }
+  
+  .filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .filter-select {
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 120px;
+  }
+  
+  .dashboard-content {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+  }
+  
+  .chart-area {
+    flex: 2;
+  }
+  
+  .summary-area {
+    flex: 1;
+  }
+  
+  /* Navbar Styles */
+  .navbar {
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+  }
+  
+  .navbar-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  .menu-button {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    margin-right: 8px;
+    padding: 4px;
+  }
+  
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
+  
+  
+  .tabs-container {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .tabs-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .tab-item {
+    margin-right: 32px;
+  }
+  
+  .tab-link {
+    display: inline-block;
+    padding: 16px 4px;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+  }
+  
+  .tab-link:hover {
+    color: #4b5563;
+    border-bottom-color: #d1d5db;
+  }
+  
+  .tab-link.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  
+  .secondary-tabs {
+    padding: 16px 24px;
+  }
+  
+  .secondary-tab {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #2563eb;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+  }
+  
+  .secondary-tab:hover {
+    background-color: #1d4ed8;
+  }
+  
+  /* Sidebar Styles */
+  .sidebar {
+    width: 224px;
+    background-color: white;
+    border-right: 1px solid #e5e7eb;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .logo-container {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+  }
+  
+  .sidebar-nav {
+    flex: 1;
+    padding-top: 16px;
+  }
+  
+  .sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .sidebar-menu-item {
+    margin-bottom: 2px;
+  }
+  
+  .sidebar-menu-link {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    color: #4b5563;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .sidebar-menu-link:hover {
+    background-color: #f9fafb;
+  }
+  
+  .sidebar-menu-link.active {
+    color: #2563eb;
+    background-color: #eff6ff;
+    border-left: 4px solid #2563eb;
+  }
+  
+  .sidebar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+  }
+  
+  .sidebar-label {
+    flex: 1;
+  }
+  
+  /* Chart Styles */
+  .chart-container {
+    background-color: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 24px;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  .legend-color.blue {
+    background-color: #3B82F6;
+  }
+  
+  .legend-color.gray {
+    background-color: #4B5563;
+  }
+  
+  .legend-label {
+    font-size: 14px;
+    color: #4B5563;
+  }
+  
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+    min-height: 300px;
+  }
+  
+  /* Summary Card Styles */
+  .summary-card {
+    background-color: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .summary-section {
+    margin-bottom: 24px;
+  }
+  
+  .summary-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1f2937;
+    margin: 0 0 4px 0;
+  }
+  
+  .summary-divider {
+    height: 1px;
+    width: 100%;
+    background-color: #e5e7eb;
+    margin: 16px 0;
+  }
+  
+  .summary-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+  
+  .summary-date {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1f2937;
+  }
+  
+  .summary-date p {
+    margin: 0;
+  }
+  
+  /* Responsive Styles */
+  @media (max-width: 768px) {
+    .dashboard-content {
+      flex-direction: column;
+    }
+    
+    .chart-container, .summary-card {
+      padding: 16px;
+    }
+    
+    .summary-amount {
+      font-size: 20px;
+    }
+    
+    .tabs-list {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 8px;
+    }
+    
+    .tab-item {
+      margin-right: 16px;
+    }
+  }

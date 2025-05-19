@@ -20,6 +20,8 @@ import Layout from './Layout';
 import RoleSelection from './RoleSelection';
 import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
+import ReceivablesDashboard from './ReceivablesDashboard';
+import ProfitLoss from './ProfitLoss';
 
 function AppContent() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
@@ -168,6 +170,8 @@ function AppContent() {
               {activeTeamMembership?.tenants && <Route path="tenant" element={<Tenants />} />}
               {activeTeamMembership?.units && <Route path="unit" element={<Units />} />}
               {activeTeamMembership?.issues && <Route path="issues" element={<Issues />} />}
+              <Route path="accounting" element={<ReceivablesDashboard />} />
+              <Route path="profitloss" element={<ProfitLoss />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/homepage" replace />} />
             </>
