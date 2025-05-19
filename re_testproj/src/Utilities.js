@@ -17,7 +17,11 @@ function Utilities({ unit, fetchUnitDetails }) {
     const [selectedYear2, setSelectedYear2] = useState(currentYear);
     const [selectedReadingIds, setSelectedReadingIds] = useState(new Set());
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        saveEditedReading();
+      };      
 
     useEffect(() => {
         if (unit) {
@@ -262,333 +266,319 @@ function Utilities({ unit, fetchUnitDetails }) {
 
             {/* Modal for Editing Readings */}
             {showModal && (
-                <div className='overlay'>
+                <div className="overlay">
                     <div className="modal">
-                        <h3>Edit {modalType.charAt(0).toUpperCase() + modalType.slice(1)} Reading</h3>
-                        <form>
-                            <label>
-                                Last Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.last}
-                                    onChange={(e) => handleReadingChange('last', e.target.value)}
+                    <h3>Edit {modalType.charAt(0).toUpperCase() + modalType.slice(1)} Reading</h3>
+                    <form onSubmit={handleSubmit}>
+                        <h4>Last Reading</h4>
+                        <label htmlFor="lastReading">Reading</label>
+                        <input id="lastReading" type="number" value={tempReading.last} onChange={(e) => handleReadingChange('last', e.target.value)} />
+                        
+                        <label htmlFor="lastDate">Date</label>
+                        <input id="lastDate" type="date" value={tempReading.lastDate} onChange={(e) => handleReadingChange('lastDate', e.target.value)} />
+
+                        <h4>Current Reading</h4>
+                        <label htmlFor="currentReading">Reading</label>
+                        <input id="currentReading" type="number" value={tempReading.current} onChange={(e) => handleReadingChange('current', e.target.value)}
                                 />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.lastDate}
-                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+
+                        <label htmlFor="currentDate">Date</label>
+                        <input id="currentDate" type="date" value={tempReading.currentDate} onChange={(e) => handleReadingChange('currentDate', e.target.value)}
                                 />
-                            </label>
-                            <label>
-                                Current Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.current}
-                                    onChange={(e) => handleReadingChange('current', e.target.value)}
-                                />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.currentDate}
-                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
-                                />
-                            </label>
-                        </form>
-                        <div>
-                            <button type="button" onClick={saveEditedReading}>Save</button>
-                            <button onClick={() => setShowModal(false)}>Cancel</button>
+
+                        <div className="modal-footer">
+                        <button type="submit" className="btn-primary">Save</button>
+                        <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                         </div>
-                    </div>
+                    </form>
                 </div>
-                
-            )}
+            </div>
+        )}
 
             {/* Water Reading Modal */}
             {showWaterReadingModal && (
-                <div className='overlay'>
+                <div className="overlay">
                     <div className="modal">
-                        <h3>Add Water Reading</h3>
-                        <form>
-                            <label>
-                                Last Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.last}
-                                    onChange={(e) => handleReadingChange('last', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.lastDate}
-                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Current Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.current}
-                                    onChange={(e) => handleReadingChange('current', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.currentDate}
-                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
-                                    required
-                                />
-                            </label>
-                        </form>
-                        <div>
-                            <button type="button" onClick={() => saveReading('water')}>Save</button>
-                            <button onClick={() => setShowWaterReadingModal(false)}>Cancel</button>
+                    <h2>Add Water Reading</h2>
+                    <form>
+                        <div className="form-section">
+                        <h4>Last Reading</h4>
+                        <div className="form-group">
+                            <label htmlFor="lastReading">Reading</label>
+                            <input
+                            id="lastReading"
+                            type="number"
+                            value={tempReading.last}
+                            onChange={(e) => handleReadingChange('last', e.target.value)}
+                            required
+                            />
                         </div>
-                    </div>
+                        <div className="form-group">
+                            <label htmlFor="lastDate">Date</label>
+                            <input
+                            id="lastDate"
+                            type="date"
+                            value={tempReading.lastDate}
+                            onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+                            required
+                            />
+                        </div>
+                        </div>
 
+                        <div className="form-section">
+                        <h4>Current Reading</h4>
+                        <div className="form-group">
+                            <label htmlFor="currentReading">Reading</label>
+                            <input
+                            id="currentReading"
+                            type="number"
+                            value={tempReading.current}
+                            onChange={(e) => handleReadingChange('current', e.target.value)}
+                            required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="currentDate">Date</label>
+                            <input
+                            id="currentDate"
+                            type="date"
+                            value={tempReading.currentDate}
+                            onChange={(e) => handleReadingChange('currentDate', e.target.value)}
+                            required
+                            />
+                        </div>
+                        </div>
+
+                        <div className="modal-footer">
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => saveReading('water')}
+                        >
+                            Save
+                        </button>
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setShowWaterReadingModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        </div>
+                    </form>
+                    </div>
                 </div>
-                
-            )}
+                )}
 
             {/* Electricity Reading Modal */}
             {showElectricityReadingModal && (
-                <div className='overlay'>
+                <div className="overlay">
                     <div className="modal">
-                        <h3>Add Electricity Reading</h3>
-                        <form>
-                            <label>
-                                Last Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.last}
-                                    onChange={(e) => handleReadingChange('last', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.lastDate}
-                                    onChange={(e) => handleReadingChange('lastDate', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Current Reading
-                                <input
-                                    type="number"
-                                    value={tempReading.current}
-                                    onChange={(e) => handleReadingChange('current', e.target.value)}
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Date of Reading
-                                <input
-                                    type="date"
-                                    value={tempReading.currentDate}
-                                    onChange={(e) => handleReadingChange('currentDate', e.target.value)}
-                                    required
-                                />
-                            </label>
-                        </form>
-                        <div>
-                            <button type="button" onClick={() => saveReading('electricity')}>Save</button>
-                            <button onClick={() => setShowElectricityReadingModal(false)}>Cancel</button>
+                    <h2>Add Electricity Reading</h2>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        saveReading('electricity');
+                    }}>
+                        <div className="form-section">
+                        <h4>Last Reading</h4>
+                        <div className="form-group">
+                            <label htmlFor="electricityLastReading">Reading</label>
+                            <input
+                            id="electricityLastReading"
+                            type="number"
+                            value={tempReading.last}
+                            onChange={(e) => handleReadingChange('last', e.target.value)}
+                            required
+                            />
                         </div>
+                        <div className="form-group">
+                            <label htmlFor="electricityLastDate">Date</label>
+                            <input
+                            id="electricityLastDate"
+                            type="date"
+                            value={tempReading.lastDate}
+                            onChange={(e) => handleReadingChange('lastDate', e.target.value)}
+                            required
+                            />
+                        </div>
+                        </div>
+
+                        <div className="form-section">
+                        <h4>Current Reading</h4>
+                        <div className="form-group">
+                            <label htmlFor="electricityCurrentReading">Reading</label>
+                            <input
+                            id="electricityCurrentReading"
+                            type="number"
+                            value={tempReading.current}
+                            onChange={(e) => handleReadingChange('current', e.target.value)}
+                            required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="electricityCurrentDate">Date</label>
+                            <input
+                            id="electricityCurrentDate"
+                            type="date"
+                            value={tempReading.currentDate}
+                            onChange={(e) => handleReadingChange('currentDate', e.target.value)}
+                            required
+                            />
+                        </div>
+                        </div>
+
+                        <div className="modal-footer">
+                        <button type="submit" className="btn-primary">Save</button>
+                        <button type="button" className="btn-secondary" onClick={() => setShowElectricityReadingModal(false)}>Cancel</button>
+                        </div>
+                    </form>
                     </div>
                 </div>
-                
-            )}
+                )}
 
-            {/* Water Readings */}
-            <div className="reading-table">
-                <div className="reading-header">
-                    <h5>Water Readings</h5>
-                    <button className="reading-button" onClick={() => setShowWaterReadingModal(true)}>Add</button>
-
-                    {/* Year Selection Dropdown */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span>Select Year:</span>
-                            <select
-                                style={{ fontSize: "12px", padding: "2px 4px" }}
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
-                            >
-                                {years.map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
+                {/* Reading Tables JSX */}
+                <div className="readings-wrapper">
+                {/* Water Readings */}
+                <div className="reading-table">
+                    <div className="reading-header">
+                    <h5 className="tab-section-title">Water Readings</h5>
+                    <div className="reading-controls">
+                        <button className="reading-button" onClick={() => setShowWaterReadingModal(true)}>Add</button>
+                        <label>
+                        <span>Select Year:</span>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                        >
+                            {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
                         </label>
                     </div>
-                </div>
+                    </div>
 
-                <table>
-                    <thead>
+                    <div className="reading-table-scroll">
+                    <table>
+                        <thead>
                         <tr>
-                            <th> </th>
+                            <th></th>
                             <th>Last Reading</th>
                             <th>Date</th>
                             <th>Current Reading</th>
                             <th>Date</th>
                             <th>Consumption</th>
-                            <th> </th>
+                            <th></th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         {unit?.waterLastReading?.length > 0 ? (
                             unit.waterLastReading
-                                ?.filter(item => {
-                                    const itemDate = new Date(item.date);
-                                    return itemDate.getFullYear() === selectedYear;
-                                })
-                                .map((item, index) => {
-                                    const currentReadingItem = unit.waterCurrentReading ? unit.waterCurrentReading[index] : null;
-                                    const readingDifference = currentReadingItem?.reading && item?.reading 
-                                        ? currentReadingItem.reading - item.reading 
-                                        : "N/A";
+                            ?.filter(item => new Date(item.date).getFullYear() === selectedYear)
+                            .map((item, index) => {
+                                const currentReadingItem = unit.waterCurrentReading?.[index];
+                                const readingDifference = currentReadingItem?.reading && item?.reading
+                                ? currentReadingItem.reading - item.reading
+                                : "N/A";
 
-                                    return (
-                                        <tr key={index}>
-                                            <td style={{ width: "5%" }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedReadingIds.has(item.id)}
-                                                    onChange={() => handleCheckboxChange(item.id, currentReadingItem.id)}
-                                                />
-                                            </td>
-                                            <td>{item.reading || "No Readings"}</td>
-                                            <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
-                                            <td>{currentReadingItem?.reading || "No Readings"}</td>
-                                            <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
-                                            <td>{readingDifference}</td>
-                                            <td>
-                                                <button onClick={() => openEditModal('water', index)}>Edit</button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
+                                return (
+                                <tr key={index}>
+                                    <td><input type="checkbox" checked={selectedReadingIds.has(item.id)} onChange={() => handleCheckboxChange(item.id, currentReadingItem?.id)} /></td>
+                                    <td>{item.reading || "No Readings"}</td>
+                                    <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
+                                    <td>{currentReadingItem?.reading || "No Readings"}</td>
+                                    <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
+                                    <td>{readingDifference}</td>
+                                    <td><button className="reading-edit-btn" onClick={() => openEditModal('water', index)}>Edit</button></td>
+                                </tr>
+                                );
+                            })
                         ) : (
                             <tr>
-                                <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                                    No Water Readings
-                                </td>
+                            <td colSpan="7" className="empty-state">No Water Readings</td>
                             </tr>
                         )}
-                    </tbody>
-                </table>
-                <div>
-                    <button onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
+                        </tbody>
+                    </table>
+                    </div>
+                    <button className="reading-delete-btn" onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
                 </div>
-            </div>
 
-            {/* Electricity Readings */}
-            <div className="reading-table">
-                <div className="reading-header">
-                    <h5>Electricity Readings</h5>
-                    <button className="reading-button" onClick={() => setShowElectricityReadingModal(true)}>Add</button>
-                    
-                    {/* Year Selection Dropdown */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span>Select Year:</span>
-                            <select
-                                style={{ fontSize: "12px", padding: "2px 4px" }}
-                                value={selectedYear2}
-                                onChange={(e) => setSelectedYear2(parseInt(e.target.value, 10))}
-                            >
-                                {years.map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
+                {/* Electricity Readings */}
+                <div className="reading-table">
+                    <div className="reading-header">
+                    <h5 className="tab-section-title">Electricity Readings</h5>
+                    <div className="reading-controls">
+                        <button className="reading-button" onClick={() => setShowElectricityReadingModal(true)}>Add</button>
+                        <label>
+                        <span>Select Year:</span>
+                        <select
+                            value={selectedYear2}
+                            onChange={(e) => setSelectedYear2(parseInt(e.target.value, 10))}
+                        >
+                            {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
                         </label>
                     </div>
-                </div>
-                
-                <table>
-                    <thead>
+                    </div>
+
+                    <div className="reading-table-scroll">
+                    <table>
+                        <thead>
                         <tr>
-                            <th> </th>
+                            <th></th>
                             <th>Last Reading</th>
                             <th>Date</th>
                             <th>Current Reading</th>
                             <th>Date</th>
                             <th>Consumption</th>
-                            <th> </th>
+                            <th></th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         {unit?.electricityLastReading?.length > 0 ? (
                             unit.electricityLastReading
-                                .filter(item => {
-                                    const itemDate = new Date(item.date);
-                                    return itemDate.getFullYear() === selectedYear2;
-                                })
-                                .map((item, index) => {
-                                    const currentReadingItem = unit.electricityCurrentReading ? unit.electricityCurrentReading[index] : null;
-                                    const readingDifference = currentReadingItem?.reading && item?.reading 
-                                        ? currentReadingItem.reading - item.reading 
-                                        : "N/A";
+                            .filter(item => new Date(item.date).getFullYear() === selectedYear2)
+                            .map((item, index) => {
+                                const currentReadingItem = unit.electricityCurrentReading?.[index];
+                                const readingDifference = currentReadingItem?.reading && item?.reading
+                                ? currentReadingItem.reading - item.reading
+                                : "N/A";
 
-                                    return (
-                                        <tr key={index}>
-                                            <td style={{ width: "5%" }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedReadingIds.has(item.id)}
-                                                    onChange={() => handleCheckboxChange(item.id, currentReadingItem.id)}
-                                                />
-                                            </td>
-                                            <td>{item.reading || "No Readings"}</td>
-                                            <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
-                                            <td>{currentReadingItem?.reading || "No Readings"}</td>
-                                            <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
-                                            <td>{readingDifference}</td>
-                                            <td>
-                                                <button onClick={() => openEditModal('electricity', index)}>Edit</button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
+                                return (
+                                <tr key={index}>
+                                    <td><input type="checkbox" checked={selectedReadingIds.has(item.id)} onChange={() => handleCheckboxChange(item.id, currentReadingItem?.id)} /></td>
+                                    <td>{item.reading || "No Readings"}</td>
+                                    <td>{item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
+                                    <td>{currentReadingItem?.reading || "No Readings"}</td>
+                                    <td>{currentReadingItem?.date ? new Date(currentReadingItem.date).toLocaleDateString() : "N/A"}</td>
+                                    <td>{readingDifference}</td>
+                                    <td><button className="reading-edit-btn" onClick={() => openEditModal('electricity', index)}>Edit</button></td>
+                                </tr>
+                                );
+                            })
                         ) : (
                             <tr>
-                                <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                                    No Electricity Readings
-                                </td>
+                            <td colSpan="7" className="empty-state">No Electricity Readings</td>
                             </tr>
                         )}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                    </div>
+                    <button className="reading-delete-btn" onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
 
-                <div>
-                <button onClick={() => setShowDeleteModal(true)} disabled={selectedReadingIds.size === 0}>Delete Selected Readings</button>
-                </div>
-
-
-                {showDeleteModal && (
-                    <div className='overlay'>
-                    <div className='modal'>
-                        <div>
-                            Are you sure you want to delete these readings?
-                        </div>
+                    {showDeleteModal && (
+                    <div className="overlay">
+                        <div className="modal">
+                        <div>Are you sure you want to delete these readings?</div>
                         <button onClick={handleDeleteReadings}>Confirm</button>
                         <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                        </div>
                     </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

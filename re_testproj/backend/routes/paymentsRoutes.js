@@ -7,8 +7,19 @@ const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const BASE_URL = 'https://api.narra-ph.com'; //set it fixed for testing
 const AWS = require('aws-sdk');
+
+const { customAlphabet } = require('nanoid');
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 8);
+const { v4: uuidv4 } = require('uuid');
+
+function generateCustomerTransactionId() {
+  const prefix = 'WSTX'; // fixed prefix to ensure the id starts with a letter
+  const timestampPart = Date.now().toString().slice(-6); // last 6 digits of the current timestamp
+  const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0'); // a 6-digit random number
+  // Concatenate and ensure the total length is no more than 20 characters
+  return (prefix + timestampPart + randomPart).slice(0, 20);
+}
 
 // Local storage configuration using diskStorage
 const localStorage = multer.diskStorage({
@@ -85,37 +96,6 @@ router.get('/get-landlord-details/:landlordId', async (req, res) => {
   }
 });
 
-// 3) Fetch Landlord Bank Details (for Bank Transfer) – for Wise usage
-router.get('/get-landlord-bank/:billId', async (req, res) => {
-  try {
-    const { billId } = req.params;
-    if (!billId) {
-      return res.status(400).json({ message: 'Bill ID is required.' });
-    }
-
-    const fileRecord = await Files.findByPk(billId, {
-      attributes: ['landlordBankDetails']
-    });
-
-    if (!fileRecord) {
-      return res.status(404).json({ message: 'Bill not found.' });
-    }
-
-    if (!fileRecord.landlordBankDetails) {
-      return res.status(404).json({ message: "No landlord bank details stored in this bill." });
-    }
-
-    return res.json({
-      success: true,
-      bankDetails: fileRecord.landlordBankDetails,
-    });
-  } catch (error) {
-    console.error('Error fetching landlord bank details from Files:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
 // ==================== GCash Endpoints (unchanged) ====================
 router.post('/gcash', async (req, res) => {
   try {
@@ -128,12 +108,20 @@ router.post('/gcash', async (req, res) => {
 
     const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
     const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
+    const BASE_URL = process.env.REACT_APP_API_URL_PROD === "production"
+      ? "https://narra-ph.com"
+      : "http://localhost:3000";
+    
+    const returnUrl = `${BASE_URL}/tenant/dashboard?redirected=true`;
 
     const paymongoResponse = await axios.post('https://api.paymongo.com/v1/sources', {
       data: {
         attributes: {
           amount,
-          redirect: { success: successUrl, failed: failedUrl },
+          redirect: { 
+            success: successUrl,
+            failed: failedUrl
+          },
           type: 'gcash',
           currency: 'PHP'
         }
@@ -143,17 +131,14 @@ router.post('/gcash', async (req, res) => {
         Authorization: `Basic ${Buffer.from(process.env.PAYMONGO_SECRET_KEY).toString('base64')}`,
         'Content-Type': 'application/json'
       }
-    });
-
-    if (!paymongoResponse.data || !paymongoResponse.data.data) {
-      return res.status(500).json({ message: "Error creating PayMongo source." });
-    }
-
+    });    
+    
+    // Use the checkout URL as-is (no manual modifications)
     res.json({ 
       success: true, 
-      checkoutUrl: paymongoResponse.data.data.attributes.redirect.checkout_url,
+      checkoutUrl: paymongoResponse.data.data.attributes.redirect.checkout_url, // No modifications
       sourceId: paymongoResponse.data.data.id 
-    });
+    });    
   } catch (error) {
     console.error("Error creating GCash payment:", error);
 
@@ -235,158 +220,401 @@ router.post('/gcash-webhook', async (req, res) => {
 });
 
 // ==================== Wise Bank Transfer Endpoints ====================
+
+router.get("/wise-balance", async (req, res) => {
+  try {
+    const { tenantId } = req.query;
+    if (!tenantId) {
+      return res.status(400).json({ message: "tenantId is required." });
+    }
+    // Simulated balance for testing purposes.
+    const simulatedBalance = 1000; // e.g., USD 1000
+    return res.json({ balance: simulatedBalance });
+  } catch (error) {
+    console.error("Error fetching Wise balance:", error.response?.data || error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 router.post("/wise-create-recipient", async (req, res) => {
   try {
-    const { bankName, accountNumber, accountName, routingNumber, swiftCode, currency, country } = req.body;
-    
-    // Basic validation: require accountNumber, accountName, currency, country and one of routingNumber or swiftCode.
-    if (!accountNumber || !accountName || !currency || !country || (!routingNumber && !swiftCode)) {
-      return res.status(400).json({ message: "Missing required bank details." });
+    // Destructure values from req.body using let so they can be reassigned.
+    let {
+      transferType,
+      legalType,
+      bankName,
+      accountNumber,
+      accountName,
+      routingNumber,
+      swiftCode,
+      currency,
+      country,
+      address,
+      institutionNumber,
+      transitNumber
+    } = req.body;    
+
+    // ====== VALIDATION ======
+    const requiredFields = {
+      BankTransfer: ['accountNumber', 'routingNumber'],
+      SWIFT: ['accountNumber', 'swiftCode'],
+      Wire: ['accountNumber', 'swiftCode'],
+      WiseBalance: [] // No recipient needed
+    };
+
+    if (!requiredFields[transferType]) {
+      return res.status(400).json({ message: "Invalid transfer type" });
     }
+
+    const missing = requiredFields[transferType].filter(f => !req.body[f]);
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `Missing required fields for ${transferType}: ${missing.join(', ')}`
+      });
+    }
+
+    // ====== SANDBOX OVERRIDES ======
+    const isSandbox = process.env.NODE_ENV !== 'production';
+    let processedCurrency = currency.toUpperCase();
     
-    let recipientData = {};
-    
-    // For PHP transfers, force use of routingNumber and sort_code even if a swift code is provided.
-    if (currency === "PHP") {
-      if (!routingNumber) {
-        return res.status(400).json({ message: "Routing number is required for PHP transfers." });
+    if (isSandbox) {
+      processedCurrency = 'USD';
+      if (transferType === 'BankTransfer') {
+        accountNumber = '123456789';
+        routingNumber = '084009519';
       }
-      recipientData = {
-        accountHolderName: accountName,
-        currency: currency, // "PHP"
-        type: "sort_code",
-        country: country,   // ISO alpha-2, e.g., "PH"
-        details: {
-          sortCode: routingNumber,
-          accountNumber: accountNumber,
-          legalType: "PRIVATE",
-        },
+      // Override the address object entirely for sandbox testing
+      address = {
+        firstLine: "456 Sandbox Ave",
+        city: "New York",
+        state: "NY",       // Explicitly include state
+        postCode: "10001",
+        country: "US"
       };
-    } else if (swiftCode) {
-      // For non-PHP currencies, if swiftCode is provided, use swift_code type.
-      recipientData = {
-        accountHolderName: accountName,
-        currency: currency,
-        type: "swift_code",
-        country: country,
-        details: {
+      // (Optional) Remove transitNumber if present in the incoming payload
+      transitNumber = undefined;
+    }
+
+    // ====== RECIPIENT CONSTRUCTION ======
+    // Build the base recipient data. We include a nested address with a state.
+    let recipientData = {
+      accountHolderName: accountName,
+      currency: processedCurrency,
+      country: country,
+      details: {
+        legalType: legalType || 'PRIVATE',
+        address: {
+          firstLine: address?.firstLine || '123 Default Street',
+          city: address?.city || 'Manila',
+          state: address?.state || 'NY', // Provide a default state if missing
+          postCode: address?.postCode || '1000',
+          country: address?.country || country
+        }
+      }
+    };
+
+    // Transfer Type Specifics
+    switch(transferType) {
+      case 'BankTransfer':
+        recipientData.type = 'aba';
+        recipientData.details = {
+          ...recipientData.details,
+          abartn: routingNumber,
+          accountNumber: accountNumber,
+          accountType: 'CHECKING'
+        };
+        // If country is Canada, you might add additional fields.
+        // if (country === 'CA') {
+        //   recipientData.details.transitNumber = transitNumber;
+        //   recipientData.details.institutionNumber = institutionNumber;
+        // }
+        break;
+
+      case 'SWIFT':
+      case 'Wire':
+        recipientData.type = 'swift';
+        recipientData.details = {
+          ...recipientData.details,
           bic: swiftCode,
-          accountNumber: accountNumber,
-          legalType: "PRIVATE",
-        },
-      };
-    } else {
-      // Otherwise, use routing number.
-      recipientData = {
-        accountHolderName: accountName,
-        currency: currency,
-        type: "sort_code",
-        country: country,
-        details: {
-          sortCode: routingNumber,
-          accountNumber: accountNumber,
-          legalType: "PRIVATE",
-        },
-      };
+          accountNumber: accountNumber
+        };
+        if (country === 'PH') {
+          recipientData.details.bankCode = bankName; // For Philippine banks
+        }
+        break;
+      // For WiseBalance, no additional recipient details are needed.
     }
-    
-    console.log("Creating Wise recipient with payload:", recipientData);
-    // Optionally, if you want to include bankName as extra info, you can add it, but Wise API may ignore it.
-    recipientData.bankName = bankName;
 
-    const wiseResponse = await axios.post(
-      "https://api.sandbox.transferwise.tech/v1/accounts" || "https://api.transferwise.com/v1/accounts",
-      recipientData,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.WISE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+    // ====== FINAL PAYLOAD ======
+    // Use finalPayload as our variable that we'll send to Wise.
+    let finalPayload = { ...recipientData };
+
+    // In sandbox mode, override or add any additional required fields.
+    if (isSandbox) {
+      finalPayload.currency = "USD";
+      if (transferType === "BankTransfer") {
+        // Override account credentials with test values.
+        finalPayload.details.accountNumber = "123456789";
+        finalPayload.details.abartn = "084009519";
       }
-    );
-
-    if (!wiseResponse.data || !wiseResponse.data.id) {
-      return res.status(500).json({ message: "Failed to create Wise recipient." });
+      // Override the address to ensure it has a valid state.
+      finalPayload.details.address = {
+        firstLine: "456 Sandbox Ave",
+        city: "New York",
+        state: "NY",
+        postCode: "10001",
+        country: "US"
+      };
+      // Remove transitNumber if it somehow exists in finalPayload.
+      if (finalPayload.transitNumber) {
+        delete finalPayload.transitNumber;
+      }
     }
-    
-    return res.json({ success: true, recipientId: wiseResponse.data.id });
+
+    console.log("Final Payload to send to Wise:", JSON.stringify(finalPayload, null, 2));
+
+    // ====== WISE API CALL ======
+    const wiseEndpoint = isSandbox 
+      ? 'https://api.sandbox.transferwise.tech/v1/accounts'
+      : 'https://api.transferwise.com/v1/accounts';
+
+    const wiseResponse = await axios.post(wiseEndpoint, finalPayload, {
+      headers: {
+        Authorization: `Bearer ${process.env.WISE_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json({
+      success: true,
+      recipientId: wiseResponse.data.id,
+      sandboxOverrides: isSandbox ? {
+        accountNumber: accountNumber,
+        routingNumber: routingNumber
+      } : null
+    });
+
   } catch (error) {
-    console.error("Error creating Wise recipient:", error.response?.data || error);
-    return res.status(500).json({ message: "Internal server error." });
+    if (error.response) {
+      console.error("Wise Recipient Creation Error:", JSON.stringify(error.response.data, null, 2));
+      console.error("Status:", error.response.status);
+      console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
+    } else {
+      console.error("Error creating recipient:", error.message);
+    }
+    res.status(500).json({
+      message:
+        error.response?.data?.errors?.[0]?.message ||
+        "Recipient creation failed",
+      code: error.response?.data?.errors?.[0]?.code,
+    });
   }
 });
 
 router.post("/wise-transfer", async (req, res) => {
   try {
-    const { amount, currency, recipientId } = req.body;
-    if (!amount || !currency || !recipientId) {
-      return res.status(400).json({ message: "Missing required payment details." });
+    const { amount, currency, transferType } = req.body;
+    // Optionally, recipientId may be provided; if not, we'll create one.
+    let { recipientId } = req.body;
+    const isSandbox = process.env.NODE_ENV !== 'production';
+    const profileId = process.env.WISE_PROFILE_ID;
+    
+    // If no recipientId is provided, dynamically create one
+    if (!recipientId) {
+      // Build recipient payload with the profile field added
+      const recipientPayload = {
+        profile: profileId,  // Ensure the recipient is created under the correct profile
+        transferType: "BankTransfer", // or use transferType from req.body if applicable
+        legalType: "BUSINESS",        // adjust as needed
+        bankName: "BDO Unibank",        // example value; adjust as needed
+        accountNumber: isSandbox ? "123456789" : req.body.accountNumber,
+        accountName: "Narra",           // example value; adjust as needed
+        routingNumber: isSandbox ? "084009519" : req.body.routingNumber,
+        swiftCode: req.body.swiftCode || "",
+        currency: isSandbox ? "USD" : currency,
+        country: "US",
+        address: {
+          firstLine: "456 Sandbox Ave",
+          city: "New York",
+          state: "NY",
+          postCode: "10001",
+          country: "US"
+        }
+      };
+
+      // Call the /wise-create-recipient endpoint on your server
+      const recipientResponse = await axios.post(
+        "http://localhost:3000/api/payments/wise-create-recipient",
+        recipientPayload,
+        {
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+
+      if (recipientResponse.data.success && recipientResponse.data.recipientId) {
+        recipientId = recipientResponse.data.recipientId;
+        console.log("Dynamically retrieved recipientId:", recipientId);
+      } else {
+        throw new Error("Failed to create recipient: " + recipientResponse.data.message);
+      }
     }
 
-    // Step 1: Create a transfer quote
+    // ====== CURRENCY HANDLING ======
+    const sourceCurrency = isSandbox ? 'USD' : currency.toUpperCase();
+    const targetCurrency = isSandbox ? 'USD' : currency.toUpperCase();
+
+    // ====== QUOTE CREATION ======
+    const quoteData = {
+      profile: profileId,
+      source: sourceCurrency,
+      target: targetCurrency,
+      rateType: 'FIXED'
+    };
+
+    if (isSandbox) {
+      quoteData.sourceAmount = amount;
+    } else {
+      quoteData.targetAmount = amount;
+    }
+
     const quoteResponse = await axios.post(
-      "https://api.sandbox.transferwise.tech/v1/quotes" || "https://api.transferwise.com/v1/quotes",
-      {
-        profile: process.env.WISE_PROFILE_ID,
-        source: currency,
-        target: currency,
-        targetAmount: amount,
-        payOut: "BANK_TRANSFER",
-      },
+      isSandbox
+        ? 'https://api.sandbox.transferwise.tech/v1/quotes'
+        : 'https://api.transferwise.com/v1/quotes',
+      quoteData,
       {
         headers: {
           Authorization: `Bearer ${process.env.WISE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+          'Content-Type': 'application/json'
+        }
       }
     );
 
-    if (!quoteResponse.data || !quoteResponse.data.id) {
-      return res.status(500).json({ message: "Failed to create Wise quote." });
-    }
+    // ====== TRANSFER CREATION ======
+    const customerTransactionId = uuidv4(); // Standard UUID with hyphens
 
-    // Step 2: Create a transfer
+    // Truncate reference if needed
+    const rawReference = "Rent Payment";
+    const maxReferenceLength = 10;
+    const truncatedReference = rawReference.substring(0, maxReferenceLength);
+
+    const transferPayload = {
+      targetAccount: recipientId,  // dynamically retrieved recipient ID
+      quote: quoteResponse.data.id, // Use "quote" per Wise docs
+      customerTransactionId,
+      details: {
+        reference: truncatedReference,
+        transferPurpose: "verification.transfers.purpose.pay.bills"
+      },
+      accountHolder: {
+        name: process.env.COMPANY_NAME || 'Your Business',
+        type: 'BUSINESS',
+        address: {
+          country: isSandbox ? 'US' : 'PH',
+          postCode: isSandbox ? '10001' : '1000',
+          city: isSandbox ? 'New York' : 'Manila',
+          firstLine: isSandbox ? '456 Sandbox Ave' : 'Your Business Address'
+        }
+      }
+    };
+
+    console.log("Transfer Payload:", JSON.stringify(transferPayload, null, 2));
+
     const transferResponse = await axios.post(
-      "https://api.sandbox.transferwise.tech/v1/transfers" || "https://api.transferwise.com/v1/transfers",
+      isSandbox
+        ? 'https://api.sandbox.transferwise.tech/v1/transfers'
+        : 'https://api.transferwise.com/v1/transfers',
+      transferPayload,
       {
-        targetAccount: recipientId,
-        quote: quoteResponse.data.id,
-        customerTransactionId: `txn_${Date.now()}`,
-        details: { reference: "Rent Payment" },
+        headers: {
+          Authorization: `Bearer ${process.env.WISE_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // ====== FUNDING (SANDBOX SIMULATION) ======
+    if (isSandbox) {
+      await axios.post(
+        `https://api.sandbox.transferwise.tech/v1/simulation/transfers/${transferResponse.data.id}/fund`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${process.env.WISE_API_KEY}` }
+        }
+      );
+    }
+
+    res.json({
+      success: true,
+      transferId: transferResponse.data.id,
+      amount: quoteResponse.data.sourceAmount,
+      fee: quoteResponse.data.fee,
+      rate: quoteResponse.data.rate
+    });
+
+  } catch (error) {
+    if (error.response) {
+      console.error("Transfer Error Details:", JSON.stringify(error.response.data, null, 2));
+      console.error("Transfer Error Status:", error.response.status);
+      console.error("Transfer Error Headers:", JSON.stringify(error.response.headers, null, 2));
+    } else {
+      console.error("Transfer Error:", error.message);
+    }
+    res.status(500).json({
+      message: error.response?.data?.errors?.[0]?.message || 'Transfer failed',
+      code: error.response?.data?.errors?.[0]?.code
+    });
+  }
+});
+
+router.post("/wise-balance-transfer", async (req, res) => {
+  try {
+    const { sourceBalanceId, targetBalanceId, amount } = req.body;
+    const isSandbox = process.env.NODE_ENV !== 'production';
+
+    // ====== BALANCE VALIDATION ======
+    const balanceCheck = await axios.get(
+      `https://api.${isSandbox ? 'sandbox.' : ''}transferwise.tech/v1/balances`,
+      {
+        headers: { Authorization: `Bearer ${process.env.WISE_API_KEY}` } // Fixed closing braces
+      }
+    );
+
+    const validSource = balanceCheck.data.some(b => b.id === sourceBalanceId);
+    const validTarget = balanceCheck.data.some(b => b.id === targetBalanceId);
+
+    if (!validSource || !validTarget) {
+      return res.status(400).json({ message: "Invalid balance IDs" });
+    }
+
+    // ====== DIRECT BALANCE TRANSFER ======
+    const transferResponse = await axios.post(
+      `https://api.${isSandbox ? 'sandbox.' : ''}transferwise.tech/v1/transfers`,
+      {
+        sourceBalance: sourceBalanceId,
+        targetBalance: targetBalanceId,
+        amount: amount,
+        currency: isSandbox ? 'USD' : 'PHP'
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.WISE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+          'Content-Type': 'application/json'
+        }
       }
     );
 
-    if (!transferResponse.data || !transferResponse.data.id) {
-      return res.status(500).json({ message: "Failed to create Wise transfer." });
-    }
+    res.json({
+      success: true,
+      transferId: transferResponse.data.id,
+      newBalance: transferResponse.data.sourceBalanceAmount - amount
+    });
 
-    // Step 3: Fund the transfer
-    const fundResponse = await axios.post(
-      `https://api.sandbox.transferwise.tech/v1/transfers/${transferResponse.data.id}/payments` || 
-      `https://api.transferwise.com/v1/transfers/${transferResponse.data.id}/payments`,
-      { type: "BALANCE" },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.WISE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!fundResponse.data || fundResponse.data.status !== "COMPLETED") {
-      return res.status(500).json({ message: "Failed to fund Wise transfer." });
-    }
-
-    return res.json({ success: true, message: "Wise transfer completed successfully!" });
   } catch (error) {
-    console.error("Error processing Wise transfer:", error.response?.data || error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Balance Transfer Error:', error.response?.data || error);
+    res.status(500).json({
+      message: error.response?.data?.errors?.[0]?.message || 'Balance transfer failed'
+    });
   }
 });
 

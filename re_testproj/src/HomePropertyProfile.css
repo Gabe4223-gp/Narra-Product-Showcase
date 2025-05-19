@@ -1,12 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 .property-profile-card,
 .leases-dashboard {
   flex: 1; /* Make both containers take up equal width */
   background-color: #ffffff;
   padding: 20px;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Poppins', sans-serif;
   display: flex;
   flex-direction: column;
   max-width: 20%;
@@ -88,7 +90,7 @@
   width: 50%; /* Image takes up 40% of the card width */
   height: auto; /* Maintain the aspect ratio */
   margin-right: 10%; /* Space between the image and the property details */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the image */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Box shadow for the image */
 }
 
 
@@ -126,7 +128,7 @@
   font-size: 14px;
   width: 90%;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 
@@ -153,10 +155,10 @@
   background-color: #ffffff;
   padding: 20px;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 60%; /* Takes up full width of the parent */
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
   display: flex;
   flex-direction: column;
   max-width: 100%; /* Ensures it stays within bounds */
@@ -186,8 +188,8 @@
 
 .leases-dashboard tr {
   background-color: white; /* Set the background for the "box" */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
-  border-radius: 8px; /* Round corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
+  border-radius: 0; /* Round corners */
   overflow: hidden; /* Ensure corners are rounded properly */
 }
 
@@ -226,8 +228,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 3%;
   width: 20%;
   z-index: 1000;
@@ -250,7 +252,7 @@
 .modal form select {
   padding: 3%;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 0;
   margin-left: 10%;
   max-height: 10px;
   max-width: 80%;
@@ -266,7 +268,7 @@
   padding: 10px 20px;
   font-size: 14px;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
 }
 

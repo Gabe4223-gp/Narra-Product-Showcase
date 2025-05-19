@@ -32,7 +32,3 @@ module.exports = {
     }
   }
 };
-
-const env = process.env.NODE_ENV;
-const config = module.exports[env];
-console.log(`Sequelize ${env} config:`, config);

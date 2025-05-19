@@ -121,3 +121,33 @@ input[type="radio"] {
   cursor: not-allowed;
 }
   
+  /* Add these styles */
+.sandbox-notice {
+  padding: 12px;
+  background: #fff3cd;
+  border-radius: 4px;
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-banner {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.landlord-data-summary {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.landlord-data-summary p {
+  margin: 8px 0;
+  color: #495057;
+}
