@@ -11,3 +11,71 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+.tenant-container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+/* render your list as a “table” */
+.tenant-list {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;  /* horizontal scroll on small screens */
+}
+
+/* header row */
+.tenant-list-top {
+  display: table-header-group;
+  background: #fafafa;
+}
+.tenant-list-top > * {
+  display: table-cell;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+/* data rows */
+.tenant-list > div {
+  display: table-row;
+}
+.tenant-list > div > * {
+  display: table-cell;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+.tenant-list > div:hover {
+  background: #fbfbfb;
+}
+
+/* empty-state message */
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 32px 0;
+  font-size: 14px;
+}
+
+/* sortable arrows */
+.tenant-list-top .sortable {
+  cursor: pointer;
+  position: relative;
+}
+.tenant-list-top .sortable::after {
+  content: "▲";
+  font-size: 10px;
+  color: #999;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.tenant-list-top .sortable.desc::after {
+  content: "▼";
+}
