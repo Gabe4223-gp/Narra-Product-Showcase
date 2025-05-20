@@ -89,6 +89,20 @@ function Sidebar({ isCollapsed, role }) {
               )}
 
               <li>
+                <NavLink to="/tax-filing" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <FaCog className="sidebar-icon" />
+                  {!isCollapsed && <span>Tax Filing</span>}
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink to="/generalLedger" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <FaCog className="sidebar-icon" />
+                  {!isCollapsed && <span>General Ledger</span>}
+                </NavLink>
+              </li>
+
+              <li>
                 <NavLink to="/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaCog className="sidebar-icon" />
                   {!isCollapsed && <span>Settings</span>}

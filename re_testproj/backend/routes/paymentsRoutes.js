@@ -1,7 +1,6 @@
 require('dotenv').config({ path: './backend/.env' });
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.REACT_APP_STRIPE_SECRET_KEY);
 const { UserProfile, Files, sequelize} = require('../models');
 const axios = require('axios');
 const multer = require('multer');
