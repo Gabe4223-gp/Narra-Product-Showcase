@@ -1,11 +1,9 @@
 /* Dropdown styling */
 .dropdown {
   position: fixed;
-  top: 100px; /* Adjust based on header height */
+  top: 3px; /* Adjust based on header height */
   right: 15px;
   width: 300px;
-  background: white;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   padding: 15px;
   z-index: 1000;

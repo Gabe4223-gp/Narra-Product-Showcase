@@ -34,6 +34,7 @@ function TeamSettings({ onClose }) {
     units: false,
     issues: false,
     billings: false,
+    accounting: false,
   });
   const [currentTeamId, setCurrentTeamId] = useState(null);
   const [editMemberId, setEditMemberId] = useState(null);
@@ -226,6 +227,7 @@ function TeamSettings({ onClose }) {
         units: member.units || false,
         issues: member.issues || false,
         billings: member.billings || false,
+        accounting: member.accounting || false,
       });
     } else {
       // Add new
@@ -239,6 +241,7 @@ function TeamSettings({ onClose }) {
         units: false,
         issues: false,
         billings: false,
+        acccounting: false,
       });
     }
   };
@@ -268,7 +271,8 @@ function TeamSettings({ onClose }) {
             tenants: memberForm.tenants,
             units: memberForm.units,
             issues: memberForm.issues,
-            billings: memberForm.billings
+            billings: memberForm.billings,
+            accounting: memberForm.accounting
           },
           { headers: { 'user-email': userEmail } }
         );
@@ -284,7 +288,8 @@ function TeamSettings({ onClose }) {
             tenants: memberForm.tenants,
             units: memberForm.units,
             issues: memberForm.issues,
-            billings: memberForm.billings
+            billings: memberForm.billings,
+            accounting: memberForm.accounting
           },
           { headers: { 'user-email': userEmail } }
         );
@@ -384,6 +389,7 @@ function TeamSettings({ onClose }) {
                     if (member.units) permArr.push('Units');
                     if (member.issues) permArr.push('Issues');
                     if (member.billings) permArr.push('Billings');
+                    if (member.accounting) permArr.push('Accounting');
                     const displayPermissions = permArr.length
                       ? permArr.join(', ')
                       : 'No Permissions';
@@ -498,7 +504,7 @@ function TeamSettings({ onClose }) {
             </div>
 
             <h4>Features</h4>
-            {['applications', 'tenants', 'units', 'issues', 'billings'].map((feat) => (
+            {['applications', 'tenants', 'units', 'issues', 'billings', 'accounting'].map((feat) => (
               <label key={feat}>
                 <input
                   type="checkbox"

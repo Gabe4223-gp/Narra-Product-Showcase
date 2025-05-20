@@ -1,167 +1,306 @@
 .modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    padding: 3%;
-    width: 20%;
-    z-index: 1000;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  width: 500px;
+  max-width: 90%;
+  z-index: 1000;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
 }
 
 .modal h3 {
-    font-size: 13px;
-    color: #333;
-    margin-bottom: 13px;    
-    margin-top: auto;
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 20px;
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .modal form label {
-    display: flex;
-    font-size: 12px;
-    margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 6px;
 }
 
 .modal form input,
-.modal form select {
-    padding: 3%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    margin-left: 10%;
-    max-height: 10px;
-    max-width: 80%;
+.modal form select,
+.modal form textarea {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.modal form input:focus,
+.modal form select:focus,
+.modal form textarea:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.modal form textarea {
+  min-height: 100px;
+  resize: vertical;
 }
 
 .modal form input[type="checkbox"] {
-    width: auto;
-    transform: scale(1.5);
-    margin-top: 2%;
+  width: auto;
+  transform: scale(1.2);
+  margin-right: 8px;
 }
 
 .modal button {
-    padding: 10px 20px;
-    font-size: 14px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 10px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .modal button:first-of-type {
-    background-color: #007bff;
-    color: white;
-    margin-right: 10px;
-    margin-top: 5%;
+  background-color: #3b82f6;
+  color: white;
+  margin-right: 10px;
+}
+
+.modal button:first-of-type:hover {
+  background-color: #2563eb;
 }
 
 .modal button:last-of-type {
-    background-color: #f0f0f0;
-    color: #333;
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.modal button:last-of-type:hover {
+  background-color: #e5e7eb;
+}
+
+.modal .button-group {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.issues-wrapper {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .unresolved-issues,
 .resolved-issues {
-    background-color: white; /* White background */
-    padding: 20px; /* Add padding inside the box */
-    border-radius: 8px; /* Round the corners */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Soft shadow for 3D effect */
-    max-width: 90%; /* Set a maximum width */
-    margin: 20px auto; /* Center the container horizontally */
-    min-height: 50%;
-    max-height: 400px; /* Adjust this height to suit your design */
-    overflow-y: auto;  /* This enables scrolling when the content exceeds the height */
-    margin-bottom: 20px;
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin: 24px 0;
+  overflow: hidden;
 }
 
-.issue-list table {
-    width: 100%;
-    border-collapse: separate; /* Ensure rows have space between them */
-    border-spacing: 0 10px; /* Add space between rows */
-  }
-  
-.issue-list tr {
-    background-color: white; /* Set the background for the "box" */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for a 3D effect */
-    border-radius: 8px; /* Round corners */
-    overflow: hidden; /* Ensure corners are rounded properly */
+.issue-list {
+  width: 100%;
 }
 
-.issue-list td {
-    padding: 10px 15px; /* Add padding for a spacious look */
-    font-size: 11px;
+.issue-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
-
-.issue-list th {
-    text-align: left; /* Align headers to the left */
-    padding: 10px 15px;
-    background-color: #f5f5f5; /* Light gray background for headers */
-    border-bottom: 2px solid #ddd; /* Add bottom border for separation */
-    font-size: 12px;
-}
-
-.issue-list tr:not(:last-child) {
-    margin-bottom: 10px; /* Add space between rows */
-}
-
 
 .issue-list h5 {
-    font-size: 13px;
-    color: #333;
-    margin-bottom: 13px;    
-    margin-top: auto;
-    margin-left: 1%;
-}
-
-.addIssue button {
-    margin-top: 50%;
-}
-
-.actions {
-    padding: 1%;
-    display: flex;
-    gap: 5px;
+  font-size: 18px;
+  color: #111827;
+  margin: 0 0 16px 0;
+  font-weight: 600;
 }
 
 .issue-list table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .issue-list thead {
-position: sticky;
-top: 0;
-background: white; /* Keep headers visible */
-z-index: 10;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.issue-list th,
+.issue-list th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  border-bottom: 2px solid #e5e7eb;
+}
+
 .issue-list td {
-padding: 10px;
-border-bottom: 1px solid #ddd;
-text-align: left;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.issue-list tr:hover td {
+  background-color: #f9fafb;
 }
 
 .issue-list tbody {
-display: block;
-max-height: 300px; /* Ensure tbody is scrollable */
-overflow-y: auto;
-width: 100%;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
-.issue-list tr {
-display: table;
-width: 100%;
-table-layout: fixed;
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.actions button,
+.issue-list td button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.actions button:hover,
+.issue-list td button:hover {
+  background-color: #2563eb;
+}
+
+.actions button:disabled {
+  background-color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.issue-list td button {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.issue-list td button:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
 }
 
 select#property-select {
-    margin-bottom: 3%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  margin-bottom: 16px;
+  min-width: 200px;
 }
 
 .issue-list-top {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
-    
+
+.tab-selector {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 24px;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  background-color: transparent;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.tab-button.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.resolved-issues-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.filter-controls select,
+.filter-controls input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.issue-doc {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.delete-button {
+  background-color: #ef4444;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #dc2626;
+}

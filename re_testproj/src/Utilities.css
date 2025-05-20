@@ -1,9 +1,113 @@
-.unit-readings {
-    display: flex;
-    width: 100%;
-    margin-left: 0px;
-    gap: 20px;
+.modal h4 {
+    margin-top: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
 }
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .btn-primary {
+    background-color: #3b82f6;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn-secondary {
+    background-color: #e5e7eb;
+    color: #111;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}  
+
+/* Modal improvements */
+.modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal h2 {
+    margin-bottom: 16px;
+    font-size: 20px;
+  }
+  
+  .form-section {
+    margin-bottom: 20px;
+  }
+  
+  .form-section h4 {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #444;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #333;
+  }
+  
+  .form-group input {
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .btn-primary {
+    background-color: #3b82f6;
+    color: white;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  
+  .btn-secondary {
+    background-color: #e5e7eb;
+    color: #111;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  
+  .unit-readings {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 32px;
+  }  
 
 .reading-header {
     display: flex;
@@ -13,14 +117,14 @@
 }
 
 .reading-table {
-    padding: 10px;
+    width: 100%;
+    max-width: 95.5%;
+    padding: 24px;
     background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    font-size: 12px;
-    border-collapse: collapse;
-    width: 600px;
-}
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+  }  
 
 .reading-table h5 {
     font-size: 13px;
@@ -74,3 +178,74 @@
     cursor: pointer;
     transition: color 0.3s ease;
 }
+
+.readings-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+  }
+  
+  .reading-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+  
+  .reading-controls select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+  }
+  
+  .reading-table-scroll {
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  .reading-edit-btn {
+    background-color: #3b82f6;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .reading-delete-btn {
+    margin-top: 12px;
+    background-color: #3b82f6;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  
+  .reading-delete-btn:disabled {
+    background-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+  
+  .reading-button {
+    background-color: #3b82f6;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .empty-state {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    padding: 24px;
+  }
+  

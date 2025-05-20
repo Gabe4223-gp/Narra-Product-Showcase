@@ -1,0 +1,174 @@
+/* Main container */
+.profit-loss-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    color: #333;
+  }
+  
+  /* Navigation bar */
+  .navigation-bar {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .nav-tabs {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .nav-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    font-weight: 500;
+  }
+  
+  .nav-tab:hover {
+    color: #0066cc;
+  }
+  
+  .nav-tab.active {
+    border-bottom: 3px solid #0066cc;
+    color: #0066cc;
+    font-weight: 600;
+  }
+  
+  /* Controls container */
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .dropdown-controls {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .dropdown {
+    position: relative;
+  }
+  
+  .dropdown-select {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    min-width: 200px;
+    cursor: pointer;
+  }
+  
+  .download-button {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .download-button:hover {
+    background-color: #0055aa;
+  }
+  
+  /* Table styles */
+  .table-container {
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .profit-loss-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  
+  .profit-loss-table th,
+  .profit-loss-table td {
+    padding: 12px 15px;
+    text-align: right;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .profit-loss-table th {
+    background-color: #f2f2f2;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .category-header {
+    text-align: left;
+    min-width: 150px;
+  }
+  
+  .row-header {
+    text-align: left;
+    font-weight: 500;
+  }
+  
+  .total-row {
+    background-color: #f0f7ff;
+    font-weight: 600;
+  }
+  
+  .subtotal-row {
+    background-color: #f5f5f5;
+    font-weight: 600;
+  }
+  
+  .final-row {
+    background-color: #e6f0ff;
+    font-weight: 700;
+  }
+  
+  .cumulative {
+    background-color: #f8f8f8;
+    font-weight: 600;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    .profit-loss-table {
+      font-size: 13px;
+    }
+    
+    .profit-loss-table th,
+    .profit-loss-table td {
+      padding: 10px 12px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .controls-container {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+    
+    .dropdown-controls {
+      width: 100%;
+    }
+    
+    .dropdown {
+      flex: 1;
+    }
+    
+    .dropdown-select {
+      width: 100%;
+    }
+    
+    .download-button {
+      width: 100%;
+    }
+  }

@@ -5,7 +5,7 @@ module.exports = {
   },
   development: {
     "username": "postgres",
-    "password": "***REMOVED***",
+    "password": "1111",
     "database": "narra_database",
     "host": "127.0.0.1",
     "port": 5432,
@@ -13,7 +13,7 @@ module.exports = {
   },
   test: {
     "username": "postgres",
-    "password": "***REMOVED***",
+    "password": "1111",
     "database": "narra_database",
     "host": "127.0.0.1",
     "dialect": "postgres"
@@ -32,7 +32,3 @@ module.exports = {
     }
   }
 };
-
-const env = process.env.NODE_ENV;
-const config = module.exports[env];
-console.log(`Sequelize ${env} config:`, config);

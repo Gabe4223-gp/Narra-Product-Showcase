@@ -74,7 +74,7 @@ function Sidebar({ isCollapsed, role }) {
                 <li>
                   <NavLink to="/issues" className={({ isActive }) => (isActive ? 'active' : '')}>
                     <FaWrench className="sidebar-icon" />
-                    {!isCollapsed && <span>Issues</span>}
+                    {!isCollapsed && <span>Maintenance</span>}
                   </NavLink>
                 </li>
               )}
@@ -87,6 +87,21 @@ function Sidebar({ isCollapsed, role }) {
                   </NavLink>
                 </li>
               )}
+
+              
+              <li>
+                <NavLink to="/accounting" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <FaClipboardList className="sidebar-icon" />
+                  {!isCollapsed && <span>Accountings</span>}
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink to="/profitloss" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <FaClipboardList className="sidebar-icon" />
+                  {!isCollapsed && <span>Profit Loss</span>}
+                </NavLink>
+              </li>
 
               <li>
                 <NavLink to="/tax-filing" className={({ isActive }) => (isActive ? 'active' : '')}>
