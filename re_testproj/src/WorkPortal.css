@@ -1,0 +1,377 @@
+.work-portal {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.search-box {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.2s;
+}
+
+.search-box:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.property-btn {
+  padding: 12px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.property-btn:hover {
+  background-color: #2563eb;
+}
+
+.property-selector {
+  margin-bottom: 24px;
+}
+
+.property-selector label {
+  font-weight: 500;
+  margin-right: 12px;
+}
+
+.property-selector select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+/* Form styling */
+.worker-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.worker-form input {
+  flex: 1 1 300px;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.worker-form input:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.worker-form button {
+  padding: 12px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.worker-form button:hover {
+  background-color: #2563eb;
+}
+
+.contractor-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 3 cards per row, responsive */
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.contractor-card {
+  background-color: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.contractor-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.contractor-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.book-btn {
+  background-color: #3b82f6;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.ratings-btn {
+  background-color: #e5e7eb;
+  color: #111;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.contractor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.contractor-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.contractor-info {
+  flex: 2;
+}
+
+.contractor-info p strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.book-btn:hover,
+.ratings-btn:hover {
+  background-color: #2563eb;
+}
+
+.ratings-btn {
+  background-color: white;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.ratings-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.calendar-view {
+  margin-top: 20px;
+  text-align: center;
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn {
+  margin-bottom: 20px;
+  padding: 10px 16px;
+  border: none;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.calendar-mock {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin: 0 auto;
+}
+
+/* Modal */
+.ratings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.modal-content li {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.modal-content button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.modal-content button:hover {
+  background-color: #2563eb;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.booking-form label {
+  margin-top: 16px;
+  font-weight: 500;
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+.datepicker-input {
+  padding: 12px;
+  font-size: 14px;
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.time-select {
+  padding: 12px;
+  font-size: 14px;
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.confirmation {
+  margin-top: 20px;
+  color: #10b981;
+  font-weight: 600;
+  padding: 12px;
+  background-color: #ecfdf5;
+  border-radius: 6px;
+  text-align: center;
+  width: 100%;
+}
+
+.address-search {
+  margin-bottom: 16px;
+}
+
+.nearest-info {
+  background: #f9fafb;
+  padding: 20px;
+  border-left: 4px solid #3b82f6;
+  margin: 24px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.nearest-info h3 {
+  margin-top: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.nearest-info p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-controls input,
+.filter-controls select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.rating {
+  margin-top: 8px;
+}
+
+.rating span {
+  font-size: 16px;
+}

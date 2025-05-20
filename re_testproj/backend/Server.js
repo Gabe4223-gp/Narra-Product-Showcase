@@ -27,6 +27,7 @@ const protectedRoutes = require('./routes/protectedRoutes');
 const TenantHomepage = require('./routes/tenantHomepageRoutes');
 const paymentsRoutes = require('./routes/paymentsRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const workPortalRoutes = require('./routes/workPortalRoutes');
 
 //Commenting out authMiddleware for now.
 //const authenticateToken = require('./middleware/authMiddleware');
@@ -39,6 +40,7 @@ const { createGCashIntent } = require('./paymongoService');
 //CORS Configuration
 const cors = require('cors');
 const { Sequelize, DataTypes } = require('sequelize');
+
 const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
@@ -143,6 +145,7 @@ app.use('/api/lease-proposal', leaseProposalRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
 app.use('/proof_uploads', express.static(path.join(__dirname, 'proof_uploads')));
+app.use('/api/work-portal', workPortalRoutes);
 app.use((err, req, res, next) => {
   console.error("Error occurred:", err);
   res.status(err.status || 500).json({ error: err.message });
