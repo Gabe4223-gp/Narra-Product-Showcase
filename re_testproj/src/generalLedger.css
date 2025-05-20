@@ -1,0 +1,167 @@
+/* Ledger.css */
+
+/* Use Poppins from Google Fonts */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f7f7f7;
+  margin: 0;
+  padding: 0;
+}
+
+.ledger-page {
+  padding: 2rem;
+}
+
+.ledger-content {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.general-ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.general-ledger-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-button {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.general-ledger-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.filter-panel {
+  border: 1px solid #ccc;
+  padding: 1.5rem;
+  background-color: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  flex: 1;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+}
+
+.date-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #e6e6e6;
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+}
+
+.date-input-wrapper input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-family: 'Poppins', sans-serif;
+}
+
+.calendar-icon {
+  margin-left: 0.5rem;
+  font-size: 16px;
+}
+
+.ledger-table-container {
+  background: white;
+}
+
+.matches-count {
+  font-size: 13px;
+  color: #999;
+  padding-bottom: 0.5rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ledger-table th {
+  background-color: #d6d6d6;
+  padding: 0.6rem;
+  font-size: 12px;
+  text-transform: uppercase;
+  border: 1px solid #ccc;
+  font-weight: 600;
+}
+
+.ledger-table td {
+  padding: 0.6rem;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.empty-message {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 0.5rem;
+}
