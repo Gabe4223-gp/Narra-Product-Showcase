@@ -10,6 +10,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: [],
     },
+    ratings: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: [],
+    },    
   }, {
     tableName: 'WorkPortal' // Tells Sequelize not to pluralize
   })

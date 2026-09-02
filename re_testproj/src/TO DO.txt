@@ -78,3 +78,18 @@ Upon uploading landlords/tenants to database. If we put a tenant on a property f
 
 For ssh into EC2 (backend)
 ssh -i "NarraBackendKeyPair.pem" ec2-user@3.138.113.140
+
+Fix EC2 Autoscaling Groups once cloud-based demand:
+----
+Efficient Resource Utilization:
+It automatically adjusts the number of running instances based on current demand. This means you only pay for the resources you need, which can lead to significant cost savings.
+
+Enhanced Reliability and Availability:
+Autoscaling helps maintain application performance and uptime. By automatically adding instances when demand increases and removing them when demand drops, it ensures your application remains responsive during peak loads and avoids unnecessary resource wastage.
+
+Improved Fault Tolerance:
+In the event of an instance failure, autoscaling can replace the faulty instance without manual intervention, thus reducing downtime.
+
+Operational Simplicity:
+By automating the scaling process, you reduce the need for manual monitoring and adjustments, allowing you to focus on other aspects of your application.
+----

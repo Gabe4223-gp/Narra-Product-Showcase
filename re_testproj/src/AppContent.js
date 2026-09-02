@@ -20,7 +20,7 @@ import Layout from './Layout';
 import RoleSelection from './RoleSelection';
 import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
-import TaxFilingSystem from './tax-filing';
+//import TaxFilingSystem from './tax-filing';
 import Ledger from './generalLedger';
 
 function AppContent() {
@@ -170,7 +170,7 @@ function AppContent() {
               {activeTeamMembership?.tenants && <Route path="tenant" element={<Tenants />} />}
               {activeTeamMembership?.units && <Route path="unit" element={<Units />} />}
               {activeTeamMembership?.issues && <Route path="issues" element={<Issues />} />}
-              <Route path="tax-filing" element={<TaxFilingSystem />} />
+              {/*<Route path="tax-filing" element={<TaxFilingSystem />} />*/}
               <Route path="generalLedger" element={<Ledger/>} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/homepage" replace />} />

@@ -111,4 +111,46 @@ router.put('/contractors', async (req, res) => {
   }
 });
 
+router.get('/contractors/:propertyId/:contractorId/ratings', async (req, res) => {
+  const { propertyId, contractorId } = req.params;
+  try {
+    const wp = await WorkPortal.findOne({ where: { propertyId } });
+    if (!wp || !wp.contractors) return res.json({ ratings: [] });
+
+    const contractor = wp.contractors.find(c => c.id == contractorId);
+    if (!contractor || !wp.ratings) return res.json({ ratings: [] });
+
+    const contractorRatings = wp.ratings.filter(r => r.contractorId == contractorId);
+    res.json({ ratings: contractorRatings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get ratings' });
+  }
+});
+
+router.put('/contractors/:propertyId/:contractorId/ratings', async (req, res) => {
+  const { propertyId, contractorId } = req.params;
+  const { reviewer, comment, stars } = req.body;
+
+  if (!reviewer || !comment || typeof stars !== 'number' || stars < 1 || stars > 5) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  try {
+    const wp = await WorkPortal.findOne({ where: { propertyId } });
+    if (!wp || !wp.contractors || !wp.contractors.find(c => c.id == contractorId)) {
+      return res.status(404).json({ error: 'Contractor not found' });
+    }
+
+    const newRating = { contractorId, reviewer, comment, stars };
+    wp.ratings = [...(wp.ratings || []), newRating];
+    await wp.save();
+
+    res.json({ success: true, rating: newRating });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to submit rating' });
+  }
+});
+
 module.exports = router;

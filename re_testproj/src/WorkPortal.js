@@ -11,47 +11,19 @@ const mapContainerStyle = {
   height: "400px",
   borderRadius: "12px",
 }
-
+/*
 const mockRatings = [
   { reviewer: "Anna Reyes", comment: "Great service!", stars: 5 },
   { reviewer: "Mark Tan", comment: "On time and professional.", stars: 4 },
   { reviewer: "Liza G.", comment: "Fair price, will hire again.", stars: 5 },
 ]
-
-/*
-const contractors = [
-  {
-    id: 1,
-    name: "Gabe Payumo",
-    role: "Electrician",
-    description: "Fixes electricity",
-    phone: "+63 9175994223",
-    email: "gpayumo99@gmail.com",
-    status: "Verified",
-    price: 500,
-    availability: "Available",
-    rating: 5,
-    location: { lat: 14.6091, lng: 121.0223 }, // Example: QC
-  },
-  {
-    id: 2,
-    name: "Tabaching chong",
-    role: "Fatass plumber",
-    description: "Specializes in clogging your toilet",
-    phone: "+63 09152128195",
-    email: "justin@example.com",
-    status: "No Certification",
-    price: "5 Hamburgers per second",
-    availability: "Unavailable",
-    rating: 3,
-    location: { lat: 14.5547, lng: 121.0244 },
-  },
-]
 */
 
 const WorkPortal = () => {
   const [showForm, setShowForm] = useState(false)
+  const [ratings, setRatings] = useState([])
   const [showRatings, setShowRatings] = useState(false)
+  const [showReviewForm, setShowReviewForm] = useState(false)
   const [calendarView, setCalendarView] = useState(false)
   const [selectedContractor, setSelectedContractor] = useState(null)
   const [selectedDate, setSelectedDate] = useState(null)
@@ -64,6 +36,7 @@ const WorkPortal = () => {
   const [alphabeticalFilter, setAlphabeticalFilter] = useState("")
   const libraries = ["places"]
   const [contractors, setContractors] = useState([]);
+
 
   //Select Property
   const [properties, setProperties] = useState([])
@@ -119,7 +92,7 @@ const WorkPortal = () => {
         })
     : []
 
-const nearestContractor =
+  const nearestContractor =
   filteredContractors.length > 0
     ? filteredContractors.reduce((nearest, curr) =>
         curr.distance < nearest.distance ? curr : nearest,
@@ -132,10 +105,21 @@ const nearestContractor =
     setCalendarView(true)
   }
 
-  const handleShowRatings = (contractor) => {
-    setSelectedContractor(contractor)
-    setShowRatings(true)
-  }
+  const handleShowRatings = async (contractor) => {
+    setSelectedContractor({ ...contractor });
+    setShowRatings(true);
+    setShowReviewForm(false);
+  
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/work-portal/contractors/${selectedProperty.id}/${contractor.id}/ratings`
+      );
+      setRatings(res.data.ratings || []);
+    } catch (err) {
+      console.error('Failed to fetch ratings:', err);
+      setRatings([]);
+    }
+  };
 
   const handleBookingSubmit = () => {
     if (!selectedDate || !selectedTime) {
@@ -155,6 +139,29 @@ const nearestContractor =
       setConfirmationMessage("")
     }, 2500)
   }
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const reviewer = form.reviewer.value;
+    const comment = form.comment.value;
+    const stars = parseInt(form.stars.value);
+  
+    if (!reviewer || !comment || !stars) return;
+  
+    try {
+      await axios.put(
+        `http://localhost:5000/api/work-portal/contractors/${selectedProperty.id}/${selectedContractor.id}/ratings`,
+        { reviewer, comment, stars }
+      );
+      form.reset();
+      setShowReviewForm(false);
+      handleShowRatings(selectedContractor); // Refresh ratings
+    } catch (err) {
+      console.error('Failed to submit review:', err);
+      alert('Failed to submit review.');
+    }
+  };  
 
   //Fetch Properties from API
   useEffect(() => {
@@ -210,8 +217,6 @@ const nearestContractor =
   
     fetchAndGeocodeProperties();
   }, []);
-  
-  
 
   // Google Maps Autocomplete
   useEffect(() => {
@@ -483,15 +488,43 @@ const nearestContractor =
         <div className="ratings-modal">
           <div className="modal-content">
             <h3>Ratings for {selectedContractor?.name}</h3>
-            <ul>
-              {mockRatings.map((r, i) => (
-                <li key={i}>
-                  <strong>{r.reviewer}:</strong> {r.comment}
-                  <span style={{ marginLeft: "10px", color: "#3b82f6" }}>{[...Array(r.stars)].map((_, i) => "★")}</span>
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => setShowRatings(false)}>Close</button>
+
+            {ratings.length === 0 ? (
+              <p>No Reviews Yet.</p>
+            ) : (
+              <ul>
+                {ratings.map((r, i) => (
+                  <li key={i}>
+                    <strong>{r.reviewer}:</strong> {r.comment}
+                    <span style={{ marginLeft: '10px', color: '#3b82f6' }}>
+                      {[...Array(r.stars)].map((_, i) => '★')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!showReviewForm ? (
+              <button onClick={() => setShowReviewForm(true)}>Write a Review</button>
+            ) : (
+              <form onSubmit={handleSubmitReview} style={{ marginTop: '1rem' }}>
+                <input name="reviewer" placeholder="Your Name" required />
+                <input name="comment" placeholder="Your Comment" required />
+                <select name="stars" required>
+                  <option value="">Rating</option>
+                  <option value="1">1 ★</option>
+                  <option value="2">2 ★</option>
+                  <option value="3">3 ★</option>
+                  <option value="4">4 ★</option>
+                  <option value="5">5 ★</option>
+                </select>
+                <button type="submit">Submit</button>
+              </form>
+            )}
+
+            <button onClick={() => setShowRatings(false)} style={{ marginTop: '1rem' }}>
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -565,7 +598,7 @@ const nearestContractor =
                 )}
 
                 {/* Info Window */}
-                {selectedContractor && (
+                {selectedContractor?.location?.lat && selectedContractor?.location?.lng && (
                   <InfoWindow
                     position={selectedContractor.location}
                     onCloseClick={() => setSelectedContractor(null)}
