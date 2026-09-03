@@ -1,3 +1,45 @@
-node_modules
-/backend/ddeploy-backed.sh
-/backend/lease_proposal_uploads
+# ---------- Dependencies ----------
+node_modules/
+
+# ---------- Secrets: never commit ----------
+# .env.example is the tracked template; every real .env stays local.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+config/keys/
+
+# ---------- Build output ----------
+build/
+dist/
+.eslintcache
+
+# ---------- Runtime-generated files ----------
+# Written by the app at runtime; regenerated, not source.
+invoices/
+uploads/
+proof_uploads/
+lease_bills/
+lease_proposal_uploads/
+*.rdb
+
+# ---------- Logs ----------
+*.log
+npm-debug.log*
+yarn-debug.log*
+logs/
+
+# ---------- Business documents ----------
+# Pitch deck and market research are not for a public repo.
+*.docx
+*.pptx
+
+# ---------- OS / editor ----------
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
