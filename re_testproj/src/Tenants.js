@@ -5,8 +5,10 @@ import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useUserProfile } from "./UserProfileContext";
+import useAuthedRequest from './useAuthedRequest';
 
 function Tenants() {
+  const { authedFetch } = useAuthedRequest();
   const defaultImage = "https://via.placeholder.com/150";
   const [tenants, setTenants] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -403,7 +405,7 @@ function Tenants() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/delete-all`, {
+        const response = await authedFetch(`${process.env.REACT_APP_API_URL}/tenants/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

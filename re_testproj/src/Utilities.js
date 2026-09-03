@@ -1,8 +1,10 @@
 import React, { useState, useEffect} from 'react';
 import './Utilities.css';
 import { v4 as uuidv4 } from 'uuid';
+import useAuthedRequest from './useAuthedRequest';
 
 function Utilities({ unit, fetchUnitDetails }) {
+  const { authedFetch } = useAuthedRequest();
     // Generate last 10 years for selection
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -231,7 +233,7 @@ function Utilities({ unit, fetchUnitDetails }) {
         console.log("Selected readings", selectedReadingIds);
         try {
             // Make a DELETE request to the backend with the selected reading IDs
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/readings/delete-all`, {
+            const response = await authedFetch(`${process.env.REACT_APP_API_URL}/readings/delete-all`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

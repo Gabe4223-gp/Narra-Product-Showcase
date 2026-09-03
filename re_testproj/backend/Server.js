@@ -1,5 +1,5 @@
 // backend/server.js
-require('dotenv').config({ path: './backend/.env' });
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const { v4: uuidv4 } = require('uuid');
 
 const bodyParser = require('body-parser');
@@ -29,8 +29,9 @@ const paymentsRoutes = require('./routes/paymentsRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const workPortalRoutes = require('./routes/workPortalRoutes');
 
-//Commenting out authMiddleware for now.
-//const authenticateToken = require('./middleware/authMiddleware');
+// Applied to endpoints that send mail, delete in bulk, or move money.
+// Not applied globally: most frontend calls do not yet attach a token.
+const requireAuth = require('./middleware/authMiddleware');
 //const { JwksRateLimitError } = require('jwks-rsa');
 
 //Payments
@@ -256,12 +257,21 @@ sequelize.sync()
 
 //Send Mail/////////////////////////////////////////////////////////////////////////////////////
 async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  if (process.env.EMAIL_ENABLED !== 'true') {
+    console.log(`Email disabled (EMAIL_ENABLED is not "true"); skipped sending to ${tenantEmail}`);
+    return;
+  }
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.error('EMAIL_ENABLED is true but SMTP credentials are missing; not sending.');
+    return;
+  }
+
   let transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,  // 587 for TLS
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
     auth: {
-      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
-      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 
@@ -664,7 +674,7 @@ app.post('/issues/resolution', async (req, res) => {
   }
 });
 
-app.delete('/issues/delete-all', async (req, res) => {
+app.delete('/issues/delete-all', requireAuth, async (req, res) => {
   const { issueIds, propertyId } = req.body; // Assuming issueIds is an array
 
   if (!Array.isArray(issueIds) || issueIds.length === 0) {
@@ -1234,7 +1244,7 @@ app.delete('/units/delete', async (req, res) => {
 });
 
 //Delete selected units
-app.delete('/units/delete-all', async (req, res) => {
+app.delete('/units/delete-all', requireAuth, async (req, res) => {
   const { unitIds, propertyId } = req.body; // Assuming unitIds is an array
 
   if (!Array.isArray(unitIds) || unitIds.length === 0) {
@@ -2257,7 +2267,7 @@ app.delete('/tenants/delete', async (req, res) => {
 });
 
 //Delete selected
-app.delete('/tenants/delete-all', async (req, res) => {
+app.delete('/tenants/delete-all', requireAuth, async (req, res) => {
   const { tenantIds, propertyId } = req.body; // Assuming tenantIds is an array
 
   if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
@@ -2349,7 +2359,7 @@ app.delete('/tenants/delete-all', async (req, res) => {
 });
 
 //Tenant lease upload
-app.post('/tenants/upload-lease', async (req, res) => {
+app.post('/tenants/upload-lease', requireAuth, async (req, res) => {
   console.log("the function works");
   const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
   
@@ -2809,7 +2819,7 @@ app.get('/current-lease/:tenantId', async (req, res) => {
   }
 });
 
-app.delete('/leases/delete-all', async (req, res) => {
+app.delete('/leases/delete-all', requireAuth, async (req, res) => {
   const { docIds, tenantId } = req.body;
 
   // Validate input
@@ -2895,7 +2905,7 @@ app.delete('/leases/delete-all', async (req, res) => {
 //Readings/Utilities////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DELETE endpoint for removing readings by ID from multiple attributes (arrays)
-app.delete('/readings/delete-all', async (req, res) => {
+app.delete('/readings/delete-all', requireAuth, async (req, res) => {
   const { readingIds, unitId } = req.body;
 
   if (!readingIds || readingIds.length === 0) {
@@ -3239,7 +3249,7 @@ app.post('/api/paymongo/bank-transfer-intent', async (req, res) => {
 });
 
 //Payment API through GCash
-app.post('/api/paymongo/gcash-intent', async (req, res) => {
+app.post('/api/paymongo/gcash-intent', requireAuth, async (req, res) => {
   const { amount } = req.body;
 
   if (!amount || amount < 5000) {
@@ -3303,11 +3313,17 @@ async function generateInvoicePDF(subject, rentalAmount, utilityFees, otherFees,
 
 // Utility function to send an email
 async function sendEmail(email, subject, invoicePath) {
+  if (process.env.EMAIL_ENABLED !== 'true' || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.log('Email disabled or SMTP credentials missing; not sending.');
+    return;
+  }
+
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 

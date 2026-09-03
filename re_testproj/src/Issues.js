@@ -6,8 +6,10 @@ import IssueProfile from "./IssueProfile"
 import { v4 as uuidv4 } from "uuid"
 import { useUserProfile } from "./UserProfileContext"
 import WorkPortal from "./WorkPortal"
+import useAuthedRequest from './useAuthedRequest';
 
 function Issues() {
+  const { authedFetch } = useAuthedRequest();
   // Generate last 10 years for selection
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i)
@@ -380,7 +382,7 @@ function Issues() {
     }
     try {
       // Make a DELETE request to the backend with the propertyId
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/issues/delete-all`, {
+      const response = await authedFetch(`${process.env.REACT_APP_API_URL}/issues/delete-all`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

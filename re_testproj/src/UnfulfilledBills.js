@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+import useAuthedRequest from './useAuthedRequest';
 function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
+  const { authedFetch } = useAuthedRequest();
   console.log("propertyid", propertyId);
   const [bills, setBills] = useState([]);
   const [tenantBills, setTenantBills] = useState([]);
@@ -57,7 +59,7 @@ function UnfulfilledBills({ propertyId, onMarkPaid, refresh }) {
     }
     console.log("Selectedbullids", selectedBillIds);
     try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
+        const response = await authedFetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

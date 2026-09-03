@@ -4,8 +4,10 @@ import * as XLSX from 'xlsx';
 import UnitProfile from './UnitProfile';
 import { v4 as uuidv4 } from 'uuid';
 import { useUserProfile } from "./UserProfileContext";
+import useAuthedRequest from './useAuthedRequest';
 
 function Units() {
+  const { authedFetch } = useAuthedRequest();
   const [properties, setProperties] = useState([]); // Handle property list
   const [units, setUnits] = useState([]);
   const [isAddingUnits, setIsAddingUnits] = useState(false);
@@ -359,7 +361,7 @@ function Units() {
     }
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/units/delete-all`, {
+        const response = await authedFetch(`${process.env.REACT_APP_API_URL}/units/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+import useAuthedRequest from './useAuthedRequest';
 function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
+  const { authedFetch } = useAuthedRequest();
   const [bills, setBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(true);
   const [error, setError] = useState(null);
@@ -104,7 +106,7 @@ function FulfilledBills({ propertyId, refresh, onMarkUnpaid }) {
     console.log("Selectedbullids", selectedBillIds);
     try {
         // Make a DELETE request to the backend with the propertyId
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
+        const response = await authedFetch(`${process.env.REACT_APP_API_URL}/api/sendBill/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

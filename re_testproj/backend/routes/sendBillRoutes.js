@@ -4,6 +4,8 @@ const express = require('express');
 //NodeMailer
 const nodemailer = require('nodemailer');
 
+const requireAuth = require('../middleware/authMiddleware');
+
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
@@ -17,7 +19,7 @@ const { v4: uuidv4 } = require('uuid');
 // Import models – note Files is our reintroduced model
 const { Tenant, Files, UserProfile } = require('../models');
 
-const STORAGE_TYPE = 's3'; //set to s3 for testing
+const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
 const AWS_REGION = process.env.AWS_REGION;
 
@@ -32,17 +34,29 @@ if (STORAGE_TYPE === 's3') {
 
 //Send Mail/////////////////////////////////////////////////////////////////////////////////////
 async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {
+  // Outbound mail is off unless EMAIL_ENABLED is explicitly "true" and SMTP
+  // credentials are present. This endpoint relays caller-supplied recipients
+  // and subject lines, so an unguarded transport here is an open relay.
+  if (process.env.EMAIL_ENABLED !== 'true') {
+    console.log(`Email disabled (EMAIL_ENABLED is not "true"); skipped sending to ${tenantEmail}`);
+    return;
+  }
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.error('EMAIL_ENABLED is true but SMTP credentials are missing; not sending.');
+    return;
+  }
+
   let transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,  // 587 for TLS
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
     auth: {
-      user: "***REMOVED***",  // Your Brevo SMTP username (Email)
-      pass: "***REMOVED***",  // Your Brevo SMTP password (API Key)
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 
   let mailOptions = {
-    from: `"${landlordName} (via Narra)" <${"narra.email.ph@gmail.com"}>`,
+    from: `"${landlordName} (via Narra)" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`,
     replyTo: landlordEmail,  // The landlord's email will be the reply-to
     to: tenantEmail,
     subject: subject,
@@ -217,7 +231,7 @@ function generatePDF(data) {
 
 
 
-router.post('/generate', async (req, res) => {
+router.post('/generate', requireAuth, async (req, res) => {
   try {
     const {
       tenantEmail,
@@ -652,7 +666,7 @@ router.put('/markAsUnpaid', async (req, res) => {
 });
 
 // DELETE route to delete selected bills
-router.delete('/delete-all', async (req, res) => {
+router.delete('/delete-all', requireAuth, async (req, res) => {
   const { bills, propertyId } = req.body;
 
   console.log("lasdfh", bills)

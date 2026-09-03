@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import gcashLogo from './images/gcash-logo.png';
 import './GCashForm.css';
+import useAuthedRequest from './useAuthedRequest';
 
 function GCashForm({ onPaymentSuccess, onPaymentError }) {
+  const { authedFetch } = useAuthedRequest();
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -20,7 +22,7 @@ function GCashForm({ onPaymentSuccess, onPaymentError }) {
     setMessage('');
 
     try {
-      const response = await fetch(`${BaseURL}/api/paymongo/gcash-intent`, {
+      const response = await authedFetch(`${BaseURL}/api/paymongo/gcash-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

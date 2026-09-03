@@ -1,6 +1,8 @@
 const express = require('express');
 const { EmailMessage } = require('../models'); // Import model
 const nodemailer = require('nodemailer'); // For sending emails
+const requireAuth = require('../middleware/authMiddleware');
+
 const router = express.Router();
 
 // Fetch email messages with pagination
@@ -23,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 // Accept an email and send a reply
-router.post('/:id/accept', async (req, res) => {
+router.post('/:id/accept', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -37,16 +39,22 @@ router.post('/:id/accept', async (req, res) => {
     await emailMessage.save();
 
     // Send an email back to the sender
+    if (process.env.EMAIL_ENABLED !== 'true' || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.log('Email disabled or SMTP credentials missing; not sending.');
+      return res.json({ message: 'Saved. Email notification is disabled on this deployment.' });
+    }
+
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
       auth: {
-        user: 'your-email@gmail.com', // Replace with your email
-        pass: 'your-email-password', // Replace with your password or app password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
     await transporter.sendMail({
-      from: '"Landlord" <your-email@gmail.com>',
+      from: `"Landlord" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`,
       to: emailMessage.email,
       subject: 'Landlord has accepted your Email! You are now connected.',
       text: `Dear tenant, your email has been accepted. Let's get connected!`,
@@ -60,7 +68,7 @@ router.post('/:id/accept', async (req, res) => {
 });
 
 // Decline an email and send an automated message
-router.post('/:id/decline', async (req, res) => {
+router.post('/:id/decline', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -74,16 +82,22 @@ router.post('/:id/decline', async (req, res) => {
     await emailMessage.save();
 
     // Send a decline email
+    if (process.env.EMAIL_ENABLED !== 'true' || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.log('Email disabled or SMTP credentials missing; not sending.');
+      return res.json({ message: 'Saved. Email notification is disabled on this deployment.' });
+    }
+
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
       auth: {
-        user: 'your-email@gmail.com', // Replace with your email
-        pass: 'your-email-password', // Replace with your password or app password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
     await transporter.sendMail({
-      from: '"Landlord" <your-email@gmail.com>',
+      from: `"Landlord" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`,
       to: emailMessage.email,
       subject: 'Narra: Your message has been declined.',
       text: 'Sorry, the landlord did not accept your email.',

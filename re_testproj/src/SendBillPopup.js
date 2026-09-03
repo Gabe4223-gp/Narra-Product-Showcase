@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SendBillPopup.css';
+import useAuthedRequest from './useAuthedRequest';
 
 function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, propertyId, landlordId, landlordEmail }) {
+  const { authHeaders } = useAuthedRequest();
   console.log("the landlordid", landlordId);
   const [subject, setSubject] = useState('');
   const [rentalAmount, setRentalAmount] = useState('');
@@ -133,7 +135,7 @@ function SendBillPopup({ onClose, onRefreshPayments, tenantEmail, user_id, prope
 
     console.log("Sending billData:", billData);
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/sendBill/generate`, billData);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/sendBill/generate`, billData, await authHeaders());
       alert('Bill sent successfully.');
     } catch (error) {
       console.error('Error generating bill:', error);
