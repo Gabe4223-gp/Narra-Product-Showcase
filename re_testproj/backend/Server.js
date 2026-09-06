@@ -32,7 +32,6 @@ const workPortalRoutes = require('./routes/workPortalRoutes');
 // Applied to endpoints that send mail, delete in bulk, or move money.
 // Not applied globally: most frontend calls do not yet attach a token.
 const requireAuth = require('./middleware/authMiddleware');
-//const { JwksRateLimitError } = require('jwks-rsa');
 
 //Payments
 const { createPaymongoIntent } = require('./paymongoService');
