@@ -171,9 +171,17 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
+// Managed Postgres (Neon, Supabase, Render) requires TLS; local Postgres
+// generally does not. Keying off the host rather than NODE_ENV means this is
+// correct in both directions without another environment variable to forget.
+const isLocalDb = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(databaseUrl);
+
 const sequelize = new Sequelize(databaseUrl, {
   dialect: 'postgres',
   logging: console.log, // or false
+  ...(isLocalDb
+    ? {}
+    : { dialectOptions: { ssl: { require: true, rejectUnauthorized: false } } }),
 });
 
 // Test DB connection

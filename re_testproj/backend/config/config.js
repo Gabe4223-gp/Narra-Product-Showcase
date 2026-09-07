@@ -14,23 +14,29 @@ const base = {
   dialect: 'postgres',
 };
 
-// Managed Postgres (Neon, Supabase, Render) requires TLS, and presents certs
-// that are not in Node's default trust store.
-const managedSsl = {
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
-  },
-};
+// Managed Postgres (Neon, Supabase, Render) requires TLS. Detect it from the
+// connection string host rather than NODE_ENV, so pointing any environment at
+// a managed database just works and there is no extra variable to forget.
+const url = process.env.DATABASE_URL || '';
+const isLocalDb = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
+
+const managedSsl = isLocalDb
+  ? {}
+  : {
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      },
+    };
 
 module.exports = {
   auth0: {
     issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
     audience: process.env.AUTH0_AUDIENCE,
   },
-  development: { ...base },
-  test: { ...base },
+  development: { ...base, ...managedSsl },
+  test: { ...base, ...managedSsl },
   production: { ...base, ...managedSsl },
 };
