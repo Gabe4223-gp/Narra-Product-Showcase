@@ -20,6 +20,7 @@ import Layout from './Layout';
 import RoleSelection from './RoleSelection';
 import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
+import BackendWaking from './BackendWaking';
 //import TaxFilingSystem from './tax-filing';
 import Ledger from './generalLedger';
 
@@ -85,9 +86,10 @@ function AppContent() {
   
   }, [redirected, role, isAuthenticated, isLoading, loginWithRedirect, navigate]);
 
-  // If loading from Auth0 or TeamContext, show loading
+  // If loading from Auth0 or TeamContext, show loading. TeamContext makes the
+  // first API call of the session, so this is where a cold backend is felt.
   if (isLoading || loadingTeams) {
-    return <div>Loading...</div>;
+    return <BackendWaking />;
   }
 
   // If not authenticated, show public routes

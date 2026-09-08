@@ -1,5 +1,5 @@
 // RoleSelection.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -8,6 +8,8 @@ import './RoleSelection.css';
 function RoleSelection({ setRole, setPermissions }) {
   const { user, logout } = useAuth0();
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
   const apiUrl = process.env.REACT_APP_API_URL;
   console.log("This is the URL", apiUrl);
@@ -16,13 +18,28 @@ function RoleSelection({ setRole, setPermissions }) {
   const handleRoleSelection = async (selectedRole) => {
     const email = user?.email;
     if (!email) {
-      alert("No email found. Please log in again.");
+      setError("We could not read your email address. Please sign in again.");
       return;
     }
-  
-    // (Optional) Check if user profile exists
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/existing?email=${encodeURIComponent(email)}`);
-    const { exists } = res.data;
+
+    setBusy(true);
+    setError(null);
+
+    let exists;
+    try {
+      // This can be the first call to a sleeping server, so it may take
+      // around a minute. Previously an failure here threw silently and the
+      // button simply did nothing.
+      const res = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/user-profile/existing?email=${encodeURIComponent(email)}`
+      );
+      exists = res.data.exists;
+    } catch (err) {
+      console.error('Could not check for an existing profile:', err);
+      setBusy(false);
+      setError("The server did not respond. It may still be starting up - please try again in a moment.");
+      return;
+    }
   
     // If doesn't exist, go to welcome steps
     if (!exists) {
@@ -58,9 +75,36 @@ function RoleSelection({ setRole, setPermissions }) {
 
   return (
     <div className="role-selection-container">
-      <button className="btn-role" onClick={() => handleRoleSelection('landlord')}>Manager</button>
-      <button className="btn-role" onClick={() => handleRoleSelection('tenant')}>Tenant</button>
-      <button className="btn-role" onClick={handleLogout}>Back to Login</button>
+      <button
+        className="btn-role"
+        onClick={() => handleRoleSelection('landlord')}
+        disabled={busy}
+      >
+        {busy ? 'Please wait...' : 'Manager'}
+      </button>
+      <button
+        className="btn-role"
+        onClick={() => handleRoleSelection('tenant')}
+        disabled={busy}
+      >
+        {busy ? 'Please wait...' : 'Tenant'}
+      </button>
+      <button className="btn-role" onClick={handleLogout} disabled={busy}>
+        Back to Login
+      </button>
+
+      {busy && (
+        <p className="role-hint" role="status" aria-live="polite">
+          Starting the server. On free hosting this can take up to a minute
+          the first time.
+        </p>
+      )}
+
+      {error && (
+        <p className="role-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

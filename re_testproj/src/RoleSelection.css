@@ -34,3 +34,30 @@
 .btn-role:hover {
   background-color: #76f0a9;
 }
+
+.btn-role:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-role:disabled:hover {
+  background-color: #f6f6f600;
+}
+
+.role-hint,
+.role-error {
+  max-width: 340px;
+  margin: 4px 24px 0;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.role-hint {
+  color: #c8d8ea;
+}
+
+.role-error {
+  color: #ffc9c2;
+}

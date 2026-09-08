@@ -22,6 +22,14 @@ const domain = process.env.REACT_APP_AUTH0_DOMAIN;
 const clientId = process.env.REACT_APP_AUTH0_CLIENT_ID;
 const audience = process.env.REACT_APP_AUTH0_AUDIENCE;
 
+// Start waking the API immediately. Free-tier hosting suspends the service
+// when idle, and this request overlaps that ~30s wake-up with the Auth0
+// redirect the user is already waiting through. Fire-and-forget: failures
+// here are irrelevant, the real calls report their own errors.
+if (process.env.REACT_APP_API_URL) {
+  fetch(`${process.env.REACT_APP_API_URL}/`, { mode: 'cors' }).catch(() => {});
+}
+
 ReactDOM.render(
   <React.StrictMode>
     <Auth0Provider
