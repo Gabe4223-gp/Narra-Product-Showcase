@@ -164,6 +164,27 @@ app.use('/api/sendBill', sendBillRoutes);
 app.use('/api/lease-proposal', leaseProposalRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/lease_bills', express.static(path.join(__dirname, 'lease_bills')));
+
+// Fallback for /lease_bills/<name> when the file is not on disk. Runs after
+// the static mount, so anything still on the filesystem is served directly and
+// DB-backed documents are streamed from Postgres. This keeps every URL already
+// stored in Files/Leases working regardless of which backend wrote it.
+app.get('/lease_bills/:key', async (req, res) => {
+  try {
+    const { body, contentType } = await storage.getObject(req.params.key);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', body.length);
+    // inline so the browser renders the PDF rather than downloading it
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(req.params.key)}"`);
+    return res.send(body);
+  } catch (err) {
+    if (err && (err.code === 'ENOENT' || err.code === 'NoSuchKey')) {
+      return res.status(404).json({ error: 'That document is no longer stored.' });
+    }
+    console.error('Error serving document:', err);
+    return res.status(500).json({ error: 'Failed to load document.' });
+  }
+});
 app.use('/proof_uploads', express.static(path.join(__dirname, 'proof_uploads')));
 app.use('/api/work-portal', workPortalRoutes);
 app.use((err, req, res, next) => {

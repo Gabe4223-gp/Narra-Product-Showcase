@@ -6,9 +6,11 @@
 // STORAGE_TYPE was not 's3' -- and failed with NoSuchBucket when it was but
 // the bucket had been deleted.
 //
-// STORAGE_TYPE=s3    -> AWS (or any S3-compatible endpoint)
-// anything else      -> local disk under backend/lease_bills, served by the
-//                       existing /lease_bills static mount
+// STORAGE_TYPE=s3       -> AWS (or any S3-compatible endpoint)
+// STORAGE_TYPE=postgres -> a bytea column in the FileBlobs table. Survives
+//                          restarts and redeploys, needs no second service.
+// anything else         -> local disk under backend/lease_bills, served by
+//                          the existing /lease_bills static mount
 //
 // Local storage is ephemeral on free-tier hosts: files survive until the next
 // restart or redeploy. Fine for a demo, not for real tenancy documents.
@@ -35,6 +37,14 @@ if (STORAGE_TYPE === 's3') {
 }
 
 const usingS3 = () => Boolean(s3);
+const usingDb = () => STORAGE_TYPE === 'postgres' || STORAGE_TYPE === 'db';
+
+// Required lazily: models/index.js builds Sequelize at import time, and
+// requiring it from the top of this file would tie the two module loads
+// together for no benefit.
+function db() {
+  return require('./models').sequelize;
+}
 
 // Keys arrive from request bodies and query strings. Collapse anything that
 // looks like a path so a caller cannot read or write outside LOCAL_DIR.
@@ -48,6 +58,8 @@ function safeKey(key) {
 
 function publicUrl(key) {
   const k = safeKey(key);
+  // Both the DB and local-disk backends are served from /lease_bills, so the
+  // URL shape does not change when you switch between them.
   return usingS3()
     ? `https://${BUCKET}.s3.${REGION}.amazonaws.com/${k}`
     : `${API_BASE_URL}/lease_bills/${encodeURIComponent(k)}`;
@@ -60,6 +72,26 @@ async function putObject(key, buffer, contentType = 'application/pdf') {
     await s3
       .upload({ Bucket: BUCKET, Key: k, Body: buffer, ContentType: contentType })
       .promise();
+    return publicUrl(k);
+  }
+
+  if (usingDb()) {
+    // Upsert so regenerating a document with the same name replaces it.
+    await db().query(
+      `INSERT INTO "FileBlobs" ("key", "contentType", "data", "byteSize", "createdAt", "updatedAt")
+       VALUES (:key, :contentType, :data, :byteSize, NOW(), NOW())
+       ON CONFLICT ("key") DO UPDATE
+         SET "contentType" = EXCLUDED."contentType",
+             "data" = EXCLUDED."data",
+             "byteSize" = EXCLUDED."byteSize",
+             "updatedAt" = NOW()`,
+      {
+        replacements: { key: k, contentType, data: buffer, byteSize: buffer.length },
+        // Without this the whole file is hex-dumped into the SQL log on every
+        // write, which floods the host's log buffer.
+        logging: false,
+      }
+    );
     return publicUrl(k);
   }
 
@@ -109,8 +141,25 @@ async function getObject(key) {
     return { body: data.Body, contentType };
   }
 
+  if (usingDb()) {
+    const [rows] = await db().query(
+      'SELECT "contentType", "data" FROM "FileBlobs" WHERE "key" = :key LIMIT 1',
+      { replacements: { key: k }, logging: false }
+    );
+    if (!rows || rows.length === 0) {
+      const err = new Error(`No stored file named ${k}`);
+      err.code = 'ENOENT';
+      throw err;
+    }
+    const body = Buffer.isBuffer(rows[0].data) ? rows[0].data : Buffer.from(rows[0].data);
+    const stored = rows[0].contentType;
+    const contentType =
+      stored && stored !== 'application/octet-stream' ? stored : detectContentType(body, k);
+    return { body, contentType };
+  }
+
   const body = await fs.promises.readFile(path.join(LOCAL_DIR, k));
   return { body, contentType: detectContentType(body, k) };
 }
 
-module.exports = { putObject, getObject, publicUrl, usingS3, detectContentType, LOCAL_DIR, STORAGE_TYPE };
+module.exports = { putObject, getObject, publicUrl, usingS3, usingDb, detectContentType, LOCAL_DIR, STORAGE_TYPE };
