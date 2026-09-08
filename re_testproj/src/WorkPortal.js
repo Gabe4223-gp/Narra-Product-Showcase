@@ -108,6 +108,9 @@ const WorkPortal = () => {
   const handleBookNow = (contractor) => {
     setSelectedContractor(contractor)
     setCalendarView(true)
+    // The booking form renders above the contractor list, so without this the
+    // user is left scrolled at the card they just clicked.
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleShowRatings = async (contractor) => {
@@ -161,7 +164,11 @@ const WorkPortal = () => {
       );
       form.reset();
       setShowReviewForm(false);
-      handleShowRatings(selectedContractor); // Refresh ratings
+      handleShowRatings(selectedContractor);   // refresh the list inside the modal
+      // ...and the cards behind it, whose average rating just changed.
+      if (selectedProperty?.id) {
+        fetchContractors(selectedProperty.id);
+      }
     } catch (err) {
       console.error('Failed to submit review:', err);
       alert('Failed to submit review.');
@@ -509,27 +516,45 @@ const WorkPortal = () => {
               </ul>
             )}
 
-            {!showReviewForm ? (
-              <button onClick={() => setShowReviewForm(true)}>Write a Review</button>
-            ) : (
-              <form onSubmit={handleSubmitReview} style={{ marginTop: '1rem' }}>
-                <input name="reviewer" placeholder="Your Name" required />
-                <input name="comment" placeholder="Your Comment" required />
-                <select name="stars" required>
-                  <option value="">Rating</option>
-                  <option value="1">1 ★</option>
-                  <option value="2">2 ★</option>
-                  <option value="3">3 ★</option>
-                  <option value="4">4 ★</option>
+            {showReviewForm && (
+              <form className="review-form" onSubmit={handleSubmitReview}>
+                <input name="reviewer" placeholder="Your name" required />
+                <input name="comment" placeholder="What was the work like?" required />
+                <select name="stars" defaultValue="" required>
+                  <option value="" disabled>
+                    Rating
+                  </option>
                   <option value="5">5 ★</option>
+                  <option value="4">4 ★</option>
+                  <option value="3">3 ★</option>
+                  <option value="2">2 ★</option>
+                  <option value="1">1 ★</option>
                 </select>
-                <button type="submit">Submit</button>
+                <div className="modal-actions">
+                  <button type="submit" className="btn-primary">
+                    Submit review
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowReviewForm(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </form>
             )}
 
-            <button onClick={() => setShowRatings(false)} style={{ marginTop: '1rem' }}>
-              Close
-            </button>
+            {!showReviewForm && (
+              <div className="modal-actions">
+                <button className="btn-primary" onClick={() => setShowReviewForm(true)}>
+                  Write a review
+                </button>
+                <button className="btn-secondary" onClick={() => setShowRatings(false)}>
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

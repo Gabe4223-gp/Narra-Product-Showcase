@@ -375,3 +375,90 @@
 .rating span {
   font-size: 16px;
 }
+
+/* ---- Ratings modal ------------------------------------------------------
+   The review form previously had no layout rules at all: the inputs were
+   inline elements with no width, so they sat on the same line and collided
+   with the "No Reviews Yet" text. */
+
+.modal-content p {
+  margin: 0 0 20px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.review-form input,
+.review-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.review-form input:focus,
+.review-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.review-form input::placeholder {
+  color: #9ca3af;
+}
+
+/* Shared footer row for the modal's actions. */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal-content .modal-actions button {
+  margin-top: 0;
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.modal-content .modal-actions .btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.modal-content .modal-actions .btn-primary:hover {
+  background-color: #2563eb;
+}
+
+/* Close/Cancel is the quieter of the two: it was previously the same solid
+   blue as the primary action, so neither read as the main choice. */
+.modal-content .modal-actions .btn-secondary {
+  background-color: #fff;
+  color: #4b5563;
+  border-color: #d1d5db;
+}
+
+.modal-content .modal-actions .btn-secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.modal-content .modal-actions button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

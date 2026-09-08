@@ -45,6 +45,7 @@ function Issues() {
     dateResolved: null,
     documents: [],
   })
+  const [unitOptions, setUnitOptions] = useState([])
   const [filteredIssues, setFilteredIssues] = useState([])
   const { userProfile } = useUserProfile()
   const [activeTab, setActiveTab] = useState("issues") // State to track the active tab
@@ -92,6 +93,27 @@ function Issues() {
     }
   }
 
+  // The Add Issue form stores a unit ID, and fetchIssues looks issues up by
+  // unit ID, so the form needs the real unit records rather than free text.
+  const fetchUnitOptions = async (unitIds) => {
+    if (!unitIds || unitIds.length === 0) {
+      setUnitOptions([])
+      return
+    }
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/units/byIds`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unitIds }),
+      })
+      if (!response.ok) throw new Error("Failed to fetch units")
+      setUnitOptions(await response.json())
+    } catch (error) {
+      console.error("Error fetching units:", error)
+      setUnitOptions([])
+    }
+  }
+
   const fetchIssues = async (unitIds) => {
     if (unitIds.length === 0) {
       console.log("No unit IDs provided, exiting fetch.")
@@ -119,6 +141,12 @@ function Issues() {
       alert("Failed to load issues. Please try again.")
     }
   }
+
+  useEffect(() => {
+    const property = properties.find((p) => p.id === selectedPropertyID)
+    fetchUnitOptions(property?.units || [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPropertyID, properties])
 
   const handlePropertyChange = (event) => {
     const propertyId = event.target.value // Get selected property's ID
@@ -211,7 +239,7 @@ function Issues() {
       // Clear the form
       setNewIssue({
         id: null,
-        type: null,
+        type: "",
         subject: null,
         description: null,
         unit: null,
@@ -564,11 +592,18 @@ function Issues() {
                 <form>
                   <label>
                     Unit
-                    <input
-                      type="text"
-                      value={newIssue.unit}
+                    <select
+                      value={newIssue.unit || ""}
                       onChange={(e) => handleAddIssueChange("unit", e.target.value)}
-                    />
+                      required
+                    >
+                      <option value="">Select Unit</option>
+                      {unitOptions.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.unitNo}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label>
                     Type:
@@ -627,8 +662,8 @@ function Issues() {
                   </div>
                 </form>
                 <div className="button-group">
-                  <button onClick={handleCancelModal}>Cancel</button>
-                  <button onClick={saveNewIssue}>Save</button>
+                  <button className="btn-secondary" onClick={handleCancelModal}>Cancel</button>
+                  <button className="btn-primary" onClick={saveNewIssue}>Save</button>
                 </div>
               </div>
             </div>
