@@ -462,3 +462,58 @@
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
+
+/* ---- Worker card: remove action + rating meta ---- */
+
+.contractor-actions {
+  flex-wrap: wrap;
+}
+
+/* Destructive, so it stays quiet until hovered rather than competing with
+   Book Now for attention. */
+.delete-worker-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #b91c1c;
+  background-color: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.delete-worker-btn:hover {
+  background-color: #fef2f2;
+  border-color: #f87171;
+}
+
+.delete-worker-btn:focus-visible {
+  outline: 2px solid #b91c1c;
+  outline-offset: 2px;
+}
+
+.review-count {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The add-worker form gained price/availability/status/description, so let it
+   wrap instead of forcing everything onto one row. */
+.worker-form select {
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.worker-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}

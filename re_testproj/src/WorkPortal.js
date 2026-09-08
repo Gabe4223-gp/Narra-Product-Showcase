@@ -89,11 +89,18 @@ const WorkPortal = () => {
           (!availabilityFilter || c.availability === availabilityFilter)
         )
         .sort((a, b) => {
-          if (priceFilter === "asc") return a.price - b.price;
-          if (priceFilter === "desc") return b.price - a.price;
+          // Workers without a price or distance sort last rather than turning
+          // the comparison into NaN, which leaves the order arbitrary.
+          const num = (v, fallback) =>
+            v === null || v === undefined || v === "" || Number.isNaN(Number(v))
+              ? fallback
+              : Number(v);
+
+          if (priceFilter === "asc") return num(a.price, Infinity) - num(b.price, Infinity);
+          if (priceFilter === "desc") return num(b.price, -Infinity) - num(a.price, -Infinity);
           if (alphabeticalFilter === "asc") return a.name.localeCompare(b.name);
           if (alphabeticalFilter === "desc") return b.name.localeCompare(a.name);
-          return a.distance - b.distance;
+          return num(a.distance, Infinity) - num(b.distance, Infinity);
         })
     : []
 
@@ -104,6 +111,21 @@ const WorkPortal = () => {
         filteredContractors[0]
       )
     : null;
+
+  const handleDeleteWorker = async (contractor) => {
+    if (!selectedProperty?.id) return;
+    if (!window.confirm(`Remove ${contractor.name}? This also deletes their reviews.`)) return;
+
+    try {
+      await axios.delete(
+        `${process.env.REACT_APP_API_URL}/api/work-portal/contractors/${selectedProperty.id}/${contractor.id}`
+      );
+      await fetchContractors(selectedProperty.id);
+    } catch (err) {
+      console.error('Failed to delete contractor:', err);
+      alert(err?.response?.data?.error || 'Failed to remove worker.');
+    }
+  };
 
   const handleBookNow = (contractor) => {
     setSelectedContractor(contractor)
@@ -384,7 +406,11 @@ const WorkPortal = () => {
                 const role = form.role.value;
                 const phone = form.phone.value;
                 const email = form.email.value;
-              
+                const price = form.price.value;
+                const availability = form.availability.value;
+                const status = form.status.value;
+                const description = form.description.value;
+
                 if (!selectedProperty?.id || !name || !role || !phone || !email) return;
               
                 try {
@@ -394,6 +420,10 @@ const WorkPortal = () => {
                     role,
                     phone,
                     email,
+                    price,
+                    availability,
+                    status,
+                    description,
                   });
               
                   if (response.status === 200) {
@@ -411,6 +441,21 @@ const WorkPortal = () => {
               <input name="role" placeholder="Role" required />
               <input name="phone" placeholder="Phone Number" required />
               <input name="email" placeholder="Email" required />
+              <input name="price" type="number" min="0" step="any" placeholder="Rate (₱/hr)" />
+              {/* A select, not free text: these values are compared exactly
+                  against the availability filter. */}
+              <select name="availability" defaultValue="">
+                <option value="">Availability</option>
+                <option value="Available">Available</option>
+                <option value="Busy">Busy</option>
+                <option value="Unavailable">Unavailable</option>
+              </select>
+              <select name="status" defaultValue="">
+                <option value="">Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <input name="description" placeholder="Description (optional)" />
               <button type="submit">Submit Worker</button>
             </form>
           )}
@@ -684,23 +729,35 @@ const WorkPortal = () => {
                 <p>Description: {c.description}</p>
                 <p>Phone: {c.phone}</p>
                 <p>Email: {c.email}</p>
-                <p>Status: {c.status}</p>
-                <p>Price: ₱{c.price}/hr</p>
-                <p>Availability: {c.availability}</p>
+                <p>Status: {c.status || '—'}</p>
+                <p>Price: {c.price ? `₱${c.price}/hr` : 'Not set'}</p>
+                <p>Availability: {c.availability || '—'}</p>
                 <p>
                   Distance: {typeof c.distance === 'number' ? `${c.distance.toFixed(2)} km` : 'N/A'}
                 </p>
                 <div className="rating">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} style={{ color: i < c.rating ? "#3b82f6" : "#d1d5db" }}>
+                    <span key={i} style={{ color: i < Math.round(c.rating || 0) ? "#3b82f6" : "#d1d5db" }}>
                       ★
                     </span>
                   ))}
+                  <span className="review-count">
+                    {c.reviewCount
+                      ? `${c.rating} (${c.reviewCount} review${c.reviewCount === 1 ? '' : 's'})`
+                      : 'No reviews yet'}
+                  </span>
                 </div>
               </div>
               <div className="contractor-actions">
                 <button className="book-btn" onClick={() => handleBookNow(c)}>Book Now</button>
                 <button className="ratings-btn" onClick={() => handleShowRatings(c)}>See Ratings</button>
+                <button
+                  className="delete-worker-btn"
+                  onClick={() => handleDeleteWorker(c)}
+                  aria-label={`Remove ${c.name}`}
+                >
+                  Remove
+                </button>
               </div>
             </div>
           ))}
