@@ -593,7 +593,7 @@ function Issues() {
             <div className="overlay">
               <div className="modal">
                 <h3>Add New Issue</h3>
-                <form>
+                <form className="issue-form">
                   <label>
                     Unit
                     <select
@@ -713,6 +713,7 @@ function Issues() {
                     <th>Unit</th>
                     <th>Type</th>
                     <th>Subject</th>
+                    <th>Resolution</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -740,6 +741,7 @@ function Issues() {
                           <td>{unitLabel(issue.unit)}</td>
                           <td>{issue.type}</td>
                           <td>{issue.subject}</td>
+                          <td className="resolution-cell">{issue.resolution || "—"}</td>
                           <td>
                             <button onClick={() => handleViewIssue(issue)}>View</button>
                           </td>

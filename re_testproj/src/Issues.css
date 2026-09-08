@@ -312,3 +312,44 @@ select#property-select {
 .delete-button:hover {
   background-color: #dc2626;
 }
+
+/* Six other stylesheets (Units, Tenants, Lease, TenantProfile,
+   HomePropertyProfile, IssueProfile) ship an identical `.modal form select`
+   rule containing `max-height: 10px`, which clips the selected option out of
+   view -- the field looks empty no matter what you pick. CRA bundles all CSS
+   into one file and those rules have the same specificity as ours, so the
+   winner was decided by bundle order.
+
+   Scoping to .issue-form raises specificity above them and keeps the fix to
+   this modal, without touching the other components' layouts. */
+.modal form.issue-form select,
+.modal form.issue-form input,
+.modal form.issue-form textarea {
+  max-height: none;
+  height: auto;
+  margin-left: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal form.issue-form select {
+  background-color: #fff;
+  color: #111827;
+  font-family: inherit;
+}
+
+.modal form.issue-form input[type="file"] {
+  padding: 8px;
+}
+
+.modal form.issue-form input[type="checkbox"] {
+  width: auto;
+}
+
+.resolution-cell {
+  max-width: 260px;
+  white-space: normal;
+  word-break: break-word;
+  color: #4b5563;
+}

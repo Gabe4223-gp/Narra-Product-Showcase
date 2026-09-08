@@ -122,6 +122,19 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
 const storage = require('./storage');
+
+// The browser's FileReader.readAsDataURL produces "data:<mime>;base64,<data>".
+// Decoding that whole string as base64 silently mangles the file: the prefix
+// becomes leading garbage, so the result is not a valid PDF or image and
+// viewers report "unsupported file type". Strip the prefix if present.
+function decodeUploadedFile(fileContent) {
+  if (typeof fileContent !== 'string') return Buffer.alloc(0);
+  const commaAt = fileContent.indexOf(',');
+  const payload = fileContent.startsWith('data:') && commaAt !== -1
+    ? fileContent.slice(commaAt + 1)
+    : fileContent;
+  return Buffer.from(payload, 'base64');
+}
 const { Tenant } = require('./models'); // Adjust if your models are in a different path
 const { getMaxListeners } = require('events');
 
@@ -490,7 +503,7 @@ app.post('/issues/upload-issue-doc', async (req, res) => {
     // S3 or local disk, depending on STORAGE_TYPE.
     const fileUrl = await storage.putObject(
       fileName,
-      Buffer.from(fileContent, 'base64'),
+      decodeUploadedFile(fileContent),
       fileType || 'application/octet-stream'
     );
 
@@ -2363,8 +2376,7 @@ app.post('/tenants/upload-lease', requireAuth, async (req, res) => {
   console.log("the function works");
   const { id, fileName, fileType, url, fileContent, landlordId, tenantEmail, tenantId, leaseStartDate, leaseEndDate, signed, subject, propertyId, user_id} = req.body; //Adjust based on frontend implementation
   
-  const newBuffer = fileContent.replace(/^data:.+;base64,/, ""); // Strips the data URI prefix
-  const buffer = Buffer.from(newBuffer, 'base64');
+  const buffer = decodeUploadedFile(fileContent);
 
   try {
     // Goes to S3 or local disk depending on STORAGE_TYPE. This used to call
@@ -2535,7 +2547,7 @@ app.post('/tenants/upload-govid', async (req, res) => {
     // S3 or local disk, depending on STORAGE_TYPE.
     const fileUrl = await storage.putObject(
       fileName,
-      Buffer.from(fileContent, 'base64'),
+      decodeUploadedFile(fileContent),
       fileType || 'application/octet-stream'
     );
 
@@ -2649,7 +2661,7 @@ app.put('/tenants/update-lease', async (req, res) => {
   const { id, fileName, fileContent, fileType, tenantEmail, tenantId } = req.body;
 
   // Ensure you have the file content as base64 (strip base64 prefix if any)
-  const bufferContent = Buffer.from(fileContent.split(',')[1], 'base64');  // Removing base64 prefix
+  const bufferContent = decodeUploadedFile(fileContent);
 
   const params = {
       Key: fileName,
