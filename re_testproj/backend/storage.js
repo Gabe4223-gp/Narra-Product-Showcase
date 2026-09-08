@@ -68,20 +68,49 @@ async function putObject(key, buffer, contentType = 'application/pdf') {
   return publicUrl(k);
 }
 
+const EXT_TYPES = {
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+};
+
+// Leases are stored under a bare UUID with no file extension, so extension
+// alone cannot identify them and they came back as octet-stream -- which the
+// frontend viewer renders as "Unsupported file type". Fall back to the file's
+// magic bytes.
+function detectContentType(buffer, key) {
+  const byExt = EXT_TYPES[path.extname(key).toLowerCase()];
+  if (byExt) return byExt;
+
+  if (!buffer || buffer.length < 4) return 'application/octet-stream';
+  const head = buffer.subarray(0, 4);
+
+  if (head.toString('latin1') === '%PDF') return 'application/pdf';
+  if (head[0] === 0x89 && head.subarray(1, 4).toString('latin1') === 'PNG') return 'image/png';
+  if (head[0] === 0xff && head[1] === 0xd8) return 'image/jpeg';
+  if (head.subarray(0, 3).toString('latin1') === 'GIF') return 'image/gif';
+
+  return 'application/octet-stream';
+}
+
 // Returns { body: Buffer, contentType: string }
 async function getObject(key) {
   const k = safeKey(key);
 
   if (usingS3()) {
     const data = await s3.getObject({ Bucket: BUCKET, Key: k }).promise();
-    return { body: data.Body, contentType: data.ContentType || 'application/octet-stream' };
+    const stored = data.ContentType;
+    const contentType =
+      stored && stored !== 'application/octet-stream'
+        ? stored
+        : detectContentType(data.Body, k);
+    return { body: data.Body, contentType };
   }
 
   const body = await fs.promises.readFile(path.join(LOCAL_DIR, k));
-  const contentType = k.toLowerCase().endsWith('.pdf')
-    ? 'application/pdf'
-    : 'application/octet-stream';
-  return { body, contentType };
+  return { body, contentType: detectContentType(body, k) };
 }
 
-module.exports = { putObject, getObject, publicUrl, usingS3, LOCAL_DIR, STORAGE_TYPE };
+module.exports = { putObject, getObject, publicUrl, usingS3, detectContentType, LOCAL_DIR, STORAGE_TYPE };

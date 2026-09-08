@@ -295,7 +295,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       `
       INSERT INTO "Files" 
         ("id", "fileName", "fileType", "url", "subject", "totalAmount", "paid", "propertyId", 
-        "tenantEmail", "landlordId", "deadline", "updatedAt", landlordBankId)
+        "tenantEmail", "landlordId", "deadline", "updatedAt", "landlordBankId")
       VALUES 
         (:id, :fileName, :fileType, :url, :subject, :totalAmount, :paid, :propertyId, 
         :tenantEmail, :landlordId, :deadline, :updatedAt, :landlordBankId)
