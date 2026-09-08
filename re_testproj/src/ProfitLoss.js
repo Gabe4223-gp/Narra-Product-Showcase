@@ -1,30 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import './ProfitLoss.css';
+
+const COMPANIES = ['ABC Property Management', 'XYZ Properties', '123 Real Estate'];
+const YEARS = ['2024', '2025', '2026'];
+
+// A small deterministic hash so each company/year pair gets its own believable
+// figures without a data source, and without changing between renders.
+function seedFor(company, year) {
+  const text = `${company}|${year}`;
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) % 100000;
+  }
+  return hash;
+}
+
+// Rental income is seasonal: occupancy and utility recovery peak over the
+// Philippine dry season, so the curve leans on the middle of the year rather
+// than rising in a straight line.
+const SEASONAL = [0.94, 0.96, 1.02, 1.08, 1.12, 1.09, 1.04, 1.03, 1.0, 0.98, 0.97, 1.05];
+
+function series(base, seed, offset, variance = 0.06) {
+  return Array.from({ length: 12 }, (_, month) => {
+    const wobble = Math.sin(seed + offset + month * 1.7) * variance;
+    const value = base * SEASONAL[month] * (1 + wobble);
+    return Math.round(value / 100) * 100;
+  });
+}
+
+function buildStatement(company, year) {
+  const seed = seedFor(company, year);
+  // Later years carry a modest portfolio growth rate.
+  const growth = 1 + (Number(year) - 2024) * 0.07;
+  const scale = (0.85 + ((seed % 40) / 100)) * growth;
+
+  return {
+    income: {
+      rent: series(132000 * scale, seed, 0),
+      utilities: series(38000 * scale, seed, 1.1),
+      other: series(16500 * scale, seed, 2.3, 0.12),
+    },
+    expenses: {
+      payroll: series(46000 * scale, seed, 3.1, 0.03),
+      repairs: series(17500 * scale, seed, 4.7, 0.22),
+      supplies: series(8800 * scale, seed, 5.9, 0.15),
+      other: series(12500 * scale, seed, 6.4, 0.18),
+    },
+    taxes: {
+      vat: series(19000 * scale, seed, 7.2, 0.05),
+      ewt: series(9500 * scale, seed, 8.6, 0.05),
+    },
+  };
+}
 
 const ProfitLoss = () => {
   // State for dropdown values
-  const [selectedCompany, setSelectedCompany] = useState('ABC Property Management');
-  const [selectedYear, setSelectedYear] = useState('2025');
-  
-  // State for profit and loss data
-  const [profitLossData, setProfitLossData] = useState({
-    income: {
-      rent: Array(12).fill(0).map((_, i) => 125000 + (i * 5000)),
-      utilities: Array(12).fill(0).map((_, i) => 35000 + (i * 1000)),
-      other: Array(12).fill(0).map((_, i) => 15000 + (Math.random() * 5000))
-    },
-    expenses: {
-      payroll: Array(12).fill(0).map((_, i) => 45000 + (i * 1000)),
-      repairs: Array(12).fill(0).map((_, i) => 15000 + (Math.random() * 3000)),
-      supplies: Array(12).fill(0).map((_, i) => 8000 + (Math.random() * 2000)),
-      other: Array(12).fill(0).map((_, i) => 12000 + (Math.random() * 4000))
-    },
-    taxes: {
-      vat: Array(12).fill(0).map((_, i) => 18000 + (i * 500)),
-      ewt: Array(12).fill(0).map((_, i) => 9000 + (i * 300)),
-    }
-  });
+  const [selectedCompany, setSelectedCompany] = useState(COMPANIES[0]);
+  const [selectedYear, setSelectedYear] = useState('2026');
+
+  // Sample figures, not live data. Derived deterministically from the company
+  // and year so the statement is stable across renders and so switching either
+  // dropdown visibly changes the numbers. The previous version used
+  // Math.random(), which produced different figures on every render -- fine as
+  // a stub, but it made the statement impossible to read or verify.
+  const [profitLossData, setProfitLossData] = useState(() =>
+    buildStatement(COMPANIES[0], '2026')
+  );
 
   // Calculated totals
   const [calculatedData, setCalculatedData] = useState({
@@ -96,23 +137,14 @@ const ProfitLoss = () => {
   }, [profitLossData]);
 
   // Fetch data from API (simulated)
+  // Swap in the sample statement for whichever company/year is selected.
+  // When a real endpoint exists this becomes:
+  //   const { data } = await axios.get(
+  //     `${process.env.REACT_APP_API_URL}/api/profit-loss?year=${selectedYear}&company=${selectedCompany}`
+  //   );
+  //   setProfitLossData(data);
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // This would be replaced with a real API call
-        // const response = await axios.get(`/api/profit-loss?year=${selectedYear}&company=${selectedCompany}`);
-        // setProfitLossData(response.data);
-        
-        // Simulating API delay
-        setTimeout(() => {
-          console.log('Data fetched for', selectedCompany, selectedYear);
-        }, 500);
-      } catch (error) {
-        console.error('Error fetching profit and loss data:', error);
-      }
-    };
-    
-    fetchData();
+    setProfitLossData(buildStatement(selectedCompany, selectedYear));
   }, [selectedCompany, selectedYear]);
 
   // Handle download statement
@@ -183,6 +215,15 @@ const ProfitLoss = () => {
           <div className="nav-tab">Filings</div>
         </div>
         </div>
+
+      <div className="sample-data-notice">
+        <span className="sample-data-badge">Sample data</span>
+        <span>
+          These figures are illustrative, not drawn from your properties. The
+          statement, totals and CSV export are fully working; only the data
+          source is pending.
+        </span>
+      </div>
        
     <div className="controls-container">
         <div className="dropdown-controls">
@@ -192,9 +233,11 @@ const ProfitLoss = () => {
               onChange={(e) => setSelectedCompany(e.target.value)}
               className="dropdown-select"
             >
-              <option value="ABC Property Management"> ABC Property Management</option>
-              <option value="XYZ Properties"> XYZ Properties</option>
-              <option value="123 Real Estate"> 123 Real Estate</option>
+              {COMPANIES.map((company) => (
+                <option key={company} value={company}>
+                  {company}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -204,9 +247,11 @@ const ProfitLoss = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="dropdown-select"
             >
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
+              {YEARS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
             </select>
           </div>
         </div>

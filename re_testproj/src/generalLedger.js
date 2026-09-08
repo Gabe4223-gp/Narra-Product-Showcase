@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './generalLedger.css';
+import './PlannedFeature.css';
 
 // Ledger Component (as a page, not the main app)
 function Ledger() {
@@ -7,6 +8,14 @@ function Ledger() {
     <div className="ledger-page">
       <div className="ledger-content">
         <GeneralLedgerHeader />
+        {/* The filters and table shell are built; the entries themselves are
+            not yet derived from Files/Payments. Say so, rather than leaving an
+            unexplained empty table. */}
+        <p className="ledger-planned-notice">
+          <strong>Planned:</strong> journal entries will be derived from issued
+          bills and recorded payments. The filters and export controls below are
+          the intended interface; no entries are posted yet.
+        </p>
         <GeneralLedgerContent />
       </div>
     </div>

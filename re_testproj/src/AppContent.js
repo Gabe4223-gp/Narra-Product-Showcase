@@ -21,7 +21,9 @@ import RoleSelection from './RoleSelection';
 import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
 import BackendWaking from './BackendWaking';
-//import TaxFilingSystem from './tax-filing';
+import TaxFiling from './TaxFiling';
+import Accounting from './Accounting';
+import ProfitLoss from './ProfitLoss';
 import Ledger from './generalLedger';
 
 function AppContent() {
@@ -172,7 +174,12 @@ function AppContent() {
               {activeTeamMembership?.tenants && <Route path="tenant" element={<Tenants />} />}
               {activeTeamMembership?.units && <Route path="unit" element={<Units />} />}
               {activeTeamMembership?.issues && <Route path="issues" element={<Issues />} />}
-              {/*<Route path="tax-filing" element={<TaxFilingSystem />} />*/}
+              {/* The sidebar links to these; without routes they fell through
+                  to the catch-all below and silently returned the user to the
+                  dashboard, which reads as a broken link. */}
+              <Route path="accounting" element={<Accounting />} />
+              <Route path="profitloss" element={<ProfitLoss />} />
+              <Route path="tax-filing" element={<TaxFiling />} />
               <Route path="generalLedger" element={<Ledger/>} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/homepage" replace />} />
