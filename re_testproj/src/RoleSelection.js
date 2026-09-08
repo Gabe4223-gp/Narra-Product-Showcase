@@ -46,11 +46,14 @@ function RoleSelection({ setRole, setPermissions }) {
 
   // Logout button
   const handleLogout = () => {
-    logout();
+    // Clear local state first: logout() navigates away immediately, so
+    // anything after it may never run.
     localStorage.setItem("userRole", JSON.stringify(null));
-    navigate('/', {
-      replace: true,
-    });  
+
+    // returnTo must be explicit. Without it Auth0 falls back to the first
+    // entry in the application's Allowed Logout URLs, which sends deployed
+    // users to localhost.
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
   return (

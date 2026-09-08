@@ -4,7 +4,6 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { FaBars, FaBell } from 'react-icons/fa';
 import { useUserProfile } from "./UserProfileContext";
 import Notifications from "./Notifications";
-import { useNavigate } from 'react-router-dom';//$
 
 
 const logo1 = require('./images/tenent.png');
@@ -25,16 +24,18 @@ function Header({ toggleSidebar, setRole }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { userProfile, refreshUserProfile } = useUserProfile();
   const dropdownRef = useRef(null);
-  const navigate = useNavigate();//$
   
   //$
   const handleLogout = () => {
-    logout();
+    // Clear local state first: logout() navigates away immediately, so
+    // anything after it may never run.
     setRole("null");
     localStorage.setItem("userRole", "null");
-    navigate('/', {
-      replace: true,
-    });  
+
+    // returnTo must be explicit. Without it Auth0 falls back to the first
+    // entry in the application's Allowed Logout URLs, which sends deployed
+    // users to localhost.
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
   
 

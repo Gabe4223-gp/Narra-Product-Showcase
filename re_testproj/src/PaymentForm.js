@@ -92,7 +92,7 @@ function PaymentForm() {
           totalAmount: Math.round(parseFloat(amount) * 100),
           dateOfPayment: new Date().toISOString(),
           subject: 'Custom Payment',
-          invoiceUrl: `http://localhost:5000/invoices/invoice-${Date.now()}.pdf`,
+          invoiceUrl: `${process.env.REACT_APP_API_URL}/invoices/invoice-${Date.now()}.pdf`,
         }),
       });
     } catch (err) {

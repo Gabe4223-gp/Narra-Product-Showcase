@@ -112,7 +112,7 @@ const WorkPortal = () => {
   
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/work-portal/contractors/${selectedProperty.id}/${contractor.id}/ratings`
+        `${process.env.REACT_APP_API_URL}/api/work-portal/contractors/${selectedProperty.id}/${contractor.id}/ratings`
       );
       setRatings(res.data.ratings || []);
     } catch (err) {
@@ -151,7 +151,7 @@ const WorkPortal = () => {
   
     try {
       await axios.put(
-        `http://localhost:5000/api/work-portal/contractors/${selectedProperty.id}/${selectedContractor.id}/ratings`,
+        `${process.env.REACT_APP_API_URL}/api/work-portal/contractors/${selectedProperty.id}/${selectedContractor.id}/ratings`,
         { reviewer, comment, stars }
       );
       form.reset();
@@ -376,7 +376,7 @@ const WorkPortal = () => {
                 if (!selectedProperty?.id || !name || !role || !phone || !email) return;
               
                 try {
-                  const response = await axios.put('http://localhost:5000/api/work-portal/contractors', {
+                  const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/work-portal/contractors`, {
                     propertyId: selectedProperty.id,
                     name,
                     role,

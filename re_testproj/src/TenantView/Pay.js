@@ -117,7 +117,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
           amount: Math.round(parseFloat(amountPaid) * 100),
           billId: bill.id,
           tenantEmail: userProfile.email,
-          returnUrl: "http://localhost:3000/tenant/dashboard?redirected=true"
+          returnUrl: `${window.location.origin}/tenant/dashboard?redirected=true`
         });
 
         if (response.data.success && response.data.checkoutUrl) {
