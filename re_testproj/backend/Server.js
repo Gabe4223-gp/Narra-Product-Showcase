@@ -121,6 +121,7 @@ const fs = require('fs');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory
 
+const storage = require('./storage');
 const { Tenant } = require('./models'); // Adjust if your models are in a different path
 const { getMaxListeners } = require('events');
 
@@ -446,21 +447,13 @@ app.get('/issues/get-doc', async (req, res) => {
   console.log("File Name:", fileName);
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName, // Ensure this is the correct path to the file in S3
-  };
-
   try {
-    // Get the document from AWS S3
-    const data = await s3.getObject(params).promise();
-    
+    const data = await storage.getObject(fileName);
+
     console.log("Document Retrieved Successfully");
 
-    // Detect content type (Optional: Ensure correct file format)
-    const contentType = data.ContentType || 'application/octet-stream';
-
-    const base64Content = data.Body.toString('base64');
+    const contentType = data.contentType;
+    const base64Content = data.body.toString('base64');
 
     // Send the document content as a file
     // Send the document content as JSON
@@ -482,16 +475,13 @@ app.post('/issues/upload-issue-doc', async (req, res) => {
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
-  };
-
   try {
-    const data = await s3.upload(params).promise();
-    const fileUrl = data.Location;
+    // S3 or local disk, depending on STORAGE_TYPE.
+    const fileUrl = await storage.putObject(
+      fileName,
+      Buffer.from(fileContent, 'base64'),
+      fileType || 'application/octet-stream'
+    );
 
     console.log("FileUrl", fileUrl)
 
@@ -1851,21 +1841,14 @@ app.get('/tenants/get-lease', async (req, res) => {
   console.log("File Name:", fileName);
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName, // Ensure this is the correct path to the file in S3
-  };
-
   try {
-    // Get the document from AWS S3
-    const data = await s3.getObject(params).promise();
-    
+    // S3 or local disk, depending on STORAGE_TYPE.
+    const data = await storage.getObject(fileName);
+
     console.log("Document Retrieved Successfully");
 
-    // Detect content type (Optional: Ensure correct file format)
-    const contentType = data.ContentType || 'application/octet-stream';
-
-    const base64Content = data.Body.toString('base64');
+    const contentType = data.contentType;
+    const base64Content = data.body.toString('base64');
 
     // Send the document content as a file
     // Send the document content as JSON
@@ -1893,21 +1876,14 @@ app.get('/tenants/get-id', async (req, res) => {
   console.log("File Name:", fileName);
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName, // Ensure this is the correct path to the file in S3
-  };
-
   try {
-    // Get the document from AWS S3
-    const data = await s3.getObject(params).promise();
-    
+    // S3 or local disk, depending on STORAGE_TYPE.
+    const data = await storage.getObject(fileName);
+
     console.log("Document Retrieved Successfully");
 
-    // Detect content type (Optional: Ensure correct file format)
-    const contentType = data.ContentType || 'application/octet-stream';
-
-    const base64Content = data.Body.toString('base64');
+    const contentType = data.contentType;
+    const base64Content = data.body.toString('base64');
 
     // Send the document content as a file
     // Send the document content as JSON
@@ -2379,17 +2355,10 @@ app.post('/tenants/upload-lease', requireAuth, async (req, res) => {
   const newBuffer = fileContent.replace(/^data:.+;base64,/, ""); // Strips the data URI prefix
   const buffer = Buffer.from(newBuffer, 'base64');
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName,
-    Body: buffer,
-    ContentEncoding: 'base64',
-    ContentType: 'application/pdf',
-  };
-
   try {
-    const data = await s3.upload(params).promise();
-    const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    // Goes to S3 or local disk depending on STORAGE_TYPE. This used to call
+    // s3.upload() unconditionally, so it threw whenever S3 was not configured.
+    const fileUrl = await storage.putObject(fileName, buffer, 'application/pdf');
 
     console.log("FileUrl", fileUrl)
 
@@ -2551,16 +2520,13 @@ app.post('/tenants/upload-govid', async (req, res) => {
   
   console.log("AWS_BUCKET_NAME:", process.env.AWS_S3_BUCKET_NAME);
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: fileName,
-    Body: Buffer.from(fileContent, 'base64'),
-    ContentType: fileType,
-  };
-
   try {
-    const data = await s3.upload(params).promise();
-    const fileUrl = data.Location;
+    // S3 or local disk, depending on STORAGE_TYPE.
+    const fileUrl = await storage.putObject(
+      fileName,
+      Buffer.from(fileContent, 'base64'),
+      fileType || 'application/octet-stream'
+    );
 
     console.log("FileUrl", fileUrl)
 
@@ -2675,15 +2641,12 @@ app.put('/tenants/update-lease', async (req, res) => {
   const bufferContent = Buffer.from(fileContent.split(',')[1], 'base64');  // Removing base64 prefix
 
   const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: fileName,  // This should match the fileName (S3 key) of the document you want to update
-      Body: bufferContent,  // The updated content to upload (in binary format)
-      ContentType: fileType,  // The content type of the file (PDF, image, etc.)
+      Key: fileName,
   };
 
   try {
-      // Upload updated content to the same file in S3 (it will overwrite the existing file)
-      const uploadResponse = await s3.upload(params).promise();
+      // Overwrites the existing object, on S3 or local disk.
+      await storage.putObject(fileName, bufferContent, fileType || 'application/octet-stream');
 
       // Raw query to update the file in the Files table
       const updateQuery = `
@@ -2864,7 +2827,12 @@ app.delete('/leases/delete-all', requireAuth, async (req, res) => {
         },
       };
 
-      await s3.deleteObjects(s3Params).promise();
+      // Only meaningful when objects actually live in S3. With local storage
+      // the DB rows are removed below and the files are left on disk, which
+      // is ephemeral on free-tier hosts anyway.
+      if (storage.usingS3()) {
+        await s3.deleteObjects(s3Params).promise();
+      }
     }
 
     // Step 2: Delete all documents specified in docIds
