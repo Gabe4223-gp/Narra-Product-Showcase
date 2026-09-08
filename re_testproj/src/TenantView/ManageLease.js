@@ -15,7 +15,7 @@ const ManageLease = ({ leaseData }) => {
   /*useEffect(() => {
     async function fetchLeaseData() {
       try {
-        const res = await axios.get(`/api/leaseAgreement/${encodeURIComponent(tenantEmail)}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/leaseAgreement/${encodeURIComponent(tenantEmail)}`);
         // Expecting leaseData from backend. If not found, backend should send nulls.
         setLeaseData(res.data);
         setError(null);

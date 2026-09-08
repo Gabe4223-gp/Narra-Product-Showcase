@@ -33,7 +33,9 @@ function Issues() {
   })
   const [newIssue, setNewIssue] = useState({
     id: null,
-    type: null,
+    // Must be "" not null: <select value={null}> matches no <option>, so React
+    // treats the field as uncontrolled and the box renders blank.
+    type: "",
     subject: null,
     description: null,
     unit: null,

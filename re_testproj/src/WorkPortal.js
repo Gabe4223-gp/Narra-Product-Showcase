@@ -6,6 +6,12 @@ import { useJsApiLoader, GoogleMap, Marker, InfoWindow } from "@react-google-map
 import axios from "axios";
 import "./WorkPortal.css";
 
+// Must live outside the component. A new array on every render makes
+// useJsApiLoader think the config changed, so it reloads the Maps script in a
+// loop ("LoadScript has been reloaded unintentionally") and isLoaded never
+// settles -- which is why the page sat on "Loading map and properties...".
+const libraries = ["places"];
+
 const mapContainerStyle = {
   width: "100%",
   height: "400px",
@@ -34,7 +40,6 @@ const WorkPortal = () => {
   const [priceFilter, setPriceFilter] = useState("")
   const [availabilityFilter, setAvailabilityFilter] = useState("")
   const [alphabeticalFilter, setAlphabeticalFilter] = useState("")
-  const libraries = ["places"]
   const [contractors, setContractors] = useState([]);
 
 
@@ -52,7 +57,7 @@ const WorkPortal = () => {
   //Fetch Contractors from API
   const fetchContractors = async (propertyId) => {
     try {
-      const res = await fetch(`/api/work-portal/contractors/${propertyId}`);
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/contractors/${propertyId}`);
       const data = await res.json();
       setContractors(data);
     } catch (err) {
@@ -166,7 +171,7 @@ const WorkPortal = () => {
   //Fetch Properties from API
   useEffect(() => {
     const fetchAndGeocodeProperties = async () => {
-      const res = await fetch('/api/work-portal/properties');
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/properties`);
       const data = await res.json();
       const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   
@@ -181,7 +186,7 @@ const WorkPortal = () => {
             const { lat, lng } = geoData.results[0].geometry.location;
   
             // Save to backend
-            await fetch(`/api/work-portal/update-location`, {
+            await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/update-location`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -289,7 +294,7 @@ const WorkPortal = () => {
     if (data.status === 'OK') {
       const { lat, lng } = data.results[0].geometry.location
   
-      await fetch(`/api/work-portal/update-location`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/update-location`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

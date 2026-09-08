@@ -75,7 +75,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
         setTenantGcashNumber(gcashMobileNumber || null);
 
         // Fetch landlord basic details for GCash
-        const landlordRes = await axios.get(`/api/payments/get-landlord-details/${bill.landlordId}`);
+        const landlordRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/payments/get-landlord-details/${bill.landlordId}`);
         const { landlordBankId, landlordGcashMobileNumber } = landlordRes.data || {};
         setLandlordGcashNumber(landlordGcashMobileNumber || null);
 
@@ -127,12 +127,12 @@ const Pay = ({ bill, onClose, landlordData }) => {
           // Poll for payment status
           const interval = setInterval(async () => {
             try {
-              const statusResp = await axios.post("/api/payments/gcash-status", { sourceId });
+              const statusResp = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/gcash-status`, { sourceId });
               const paymentStatus = statusResp.data.status;
               if (paymentStatus === "chargeable") {
                 clearInterval(interval);
                 alert("Payment successful!");
-                await axios.post("/api/payments/update-status", { billId: bill.id, status: "Paid" });
+                await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/update-status`, { billId: bill.id, status: "Paid" });
                 window.location.href = `/tenant/dashboard?redirected=true&status=success`;
               } else if (paymentStatus === "failed") {
                 clearInterval(interval);
@@ -158,7 +158,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
 
         // Check Wise balance before proceeding
         try {
-          const balanceRes = await axios.get(`/api/payments/wise-balance?tenantId=${userProfile.id}`);
+          const balanceRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/payments/wise-balance?tenantId=${userProfile.id}`);
           const tenantWiseBalance = balanceRes.data.balance;
           // Temporarily bypassing the insufficient funds check:
           // if (tenantWiseBalance < bill.totalAmount) {
@@ -303,7 +303,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
         console.log("Final Wise Recipient Payload:", finalPayload);
 
         // Create recipient via Wise API endpoint
-        const recipientRes = await axios.post("/api/payments/wise-create-recipient", {
+        const recipientRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/wise-create-recipient`, {
           ...finalPayload,
           transferType: selectedTransferType
         });
@@ -313,7 +313,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
         }
 
         // Create the transfer (which includes quote creation, transfer creation, and funding in sandbox)
-        const wiseRes = await axios.post("/api/payments/wise-transfer", {
+        const wiseRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/wise-transfer`, {
           amount: bill.totalAmount,
           currency: "Philippine Peso", // In sandbox, this is mapped to USD; in production, PHP will be used.
           recipientId: recipientRes.data.recipientId

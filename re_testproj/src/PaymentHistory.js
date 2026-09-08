@@ -112,7 +112,7 @@ function PaymentHistory({ tenantDetails, refresh}) {
           scope: 'openid read:payments write:payments offline_access',
         });
 
-        const response = await fetch(`/api/payments?page=${currentPage}&limit=${entriesPerPage}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments?page=${currentPage}&limit=${entriesPerPage}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
