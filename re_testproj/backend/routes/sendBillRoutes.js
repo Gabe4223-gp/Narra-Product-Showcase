@@ -20,6 +20,8 @@ const { v4: uuidv4 } = require('uuid');
 const { Tenant, Files, UserProfile } = require('../models');
 
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
+const API_BASE_URL = process.env.API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const LOCAL_BILL_DIR = path.join(__dirname, '..', 'lease_bills');
 const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
 const AWS_REGION = process.env.AWS_REGION;
 
@@ -78,20 +80,37 @@ function generatePDF(data) {
   return new Promise( async (resolve, reject) => {
 
     const doc = new PDFDocument({ margin: 50 });
-    const passThrough = new PassThrough();  // STREAM
 
-    // Setup S3 upload parameters
-    const uploadParams = {
-      Bucket: S3_BUCKET_NAME,
-      Key: data.pdfFileName,
-      Body: passThrough,  // STREAMING into S3
-      ContentType: "application/pdf",
-    };
+    // Two storage paths. Previously this function always called s3.upload(),
+    // but `s3` is only constructed when STORAGE_TYPE is 's3' -- so any other
+    // setting threw "Cannot read properties of undefined (reading 'upload')"
+    // and every bill failed.
+    const useS3 = STORAGE_TYPE === 's3' && s3;
+    let storedPromise;
 
-    // Upload stream to S3
-    const uploadPromise = s3.upload(uploadParams).promise();
-
-    doc.pipe(passThrough);  // Write PDF to the stream
+    if (useS3) {
+      const passThrough = new PassThrough();
+      storedPromise = s3
+        .upload({
+          Bucket: S3_BUCKET_NAME,
+          Key: data.pdfFileName,
+          Body: passThrough,
+          ContentType: 'application/pdf',
+        })
+        .promise();
+      doc.pipe(passThrough);
+    } else {
+      // Local disk. On a free-tier host this directory is ephemeral: bills
+      // survive until the next restart or redeploy, which is fine for a demo
+      // but is why S3-compatible storage is the real answer.
+      fs.mkdirSync(LOCAL_BILL_DIR, { recursive: true });
+      const writeStream = fs.createWriteStream(path.join(LOCAL_BILL_DIR, data.pdfFileName));
+      storedPromise = new Promise((done, fail) => {
+        writeStream.on('finish', done);
+        writeStream.on('error', fail);
+      });
+      doc.pipe(writeStream);
+    }
 
     // Convert numeric values
     const rentalAmount = Number(data.rentalAmount) || 0;
@@ -214,13 +233,15 @@ function generatePDF(data) {
 
       // Wait for upload to finish, then return the S3 link
       try {
-        await uploadPromise;  // Wait for upload to complete
+        await storedPromise;
 
-        const fileURL = `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${data.pdfFileName}`;
+        const fileURL = useS3
+          ? `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${data.pdfFileName}`
+          : `${API_BASE_URL}/lease_bills/${encodeURIComponent(data.pdfFileName)}`;
 
-        resolve(fileURL);  // Resolve with file URL
-      } catch (uploadError) {
-        reject(uploadError);  // Reject on upload error
+        resolve(fileURL);
+      } catch (storageError) {
+        reject(storageError);
       }
 
     } catch (error) {

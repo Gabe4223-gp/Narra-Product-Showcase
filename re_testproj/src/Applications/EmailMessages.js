@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import WriteEmailPopup from './WriteEmailPopup';
 import './EmailMessages.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const EmailMessages = () => {
+  const { getToken } = useAuthedRequest();
   const [emails, setEmails] = useState([
     {
       id: 999, // Unique ID for mock data
@@ -28,7 +30,7 @@ const EmailMessages = () => {
       const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/emails`, {
         params: { page: currentPage, limit: itemsPerPage },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Add token from localStorage
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
 
@@ -56,7 +58,7 @@ const EmailMessages = () => {
       const emailToDecline = emails.find((e) => e.email === email);
       await axios.post(`${process.env.REACT_APP_BASE_URL}/emails/${emailToDecline.id}/decline`, {}, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Add token from localStorage
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
 

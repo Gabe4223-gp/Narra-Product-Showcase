@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import "./Lease.css";
 import { v4 as uuidv4 } from 'uuid';
 import { useUserProfile } from "./UserProfileContext";
+import useAuthedRequest from './useAuthedRequest';
 
 
 
 
 function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, onSetForPreview, leaseDocs}) {
+    const { authedFetch } = useAuthedRequest();
     // Generate last 10 years for selection
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -76,7 +78,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
 
         try {
            
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/upload-lease`, {
+            const response = await authedFetch(`${process.env.REACT_APP_API_URL}/tenants/upload-lease`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -177,7 +179,7 @@ function Lease ({tenantDetails, onFetchTenant, onFetchLeases, onloadLeaseDoc, on
         
         try {
             // Make a DELETE request to the backend
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/leases/delete-all`, {
+            const response = await authedFetch(`${process.env.REACT_APP_API_URL}/leases/delete-all`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
