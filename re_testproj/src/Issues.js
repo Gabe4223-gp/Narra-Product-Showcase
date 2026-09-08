@@ -148,6 +148,10 @@ function Issues() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPropertyID, properties])
 
+  // Issues store the unit's id; show the human-readable unit number.
+  const unitLabel = (unitRef) =>
+    unitOptions.find((u) => String(u.id) === String(unitRef))?.unitNo || unitRef
+
   const handlePropertyChange = (event) => {
     const propertyId = event.target.value // Get selected property's ID
     setSelectedPropertyID(propertyId) // Update selectedPropertyID state
@@ -552,7 +556,7 @@ function Issues() {
                           </td>
                           <td>{issue.id.substring(0, 4)}</td>
                           <td>{new Date(issue.dateRaised).toLocaleString()}</td>
-                          <td>{issue.unit}</td>
+                          <td>{unitLabel(issue.unit)}</td>
                           <td>{issue.type}</td>
                           <td>{issue.subject}</td>
                           <td>
@@ -733,7 +737,7 @@ function Issues() {
                           </td>
                           <td>{issue.id.substring(0, 4)}</td>
                           <td>{issue.dateResolved}</td>
-                          <td>{issue.unit}</td>
+                          <td>{unitLabel(issue.unit)}</td>
                           <td>{issue.type}</td>
                           <td>{issue.subject}</td>
                           <td>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import { useJsApiLoader, GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import axios from "axios";
@@ -41,6 +41,7 @@ const WorkPortal = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState("")
   const [alphabeticalFilter, setAlphabeticalFilter] = useState("")
   const [contractors, setContractors] = useState([]);
+  const calendarRef = useRef(null);
 
 
   //Select Property
@@ -130,9 +131,17 @@ const WorkPortal = () => {
   const handleBookNow = (contractor) => {
     setSelectedContractor(contractor)
     setCalendarView(true)
-    // The booking form renders above the contractor list, so without this the
-    // user is left scrolled at the card they just clicked.
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setConfirmationMessage("")
+    // Scroll after the panel has actually rendered; calling this in the same
+    // tick scrolls to where the page *was*, which is why clicking Book Now
+    // appeared to do nothing.
+    requestAnimationFrame(() => {
+      if (calendarRef.current) {
+        calendarRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    })
   }
 
   const handleShowRatings = async (contractor) => {
@@ -158,7 +167,7 @@ const WorkPortal = () => {
     }
 
     setConfirmationMessage(
-      `Appointment booked with ${selectedContractor?.name} on ${selectedDate.toDateString()} at ${selectedTime}`,
+      `Your request has been sent to ${selectedContractor?.name} for ${selectedDate.toDateString()} at ${selectedTime}.`,
     )
 
     // Reset for demo purposes
@@ -470,25 +479,44 @@ const WorkPortal = () => {
           </div>
 
           <div className="filter-controls">
-            <select onChange={(e) => setRatingFilter(Number(e.target.value))}>
+            <select
+              value={ratingFilter || ""}
+              onChange={(e) => setRatingFilter(e.target.value ? Number(e.target.value) : "")}
+            >
               <option value="">All Ratings</option>
               <option value="5">5 ★</option>
               <option value="4">4+ ★</option>
               <option value="3">3+ ★</option>
             </select>
-            <select onChange={(e) => setPriceFilter(e.target.value)}>
+            <select
+              value={priceFilter}
+              onChange={(e) => {
+                setPriceFilter(e.target.value)
+                // Two independent sort dropdowns both fed the same comparator,
+                // and price was checked first -- so picking Z -> A did nothing
+                // while a price sort was active. Selecting one clears the other.
+                if (e.target.value) setAlphabeticalFilter("")
+              }}
+            >
               <option value="">Sort by Price</option>
               <option value="asc">Lowest Price</option>
               <option value="desc">Highest Price</option>
             </select>
 
-            <select onChange={(e) => setAvailabilityFilter(e.target.value)}>
+            <select value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value)}>
               <option value="">All Availability</option>
               <option value="Available">Available</option>
+              <option value="Busy">Busy</option>
               <option value="Unavailable">Unavailable</option>
             </select>
 
-            <select onChange={(e) => setAlphabeticalFilter(e.target.value)}>
+            <select
+              value={alphabeticalFilter}
+              onChange={(e) => {
+                setAlphabeticalFilter(e.target.value)
+                if (e.target.value) setPriceFilter("")
+              }}
+            >
               <option value="">Sort Alphabetically</option>
               <option value="asc">A → Z</option>
               <option value="desc">Z → A</option>
@@ -502,7 +530,7 @@ const WorkPortal = () => {
 
       {/* Calendar Booking View */}
       {calendarView && (
-        <div className="calendar-view">
+        <div className="calendar-view" ref={calendarRef}>
           <button onClick={() => setCalendarView(false)} className="back-btn">
             ← Back to Work Portal
           </button>
@@ -532,7 +560,7 @@ const WorkPortal = () => {
             </select>
 
             <button onClick={handleBookingSubmit} className="book-btn" style={{ marginTop: "20px" }}>
-              Confirm Appointment
+              Request to book
             </button>
 
             {confirmationMessage && <p className="confirmation">{confirmationMessage}</p>}

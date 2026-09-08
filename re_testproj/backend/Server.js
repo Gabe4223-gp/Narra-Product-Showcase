@@ -376,22 +376,33 @@ app.post('/issues', async (req, res) => {
   try {
 
     // Step 1: Insert the issue ID into the relevant unit's issues array
+    // The form now sends the unit's id (it used to send free text matched
+    // against unitNo). Match on id first and fall back to unitNo so issues
+    // created by the older free-text form still resolve.
     const unitQuery = `
       UPDATE "Units"
       SET issues = array_append(issues, :issueId)
-      WHERE "unitNo" = :unitNo
-      AND "propertyId" = :propertyId
+      WHERE "propertyId" = :propertyId
+        AND (id::text = :unitRef OR "unitNo" = :unitRef)
       RETURNING *;
     `;
 
-    const [updatedUnit] = await sequelize.query(unitQuery, {
+    const [updatedUnit, unitUpdateCount] = await sequelize.query(unitQuery, {
       replacements: {
         issueId: issue.id,
-        unitNo: issue.unit,
+        unitRef: String(issue.unit ?? ''),
         propertyId: propertyId,
       },
       type: sequelize.QueryTypes.UPDATE,
-    }); 
+    });
+
+    // Without this link the issue row exists but no unit references it, so
+    // /issues/byIds can never return it and the dashboard stays empty.
+    if (!unitUpdateCount) {
+      return res.status(400).json({
+        error: 'No matching unit for this property. Pick a unit from the list.',
+      });
+    }
 
     // Step 2: Insert the issue into the Issues table
     const issueQuery = `

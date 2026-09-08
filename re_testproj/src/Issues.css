@@ -88,26 +88,26 @@
 /* Keyed on intent, not source order: Save is the primary action and carries
    the accent colour; Cancel is secondary. This was previously reversed,
    because :first-of-type matched Cancel. */
-.modal button.btn-primary {
+.modal .button-group button.btn-primary {
   background-color: #3b82f6;
   color: white;
 }
 
-.modal button.btn-primary:hover {
+.modal .button-group button.btn-primary:hover {
   background-color: #2563eb;
 }
 
-.modal button.btn-secondary {
+.modal .button-group button.btn-secondary {
   background-color: #f3f4f6;
   color: #4b5563;
 }
 
-.modal button.btn-secondary:hover {
+.modal .button-group button.btn-secondary:hover {
   background-color: #e5e7eb;
 }
 
-.modal button.btn-primary:focus-visible,
-.modal button.btn-secondary:focus-visible {
+.modal .button-group button.btn-primary:focus-visible,
+.modal .button-group button.btn-secondary:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
