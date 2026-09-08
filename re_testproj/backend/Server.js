@@ -45,13 +45,19 @@ const path = require('path');
 const corsOptions = {
   origin: function (origin, callback) {
     console.log('Origin:', origin); //For Debug
+    // Origin headers never carry a trailing slash, so these must not either.
+    // FRONTEND_BASE_URL and EXTRA_ALLOWED_ORIGINS (comma-separated) let the
+    // deployed frontend URL change without a code deploy.
     const allowedOrigins = [
-      'https://www.narra-ph.com',
-      'http://localhost:5000',
-      'https://narra-ph.com',
-      'https://localhost:5000',
       'http://localhost:3000',
-    ];
+      'https://narra-product-showcase.vercel.app',
+      process.env.FRONTEND_BASE_URL,
+      ...(process.env.EXTRA_ALLOWED_ORIGINS || '')
+        .split(',')
+        .map((o) => o.trim()),
+    ]
+      .filter(Boolean)
+      .map((o) => o.replace(/\/+$/, ''));
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       // Allow requests with no origin (like mobile apps or Postman)
       callback(null, true);

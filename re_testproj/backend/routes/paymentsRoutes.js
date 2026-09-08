@@ -12,6 +12,12 @@ const { customAlphabet } = require('nanoid');
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 8);
 const { v4: uuidv4 } = require('uuid');
 
+// Frontend and API now live on different hosts, so they need separate bases.
+// FRONTEND_BASE_URL is where a human is sent back to; API_BASE_URL is where
+// PayMongo calls back to. Both fall back to the local dev ports.
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function generateCustomerTransactionId() {
   const prefix = 'WSTX'; // fixed prefix to ensure the id starts with a letter
   const timestampPart = Date.now().toString().slice(-6); // last 6 digits of the current timestamp
@@ -105,13 +111,12 @@ router.post('/gcash', async (req, res) => {
 
     console.log("Creating GCash Source in PayMongo:", { amount, billId, tenantEmail });
 
-    const successUrl = `${BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
-    const failedUrl = `${BASE_URL}/api/payments/payment-failed?billId=${billId}`;
-    const BASE_URL = process.env.REACT_APP_API_URL_PROD === "production"
-      ? "https://narra-ph.com"
-      : "http://localhost:3000";
-    
-    const returnUrl = `${BASE_URL}/tenant/dashboard?redirected=true`;
+    // PayMongo calls these back, so they must be the API host.
+    const successUrl = `${API_BASE_URL}/api/payments/payment-success?billId=${billId}&tenantEmail=${encodeURIComponent(tenantEmail)}`;
+    const failedUrl = `${API_BASE_URL}/api/payments/payment-failed?billId=${billId}`;
+
+    // The tenant is sent here in their browser, so it must be the frontend host.
+    const returnUrl = `${FRONTEND_BASE_URL}/tenant/dashboard?redirected=true`;
 
     const paymongoResponse = await axios.post('https://api.paymongo.com/v1/sources', {
       data: {
@@ -443,7 +448,7 @@ router.post("/wise-transfer", async (req, res) => {
 
       // Call the /wise-create-recipient endpoint on your server
       const recipientResponse = await axios.post(
-        "http://localhost:3000/api/payments/wise-create-recipient",
+        `${API_BASE_URL}/api/payments/wise-create-recipient`,
         recipientPayload,
         {
           headers: { "Content-Type": "application/json" }
@@ -698,7 +703,7 @@ router.get('/payment-success', async (req, res) => {
       });
 
       // Redirect back to Tenant Dashboard & Force Reload Billing
-      return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=success&redirected=true`); //fixed to narra-ph.com for testing
+      return res.redirect(`${FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=success&redirected=true`);
   } catch (error) {
     console.error('Error processing payment success:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -706,7 +711,7 @@ router.get('/payment-success', async (req, res) => {
 });
 
 router.get('/payment-failed', (req, res) => {
-  return res.redirect(`https://narra-ph.com/tenant/dashboard?paymentStatus=failed&redirected=true`); //fixed to narra-ph.com for testing
+  return res.redirect(`${FRONTEND_BASE_URL}/tenant/dashboard?paymentStatus=failed&redirected=true`);
 });
 
 // ================== Proof of Payments ==================
