@@ -19,6 +19,12 @@ export function UserProfileProvider({ children }) {
   // no profile" -- and routing must not treat a network error as a missing
   // account.
   const [profileResolved, setProfileResolved] = useState(false);
+  // True once the first fetch attempt has settled, success or failure. Routing
+  // must gate on this rather than on loadingProfile: every later refresh flips
+  // loadingProfile back to true, and blocking render on that unmounts the whole
+  // app -- including the Header, whose mount effect calls refreshUserProfile(),
+  // which starts the cycle again.
+  const [profileInitialised, setProfileInitialised] = useState(false);
   const [searchParams] = useSearchParams();
   const redirected = searchParams.get("redirected");
 
@@ -26,6 +32,7 @@ export function UserProfileProvider({ children }) {
   const fetchUserProfile = useCallback(async () => {
     if (!isAuthenticated || !user?.email) {
       setLoadingProfile(false);
+      setProfileInitialised(true);
       return;
     } 
     try {
@@ -53,6 +60,7 @@ export function UserProfileProvider({ children }) {
       setProfileResolved(false);
     } finally {
       setLoadingProfile(false);
+      setProfileInitialised(true);
     }
   }, [user?.email, isAuthenticated]);
 
@@ -61,6 +69,7 @@ export function UserProfileProvider({ children }) {
       // Previously returned without clearing loadingProfile, which left the
       // app on the loading screen with no way forward.
       setLoadingProfile(false);
+      setProfileInitialised(true);
       return;
     }
 
@@ -68,6 +77,7 @@ export function UserProfileProvider({ children }) {
       setUserProfile(null);
       setProfileResolved(false);
       setLoadingProfile(false);
+      setProfileInitialised(true);
       return;
     }
 
@@ -77,9 +87,12 @@ export function UserProfileProvider({ children }) {
   }, [fetchUserProfile, user?.email, isAuthenticated, redirected]);
 
   // Method to refresh or force reload the userProfile (e.g., after saving changes)
-  const refreshUserProfile = async () => {
+  // Memoised: this sits in consumers' effect dependency arrays (Header,
+  // Homepage, TenantHomepage). A fresh identity each render re-triggers those
+  // effects, which is how a refresh can turn into a fetch loop.
+  const refreshUserProfile = useCallback(async () => {
     await fetchUserProfile();
-  };
+  }, [fetchUserProfile]);
 
   // Method to manually update userProfile state if we get new data from an API response
   const updateUserProfile = (newProfile) => {
@@ -90,6 +103,7 @@ export function UserProfileProvider({ children }) {
     userProfile,
     loadingProfile,
     profileResolved,
+    profileInitialised,
     error,
     refreshUserProfile,
     updateUserProfile,

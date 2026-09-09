@@ -28,7 +28,7 @@ import Ledger from './generalLedger';
 
 function AppContent() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-  const { userProfile, loadingProfile, profileResolved } = useUserProfile();
+  const { userProfile, profileResolved, profileInitialised } = useUserProfile();
   
   // Bring in TeamContext
   const {
@@ -106,7 +106,10 @@ function AppContent() {
 
   // If loading from Auth0 or TeamContext, show loading. TeamContext makes the
   // first API call of the session, so this is where a cold backend is felt.
-  if (isLoading || loadingTeams || loadingProfile) {
+  // Gate on the first load only. Using loadingProfile here meant every
+  // background refresh unmounted the app, and Header's mount effect calls
+  // refreshUserProfile() -- an unmount/remount loop that never settled.
+  if (isLoading || loadingTeams || !profileInitialised) {
     return <BackendWaking />;
   }
 
