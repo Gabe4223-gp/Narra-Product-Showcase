@@ -28,7 +28,7 @@ import Ledger from './generalLedger';
 
 function AppContent() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-  const { userProfile } = useUserProfile();
+  const { userProfile, loadingProfile } = useUserProfile();
   
   // Bring in TeamContext
   const {
@@ -51,6 +51,16 @@ function AppContent() {
 
   const query = useQuery();
   const redirected = query.get("redirected");
+
+  // The app stores the string "null" when no role is chosen, so a missing key
+  // (real null) previously fell through every `role === "null"` check and
+  // landed the user on the dashboard. Treat both as "no role".
+  const hasRole = Boolean(role) && role !== "null";
+
+  // And do not trust localStorage alone. If the profile is gone -- a deleted
+  // account, or a new Auth0 signup in a browser that still has an old role
+  // cached -- onboarding has to run again regardless of what is stored.
+  const needsProfileSetup = !loadingProfile && !userProfile;
 
 
 
@@ -76,7 +86,7 @@ function AppContent() {
       } else {
         navigate("/select-role", { replace: true });  // Fallback if role is missing
       }
-    } else if (role === "null" && window.location.pathname !== "/select-role" && window.location.pathname !=="/welcome") {
+    } else if ((!hasRole || needsProfileSetup) && window.location.pathname !== "/select-role" && window.location.pathname !=="/welcome") {
       console.log("you are going to select role");
       navigate("/select-role", { replace: true });
     }
@@ -86,11 +96,11 @@ function AppContent() {
       loginWithRedirect();
     }
   
-  }, [redirected, role, isAuthenticated, isLoading, loginWithRedirect, navigate]);
+  }, [redirected, role, hasRole, needsProfileSetup, isAuthenticated, isLoading, loginWithRedirect, navigate]);
 
   // If loading from Auth0 or TeamContext, show loading. TeamContext makes the
   // first API call of the session, so this is where a cold backend is felt.
-  if (isLoading || loadingTeams) {
+  if (isLoading || loadingTeams || loadingProfile) {
     return <BackendWaking />;
   }
 
@@ -115,8 +125,8 @@ function AppContent() {
   }
 
   // If user has no role => show role selection
-  if (role === "null") {
-    console.log("user has no role");
+  if (!hasRole || needsProfileSetup) {
+    console.log("user has no role or no profile; sending to onboarding");
     return (
       <Routes>
         <Route path="/select-role" element={

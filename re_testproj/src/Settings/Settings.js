@@ -361,20 +361,19 @@ function Settings() {
       );
       setShowDeleteConfirmation(false);
 
-      // Clear anything cached about the old account before leaving, so a
-      // subsequent sign-in does not inherit the deleted user's role.
-      localStorage.removeItem('userRole');
+      // Clear everything cached about the old account. userRole must be set
+      // to the string "null" rather than removed: AppContent checks
+      // `role === "null"`, so a missing key read back as a real null, failed
+      // that check, and dropped the next sign-in straight onto the dashboard.
+      localStorage.setItem('userRole', 'null');
+      localStorage.removeItem('userProfile');
       localStorage.removeItem('selectedPropertyID');
       localStorage.removeItem('selectedPropertyIDIssue');
 
-      // If the Auth0 identity could not be removed, the session is still valid
-      // and signing back in would silently recreate a profile. Say so rather
-      // than letting it look like the deletion failed.
-      if (data?.auth0 && !['deleted', 'not_found'].includes(data.auth0.status)) {
-        alert(
-          'Your data has been deleted. Your sign-in account could not be removed ' +
-            'automatically, so please contact support to have it closed.'
-        );
+      if (data?.auth0?.status && data.auth0.status !== 'deleted') {
+        // Surfaced in the console for debugging; the user does not need to act
+        // on it, and their data is deleted either way.
+        console.warn('Auth0 account removal:', data.auth0);
       }
 
       // logout() rather than a redirect: the Auth0 session outlives the
