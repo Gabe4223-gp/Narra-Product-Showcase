@@ -34,7 +34,10 @@ export function TeamProvider({ children }) {
     try {
       setLoadingTeams(true);
       const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/teams`, {
-        headers: { 'user-email': user.email }
+        headers: { 'user-email': user.email },
+        // Bounded so a hung request cannot pin loadingTeams true and hold the
+        // whole app on the loading screen.
+        timeout: 30000,
       });
       if (res.data.success) {
         setTeams(res.data.teams);

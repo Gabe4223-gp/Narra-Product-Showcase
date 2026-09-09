@@ -76,3 +76,10 @@
   background-color: #76f0a9;
   color: #26384f;
 }
+
+.waking-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}

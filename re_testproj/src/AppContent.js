@@ -20,7 +20,7 @@ import Layout from './Layout';
 import RoleSelection from './RoleSelection';
 import TenantHomepage from './TenantView/TenantHomepage';
 import Welcome from './Welcome';
-import BackendWaking from './BackendWaking';
+import BackendWaking, { clearWaitTimer } from './BackendWaking';
 import TaxFiling from './TaxFiling';
 import Accounting from './Accounting';
 import ProfitLoss from './ProfitLoss';
@@ -109,6 +109,10 @@ function AppContent() {
   if (isLoading || loadingTeams || loadingProfile) {
     return <BackendWaking />;
   }
+
+  // Past the loading gate: reset the shared timer so a later slow load starts
+  // counting from zero rather than inheriting this session's elapsed time.
+  clearWaitTimer();
 
   // If not authenticated, show public routes
   if (!isAuthenticated) {

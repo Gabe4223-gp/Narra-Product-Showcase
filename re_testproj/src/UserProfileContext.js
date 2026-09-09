@@ -30,7 +30,12 @@ export function UserProfileProvider({ children }) {
     } 
     try {
       setLoadingProfile(true);
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
+      const res = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/user-profile/by-email/${encodeURIComponent(user.email)}`,
+        // axios has no default timeout: without this a hung request keeps
+        // loadingProfile true forever and the app never leaves the spinner.
+        { timeout: 30000 }
+      );
       setUserProfile(res.data.userProfile);
       setProfileResolved(true);
       console.log("Fetched user profile:", res.data.userProfile);
@@ -53,6 +58,9 @@ export function UserProfileProvider({ children }) {
 
   useEffect(() => {
     if (!isAuthenticated && redirected) {
+      // Previously returned without clearing loadingProfile, which left the
+      // app on the loading screen with no way forward.
+      setLoadingProfile(false);
       return;
     }
 
