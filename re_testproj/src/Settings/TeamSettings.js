@@ -3,6 +3,20 @@ import axios from 'axios';
 import { useUserProfile } from '../UserProfileContext';
 import './TeamSettings.css';
 
+// Labels are spelled out rather than derived from the key: capitalising
+// camelCase would render "ProfitLoss" and "GeneralLedger".
+const FEATURE_PERMISSIONS = [
+  { key: 'applications', label: 'Applications' },
+  { key: 'tenants', label: 'Tenants' },
+  { key: 'units', label: 'Units' },
+  { key: 'issues', label: 'Issues' },
+  { key: 'billings', label: 'Billings' },
+  { key: 'accounting', label: 'Accounting' },
+  { key: 'profitLoss', label: 'Profit Loss' },
+  { key: 'taxFiling', label: 'Tax Filing' },
+  { key: 'generalLedger', label: 'General Ledger' },
+];
+
 function TeamSettings({ onClose }) {
   const { userProfile } = useUserProfile();
 
@@ -35,6 +49,9 @@ function TeamSettings({ onClose }) {
     issues: false,
     billings: false,
     accounting: false,
+    profitLoss: false,
+    taxFiling: false,
+    generalLedger: false,
   });
   const [currentTeamId, setCurrentTeamId] = useState(null);
   const [editMemberId, setEditMemberId] = useState(null);
@@ -228,6 +245,9 @@ function TeamSettings({ onClose }) {
         issues: member.issues || false,
         billings: member.billings || false,
         accounting: member.accounting || false,
+        profitLoss: member.profitLoss || false,
+        taxFiling: member.taxFiling || false,
+        generalLedger: member.generalLedger || false,
       });
     } else {
       // Add new
@@ -241,7 +261,10 @@ function TeamSettings({ onClose }) {
         units: false,
         issues: false,
         billings: false,
-        acccounting: false,
+        accounting: false,
+        profitLoss: false,
+        taxFiling: false,
+        generalLedger: false,
       });
     }
   };
@@ -272,7 +295,10 @@ function TeamSettings({ onClose }) {
             units: memberForm.units,
             issues: memberForm.issues,
             billings: memberForm.billings,
-            accounting: memberForm.accounting
+            accounting: memberForm.accounting,
+            profitLoss: memberForm.profitLoss,
+            taxFiling: memberForm.taxFiling,
+            generalLedger: memberForm.generalLedger
           },
           { headers: { 'user-email': userEmail } }
         );
@@ -289,7 +315,10 @@ function TeamSettings({ onClose }) {
             units: memberForm.units,
             issues: memberForm.issues,
             billings: memberForm.billings,
-            accounting: memberForm.accounting
+            accounting: memberForm.accounting,
+            profitLoss: memberForm.profitLoss,
+            taxFiling: memberForm.taxFiling,
+            generalLedger: memberForm.generalLedger
           },
           { headers: { 'user-email': userEmail } }
         );
@@ -390,6 +419,9 @@ function TeamSettings({ onClose }) {
                     if (member.issues) permArr.push('Issues');
                     if (member.billings) permArr.push('Billings');
                     if (member.accounting) permArr.push('Accounting');
+                    if (member.profitLoss) permArr.push('Profit Loss');
+                    if (member.taxFiling) permArr.push('Tax Filing');
+                    if (member.generalLedger) permArr.push('General Ledger');
                     const displayPermissions = permArr.length
                       ? permArr.join(', ')
                       : 'No Permissions';
@@ -504,15 +536,15 @@ function TeamSettings({ onClose }) {
             </div>
 
             <h4>Features</h4>
-            {['applications', 'tenants', 'units', 'issues', 'billings', 'accounting'].map((feat) => (
-              <label key={feat}>
+            {FEATURE_PERMISSIONS.map(({ key, label }) => (
+              <label key={key}>
                 <input
                   type="checkbox"
-                  name={feat}
-                  checked={memberForm[feat]}
+                  name={key}
+                  checked={memberForm[key]}
                   onChange={handleMemberFormChange}
                 />
-                {feat.charAt(0).toUpperCase() + feat.slice(1)}
+                {label}
               </label>
             ))}
 

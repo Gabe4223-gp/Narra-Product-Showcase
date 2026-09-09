@@ -5,6 +5,7 @@ import { NavLink } from 'react-router-dom';
 import { FaHome, FaCog, FaBuilding, FaWrench } from 'react-icons/fa';
 import { AiOutlineForm } from 'react-icons/ai';
 import { FaUser, FaClipboardList } from 'react-icons/fa';
+import { FaCalculator, FaChartLine, FaBook, FaFileInvoiceDollar } from 'react-icons/fa';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useTeamContext } from './TeamContext'; // new import
 
@@ -20,7 +21,11 @@ function Sidebar({ isCollapsed, role }) {
     tenants: activeTeamMembership?.tenants || false,
     units: activeTeamMembership?.units || false,
     issues: activeTeamMembership?.issues || false,
-    billings: activeTeamMembership?.billings || false
+    billings: activeTeamMembership?.billings || false,
+    accounting: activeTeamMembership?.accounting || false,
+    profitLoss: activeTeamMembership?.profitLoss || false,
+    taxFiling: activeTeamMembership?.taxFiling || false,
+    generalLedger: activeTeamMembership?.generalLedger || false
   };
 
   // Render the sidebar based on role + membership
@@ -89,53 +94,61 @@ function Sidebar({ isCollapsed, role }) {
               )}
 
               
-              <li>
+              {permissions.accounting && (
+                <li>
                 <NavLink to="/accounting" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaClipboardList className="sidebar-icon" />
+                  <FaCalculator className="sidebar-icon" />
                   {!isCollapsed && (
                     <span className="sidebar-label">
-                      Accountings
-                      <em className="sidebar-note">Under Construction</em>
+                      Accounting
+                      <em className="sidebar-note">Coming Soon</em>
                     </span>
                   )}
                 </NavLink>
               </li>
+              )}
 
-              <li>
+              {permissions.profitLoss && (
+                <li>
                 <NavLink to="/profitloss" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaClipboardList className="sidebar-icon" />
+                  <FaChartLine className="sidebar-icon" />
                   {!isCollapsed && (
                     <span className="sidebar-label">
                       Profit Loss
-                      <em className="sidebar-note">Under Construction</em>
+                      <em className="sidebar-note">Coming Soon</em>
                     </span>
                   )}
                 </NavLink>
               </li>
+              )}
 
-              <li>
+              {permissions.taxFiling && (
+                <li>
                 <NavLink to="/tax-filing" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaCog className="sidebar-icon" />
+                  <FaFileInvoiceDollar className="sidebar-icon" />
                   {!isCollapsed && (
                     <span className="sidebar-label">
                       Tax Filing
-                      <em className="sidebar-note">Under Construction</em>
+                      <em className="sidebar-note">Coming Soon</em>
                     </span>
                   )}
                 </NavLink>
               </li>
+              )}
 
-              <li>
+              {permissions.generalLedger && (
+                <li>
                 <NavLink to="/generalLedger" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <FaCog className="sidebar-icon" />
+                  <FaBook className="sidebar-icon" />
                   {!isCollapsed && (
                     <span className="sidebar-label">
                       General Ledger
-                      <em className="sidebar-note">Under Construction</em>
+                      <em className="sidebar-note">Coming Soon</em>
                     </span>
                   )}
                 </NavLink>
               </li>
+              )}
 
               <li>
                 <NavLink to="/settings" className={({ isActive }) => (isActive ? 'active' : '')}>

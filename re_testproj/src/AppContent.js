@@ -177,10 +177,10 @@ function AppContent() {
               {/* The sidebar links to these; without routes they fell through
                   to the catch-all below and silently returned the user to the
                   dashboard, which reads as a broken link. */}
-              <Route path="accounting" element={<Accounting />} />
-              <Route path="profitloss" element={<ProfitLoss />} />
-              <Route path="tax-filing" element={<TaxFiling />} />
-              <Route path="generalLedger" element={<Ledger/>} />
+              {activeTeamMembership?.accounting && <Route path="accounting" element={<Accounting />} />}
+              {activeTeamMembership?.profitLoss && <Route path="profitloss" element={<ProfitLoss />} />}
+              {activeTeamMembership?.taxFiling && <Route path="tax-filing" element={<TaxFiling />} />}
+              {activeTeamMembership?.generalLedger && <Route path="generalLedger" element={<Ledger/>} />}
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/homepage" replace />} />
             </>

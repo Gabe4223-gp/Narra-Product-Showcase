@@ -140,7 +140,11 @@ router.post('/', async (req, res) => {
       tenants: true,
       units: true,
       issues: true,
-      billings: true
+      billings: true,
+      accounting: true,
+      profitLoss: true,
+      taxFiling: true,
+      generalLedger: true
     });
 
     return res.status(201).json({
@@ -279,7 +283,11 @@ router.post('/:teamId/members', async (req, res) => {
       tenants,
       units,
       issues,
-      billings
+      billings,
+      accounting,
+      profitLoss,
+      taxFiling,
+      generalLedger
     } = req.body;
 
     const newMember = await TeamMembers.create({
@@ -293,6 +301,10 @@ router.post('/:teamId/members', async (req, res) => {
       units: !!units,
       issues: !!issues,
       billings: !!billings,
+      accounting: !!accounting,
+      profitLoss: !!profitLoss,
+      taxFiling: !!taxFiling,
+      generalLedger: !!generalLedger,
       isOwner: false // default
     });
 
@@ -347,7 +359,11 @@ router.put('/:teamId/members/:memberId', async (req, res) => {
       tenants,
       units,
       issues,
-      billings
+      billings,
+      accounting,
+      profitLoss,
+      taxFiling,
+      generalLedger
     } = req.body;
 
     if (typeof memberName !== 'undefined') targetMembership.memberName = memberName;
@@ -358,6 +374,10 @@ router.put('/:teamId/members/:memberId', async (req, res) => {
     if (typeof units !== 'undefined') targetMembership.units = !!units;
     if (typeof issues !== 'undefined') targetMembership.issues = !!issues;
     if (typeof billings !== 'undefined') targetMembership.billings = !!billings;
+    if (typeof accounting !== 'undefined') targetMembership.accounting = !!accounting;
+    if (typeof profitLoss !== 'undefined') targetMembership.profitLoss = !!profitLoss;
+    if (typeof taxFiling !== 'undefined') targetMembership.taxFiling = !!taxFiling;
+    if (typeof generalLedger !== 'undefined') targetMembership.generalLedger = !!generalLedger;
 
     await targetMembership.save();
 

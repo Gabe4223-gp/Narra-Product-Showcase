@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FaRegCalendar } from 'react-icons/fa';
 import './generalLedger.css';
 import './PlannedFeature.css';
 
@@ -12,7 +13,7 @@ function Ledger() {
             not yet derived from Files/Payments. Say so, rather than leaving an
             unexplained empty table. */}
         <p className="under-construction-note">
-          Under Construction &mdash; journal entries will be derived from issued
+          Under Construction - journal entries will be derived from issued
           bills and recorded payments. The filters and export controls below are
           the intended interface; no entries are posted yet.
         </p>
@@ -123,7 +124,7 @@ function FilterPanel({ filters, onFilterChange }) {
               value={filters.fromDate}
               onChange={(e) => onFilterChange('fromDate', e.target.value)}
             />
-            <span className="calendar-icon">📅</span>
+            <FaRegCalendar className="calendar-icon" aria-hidden="true" />
           </div>
         </div>
 
@@ -136,7 +137,7 @@ function FilterPanel({ filters, onFilterChange }) {
               value={filters.toDate}
               onChange={(e) => onFilterChange('toDate', e.target.value)}
             />
-            <span className="calendar-icon">📅</span>
+            <FaRegCalendar className="calendar-icon" aria-hidden="true" />
           </div>
         </div>
       </div>

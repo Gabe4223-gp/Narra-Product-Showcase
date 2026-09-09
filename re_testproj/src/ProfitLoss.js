@@ -218,7 +218,7 @@ const ProfitLoss = () => {
         </div>
 
       <p className="under-construction-note">
-        Under Construction &mdash; these figures are illustrative, not drawn from
+        Under Construction - these figures are illustrative, not drawn from
         your properties. The statement, totals and CSV export are fully working;
         only the data source is pending.
       </p>

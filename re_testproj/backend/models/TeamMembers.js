@@ -22,7 +22,11 @@ module.exports = (sequelize, DataTypes) => {
     tenants: DataTypes.BOOLEAN,
     units: DataTypes.BOOLEAN,
     issues: DataTypes.BOOLEAN,
-    billings: DataTypes.BOOLEAN
+    billings: DataTypes.BOOLEAN,
+    accounting: DataTypes.BOOLEAN,
+    profitLoss: DataTypes.BOOLEAN,
+    taxFiling: DataTypes.BOOLEAN,
+    generalLedger: DataTypes.BOOLEAN
   }, {
     tableName: 'TeamMembers',
     timestamps: true

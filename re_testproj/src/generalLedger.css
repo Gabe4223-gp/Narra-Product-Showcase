@@ -114,9 +114,15 @@ body {
   font-family: 'Poppins', sans-serif;
 }
 
+/* Now an SVG rather than an emoji glyph: size it explicitly and align it to
+   the input it sits beside. */
 .calendar-icon {
   margin-left: 0.5rem;
-  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #555;
+  vertical-align: middle;
 }
 
 .ledger-table-container {
