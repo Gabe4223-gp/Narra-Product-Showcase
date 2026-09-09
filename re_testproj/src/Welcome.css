@@ -123,3 +123,15 @@
     margin-top: 6px;
     text-align: left;
   }
+  .welcome-container .field-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #b9cbe0;
+  }
+
+  .welcome-container input[readonly] {
+    background-color: #eef2f7;
+    color: #55657a;
+    cursor: not-allowed;
+  }

@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useUserProfile } from './UserProfileContext';
 import './Welcome.css';
 
 function Welcome({ onProfileCreated }) {
   const navigate = useNavigate();
+  const { refreshUserProfile } = useUserProfile();
   const location = useLocation();
   const authUserInfo = location.state?.authUserInfo;
   const chosenRole = location.state?.chosenRole;
@@ -49,9 +51,14 @@ function Welcome({ onProfileCreated }) {
         email,
         password,
       });
-      alert("Profile created successfully!");
+      // Pull the new profile into context before navigating. Routing treats a
+      // resolved-but-empty profile as "needs onboarding", so without this the
+      // user is bounced straight back to Role Selection having just filled the
+      // form in.
+      await refreshUserProfile();
+
       onProfileCreated(chosenRole);
-      navigate('/');
+      navigate(chosenRole === 'tenant' ? '/tenant/dashboard' : '/homepage', { replace: true });
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Error saving profile. Please try again.");
@@ -60,7 +67,7 @@ function Welcome({ onProfileCreated }) {
 
   // Handle back navigation to RoleSelection
   const handleBack = () => {
-    navigate('/role-selection', {
+    navigate('/select-role', {
       replace: true,
       state: {
         authUserInfo,
@@ -120,11 +127,18 @@ function Welcome({ onProfileCreated }) {
       <div className="form-group">
         <label>
           Email:
+          {/* Read-only when it comes from the login. Profiles are looked up by
+              the signed-in Auth0 email, so editing this would create a profile
+              the app can never find again. */}
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            readOnly={Boolean(authUserInfo?.email)}
           />
+          {authUserInfo?.email && (
+            <span className="field-hint">This is the email you signed in with.</span>
+          )}
           {errors.email && <span className="error">{errors.email}</span>}
         </label>
       </div>
