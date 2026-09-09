@@ -1,142 +1,86 @@
-/* Shared styling for not-yet-built modules. Matches the app's existing
-   #3b82f6 accent and card treatment so a placeholder does not look like a
-   different product. */
+/* Mirrors Billings.css: same page ground, card, shadow, heading colour and
+   type scale, so the placeholder sits inside the product rather than beside
+   it. No badges, no tinted panels, no accent fills. */
 
-.planned-feature {
-  padding: 32px 20px;
-  display: flex;
-  justify-content: center;
+.planned-page {
+  padding: 20px;
+  background-color: #f4f6f8;
 }
 
-.planned-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
-  padding: 32px;
-  max-width: 640px;
-  width: 100%;
+.planned-page h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
 }
 
-.planned-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.planned-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 90%;
+  margin: 20px auto;
 }
 
-.planned-title {
-  margin: 16px 0 8px;
-  font-size: 26px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.planned-summary {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  color: #4b5563;
-}
-
-.planned-subhead {
-  margin: 26px 0 10px;
+.planned-lead {
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #6b7280;
+  color: #333;
+  margin: 0 0 13px;
+  margin-left: 1%;
 }
 
 .planned-list {
   margin: 0;
-  padding-left: 20px;
+  padding-left: calc(1% + 20px);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #374151;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 12px;
+  color: #333;
+  line-height: 1.6;
 }
 
 .planned-list li::marker {
-  color: #9ca3af;
-}
-
-.planned-note {
-  margin: 26px 0 0;
-  padding: 14px 16px;
-  background-color: #f9fafb;
-  border-left: 3px solid #d1d5db;
-  border-radius: 0 6px 6px 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: #4b5563;
+  color: #aaa;
 }
 
 .planned-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 26px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
 }
 
-.planned-btn-primary,
-.planned-btn-secondary {
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 500;
+.planned-actions button {
   font-family: inherit;
-  border-radius: 6px;
+  font-size: 12px;
+  padding: 8px 16px;
+  color: #333;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color 0.2s ease;
 }
 
-.planned-btn-primary {
-  background-color: #3b82f6;
-  color: #fff;
+.planned-actions button:hover {
+  background-color: #e9ecef;
 }
 
-.planned-btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.planned-btn-secondary {
-  background-color: #fff;
-  color: #374151;
-  border-color: #d1d5db;
-}
-
-.planned-btn-secondary:hover {
-  background-color: #f3f4f6;
-}
-
-.planned-btn-primary:focus-visible,
-.planned-btn-secondary:focus-visible {
-  outline: 2px solid #2563eb;
+.planned-actions button:focus-visible {
+  outline: 2px solid #0571d3;
   outline-offset: 2px;
 }
 
-/* Empty-state notice reused by the General Ledger, whose table shell exists
-   but has no data source yet. */
-.ledger-planned-notice {
+/* Quiet, italic aside used where a section is present but unfinished: the
+   General Ledger table and the Profit and Loss statement. Grey and small on
+   purpose -- it should be findable, not attention-seeking. */
+.under-construction-note {
   margin: 0 0 16px;
-  padding: 12px 16px;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  color: #1e40af;
-  font-size: 13.5px;
+  margin-left: 1%;
+  font-style: italic;
+  font-size: 12px;
   line-height: 1.55;
-}
-
-.ledger-planned-notice strong {
-  font-weight: 600;
+  color: #888;
 }

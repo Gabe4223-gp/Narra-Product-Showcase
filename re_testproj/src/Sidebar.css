@@ -79,3 +79,26 @@
   }
 }
 
+
+/* "Under Construction" marker on modules that are scoped but unfinished.
+   Small, italic and grey: discoverable when read, but it should not pull the
+   eye away from the working sections above it. */
+.sidebar-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.sidebar-note {
+  font-style: italic;
+  font-size: 9.5px;
+  color: #9aa3ad;
+  margin-top: 2px;
+}
+
+/* Hover and active states invert the link to white text, so the grey would
+   otherwise drop out. Keep it subdued but legible. */
+.sidebar-nav li a:hover .sidebar-note,
+.sidebar-nav li a.active .sidebar-note {
+  color: #d6dde4;
+}

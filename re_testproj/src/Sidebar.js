@@ -92,28 +92,48 @@ function Sidebar({ isCollapsed, role }) {
               <li>
                 <NavLink to="/accounting" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaClipboardList className="sidebar-icon" />
-                  {!isCollapsed && <span>Accountings</span>}
+                  {!isCollapsed && (
+                    <span className="sidebar-label">
+                      Accountings
+                      <em className="sidebar-note">Under Construction</em>
+                    </span>
+                  )}
                 </NavLink>
               </li>
 
               <li>
                 <NavLink to="/profitloss" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaClipboardList className="sidebar-icon" />
-                  {!isCollapsed && <span>Profit Loss</span>}
+                  {!isCollapsed && (
+                    <span className="sidebar-label">
+                      Profit Loss
+                      <em className="sidebar-note">Under Construction</em>
+                    </span>
+                  )}
                 </NavLink>
               </li>
 
               <li>
                 <NavLink to="/tax-filing" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaCog className="sidebar-icon" />
-                  {!isCollapsed && <span>Tax Filing</span>}
+                  {!isCollapsed && (
+                    <span className="sidebar-label">
+                      Tax Filing
+                      <em className="sidebar-note">Under Construction</em>
+                    </span>
+                  )}
                 </NavLink>
               </li>
 
               <li>
                 <NavLink to="/generalLedger" className={({ isActive }) => (isActive ? 'active' : '')}>
                   <FaCog className="sidebar-icon" />
-                  {!isCollapsed && <span>General Ledger</span>}
+                  {!isCollapsed && (
+                    <span className="sidebar-label">
+                      General Ledger
+                      <em className="sidebar-note">Under Construction</em>
+                    </span>
+                  )}
                 </NavLink>
               </li>
 

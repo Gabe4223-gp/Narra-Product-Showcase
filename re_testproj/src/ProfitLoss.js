@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ProfitLoss.css';
+import './PlannedFeature.css';
 
 const COMPANIES = ['ABC Property Management', 'XYZ Properties', '123 Real Estate'];
 const YEARS = ['2024', '2025', '2026'];
@@ -216,14 +217,11 @@ const ProfitLoss = () => {
         </div>
         </div>
 
-      <div className="sample-data-notice">
-        <span className="sample-data-badge">Sample data</span>
-        <span>
-          These figures are illustrative, not drawn from your properties. The
-          statement, totals and CSV export are fully working; only the data
-          source is pending.
-        </span>
-      </div>
+      <p className="under-construction-note">
+        Under Construction &mdash; these figures are illustrative, not drawn from
+        your properties. The statement, totals and CSV export are fully working;
+        only the data source is pending.
+      </p>
        
     <div className="controls-container">
         <div className="dropdown-controls">
