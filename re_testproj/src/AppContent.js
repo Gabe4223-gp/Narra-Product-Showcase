@@ -28,7 +28,7 @@ import Ledger from './generalLedger';
 
 function AppContent() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-  const { userProfile, loadingProfile } = useUserProfile();
+  const { userProfile, loadingProfile, profileResolved } = useUserProfile();
   
   // Bring in TeamContext
   const {
@@ -60,7 +60,13 @@ function AppContent() {
   // And do not trust localStorage alone. If the profile is gone -- a deleted
   // account, or a new Auth0 signup in a browser that still has an old role
   // cached -- onboarding has to run again regardless of what is stored.
-  const needsProfileSetup = !loadingProfile && !userProfile;
+  //
+  // profileResolved is essential here: it is only true once the server has
+  // actually answered. Keying off !userProfile alone meant a failed or slow
+  // request looked identical to a missing account, so the app bounced between
+  // Role Selection and the dashboard -- Role Selection's own /existing check
+  // said the profile was there, while this said it was not.
+  const needsProfileSetup = profileResolved && !userProfile;
 
 
 

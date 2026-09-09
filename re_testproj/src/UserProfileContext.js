@@ -14,6 +14,11 @@ export function UserProfileProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
+  // True only once the server has actually answered. A failed request leaves
+  // userProfile null, which is otherwise indistinguishable from "this user has
+  // no profile" -- and routing must not treat a network error as a missing
+  // account.
+  const [profileResolved, setProfileResolved] = useState(false);
   const [searchParams] = useSearchParams();
   const redirected = searchParams.get("redirected");
 
@@ -26,7 +31,8 @@ export function UserProfileProvider({ children }) {
     try {
       setLoadingProfile(true);
       const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-profile/by-email/${encodeURIComponent(user.email)}`);
-      setUserProfile(res.data.userProfile); 
+      setUserProfile(res.data.userProfile);
+      setProfileResolved(true);
       console.log("Fetched user profile:", res.data.userProfile);
       
 
@@ -37,6 +43,9 @@ export function UserProfileProvider({ children }) {
     } catch (err) {
       console.error("Error fetching userProfile:", err);
       setError(err.message || "Error fetching userProfile.");
+      // Unknown, not absent. Leave profileResolved false so callers keep the
+      // user where they are rather than sending them through onboarding.
+      setProfileResolved(false);
     } finally {
       setLoadingProfile(false);
     }
@@ -49,6 +58,7 @@ export function UserProfileProvider({ children }) {
 
     if (!isAuthenticated || !user?.email) {
       setUserProfile(null);
+      setProfileResolved(false);
       setLoadingProfile(false);
       return;
     }
@@ -71,6 +81,7 @@ export function UserProfileProvider({ children }) {
   const value = {
     userProfile,
     loadingProfile,
+    profileResolved,
     error,
     refreshUserProfile,
     updateUserProfile,

@@ -36,8 +36,10 @@ function HomePage({ onLogout }) {
       const data = await response.json();
       setProperties(data);
     } catch (error) {
+      // Not a blocking alert: on free-tier hosting the API may still be waking
+      // up, and a modal per failed attempt is worse than an empty list.
       console.error('Error fetching properties:', error);
-      alert('Failed to load properties. Please try again.');
+      setProperties([]);
     }
   }, [userProfile?.id]);
 
