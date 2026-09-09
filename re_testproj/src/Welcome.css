@@ -6,7 +6,7 @@
     align-items: center;
     min-height: 100vh;
     background-color: #4a6385;
-    font-family: 'Montserrat';
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   
   .welcome-container h2 {
@@ -41,31 +41,85 @@
   .welcome-container input[type="email"],
   .welcome-container input[type="password"],
   .welcome-container input[type="date"] {
-    padding: 8px;
+    /* Fill the .form-group width so every field lines up with its label and
+       with the buttons below, instead of each one sizing to its own default. */
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
     margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #1f2d3d;
+  }
+
+  .welcome-container input:focus {
+    outline: none;
+    border-color: #23ce6b;
+    box-shadow: 0 0 0 3px rgba(35, 206, 107, 0.25);
   }
   
   .welcome-container .btn-role, .welcome-container .actions button {
+    /* inline-flex centring rather than relying on the default: the label is
+       then centred on both axes whatever its length, and the two buttons keep
+       the same height. Without font-family: inherit these rendered in the
+       browser's default face while everything around them was Montserrat. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 40px;
     padding: 10px 20px;
+    font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
     background-color: #23ce6b;
     color: white;
-    border: none;
+    border: 1px solid #23ce6b;
     border-radius: 4px;
     cursor: pointer;
-    margin: 10px 0;
     width: 200px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
-  
+
   .welcome-container .btn-role:hover,
   .welcome-container .actions button:hover {
     background-color: #76f0a9;
+    border-color: #76f0a9;
+  }
+
+  .welcome-container .btn-role:focus-visible {
+    outline: 2px solid #edf5fc;
+    outline-offset: 2px;
+  }
+
+  /* Save is the primary action; Back should not compete with it. */
+  .welcome-container .btn-role.back-btn {
+    background-color: transparent;
+    border-color: #8ea3bd;
+    color: #edf5fc;
+  }
+
+  .welcome-container .btn-role.back-btn:hover {
+    background-color: rgba(237, 245, 252, 0.12);
+    border-color: #edf5fc;
+  }
+
+  /* Groups Save and Back so their spacing is consistent instead of relying on
+     each button's own vertical margin. */
+  .welcome-container .welcome-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 40px;
   }
   
   .error {
-    color: red;
-    font-size: 14px;
-    margin-top: 5px;
+    display: block;
+    color: #ffb4ac;
+    font-size: 13px;
+    margin-top: 6px;
+    text-align: left;
   }

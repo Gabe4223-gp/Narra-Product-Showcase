@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { sequelize, UserProfile, Team } = require('../models');
+const { purgeUserData } = require('../services/purgeUserData');
+const { deleteAuth0UserByEmail } = require('../services/auth0Admin');
 const { Op } = require('sequelize');
 const axios = require('axios'); // For Wise API calls
 require('dotenv').config();
@@ -601,28 +603,44 @@ router.put('/:id/business-bank-info', async (req, res) => {
   }
 });
 
+// Deletes the account and everything belonging to it.
+//
+// This used to call profile.destroy() alone, which removed one row and left
+// the user's properties, units, issues, bills, leases and team memberships
+// orphaned in the database, and left their Auth0 login intact so they could
+// sign straight back in.
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate UUID format
     if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
       return res.status(400).json({ error: 'Invalid UUID format' });
     }
 
-    const profile = await UserProfile.findByPk(id);
+    const { user, summary } = await purgeUserData({ id });
 
-    if (!profile) {
+    // Database records are gone at this point. Removing the login is a
+    // best-effort follow-up: if the Auth0 management credentials are missing
+    // or the call fails, report it rather than failing the whole request, so
+    // the user's data still ends up deleted.
+    const auth0 = await deleteAuth0UserByEmail(user.email);
+
+    console.log(`Account purged: ${user.email}`, summary, 'auth0:', auth0.status);
+
+    return res.json({
+      message: 'Account and all associated data deleted.',
+      deleted: summary,
+      auth0,
+    });
+  } catch (error) {
+    if (error.status === 404) {
       return res.status(404).json({ message: 'UserProfile not found.' });
     }
-
-    // Delete the record from the database
-    await profile.destroy();
-
-    res.json({ message: 'UserProfile deleted successfully.' });
-  } catch (error) {
+    if (error.status === 409) {
+      return res.status(409).json({ message: error.message });
+    }
     console.error('Error deleting userProfile:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 

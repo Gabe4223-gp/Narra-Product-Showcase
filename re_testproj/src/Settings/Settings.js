@@ -1,12 +1,14 @@
 // src/Settings.js
 import React, { useState, useEffect } from 'react';
 import { useUserProfile } from '../UserProfileContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
 import TeamSettings from './TeamSettings';
 import BusinessSettings from './BusinessSettings';
 import './Settings.css';
 
 function Settings() {
+  const { logout } = useAuth0();
   const {
     userProfile,
     loadingProfile,
@@ -354,11 +356,38 @@ function Settings() {
 
   const confirmDeleteAccount = async () => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`);
+      const { data } = await axios.delete(
+        `${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`
+      );
       setShowDeleteConfirmation(false);
-      window.location.href = '/login';
+
+      // Clear anything cached about the old account before leaving, so a
+      // subsequent sign-in does not inherit the deleted user's role.
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('selectedPropertyID');
+      localStorage.removeItem('selectedPropertyIDIssue');
+
+      // If the Auth0 identity could not be removed, the session is still valid
+      // and signing back in would silently recreate a profile. Say so rather
+      // than letting it look like the deletion failed.
+      if (data?.auth0 && !['deleted', 'not_found'].includes(data.auth0.status)) {
+        alert(
+          'Your data has been deleted. Your sign-in account could not be removed ' +
+            'automatically, so please contact support to have it closed.'
+        );
+      }
+
+      // logout() rather than a redirect: the Auth0 session outlives the
+      // profile, so navigating away would put the user straight back into the
+      // app with a deleted account. The previous code sent them to /login,
+      // which is not a route in this app either.
+      logout({ logoutParams: { returnTo: window.location.origin } });
     } catch (error) {
       console.error('Error deleting account:', error);
+      alert(
+        error?.response?.data?.message ||
+          'We could not delete your account. Please try again.'
+      );
     }
   };
 

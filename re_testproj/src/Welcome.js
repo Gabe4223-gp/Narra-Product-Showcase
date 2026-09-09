@@ -141,12 +141,14 @@ function Welcome({ onProfileCreated }) {
         </label>
       </div>
 
-      <button className="btn-role" onClick={handleSave}>
-        Save
-      </button>
-      <button className="btn-role back-btn" onClick={handleBack}>
-        Back
-      </button>
+      <div className="welcome-actions">
+        <button type="button" className="btn-role" onClick={handleSave}>
+          Save
+        </button>
+        <button type="button" className="btn-role back-btn" onClick={handleBack}>
+          Back
+        </button>
+      </div>
     </div>
   );
 }
