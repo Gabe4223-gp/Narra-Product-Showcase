@@ -7,9 +7,11 @@ import { useUserProfile } from "../UserProfileContext";
 const ManageLease = ({ leaseData }) => {
   const { userProfile } = useUserProfile();
   const [previewLease, setPreviewLease] = useState(null);
-  const [isFetched, setIsFetched] = useState(false); // Prevents repeated fetching
+  const [leaseError, setLeaseError] = useState("");
+  const [loadingDoc, setLoadingDoc] = useState(false);
 
-  const tenantId = userProfile.id;
+  // Optional: this renders before the profile resolves on a cold load.
+  const tenantId = userProfile?.id;
 
   // Fetch lease agreement information from the backend
   /*useEffect(() => {
@@ -44,36 +46,58 @@ const ManageLease = ({ leaseData }) => {
     }
   }, [isFetched, leaseData]);*/
 
+  const leaseDoc = leaseData?.currentLeaseDoc;
+  const hasLeaseDoc = Boolean(leaseDoc?.fileName);
+
   const fetchLeaseDocument = async () => {
+    // currentLeaseDoc is null until a lease exists. The optional chain used to
+    // stop at leaseData, so `.currentLeaseDoc.fileName` still threw
+    // "Cannot read properties of undefined (reading 'fileName')".
+    if (!hasLeaseDoc) {
+      setLeaseError("There is no lease document to view yet.");
+      return;
+    }
+    if (!tenantId) {
+      setLeaseError("We could not identify your tenant record.");
+      return;
+    }
+
+    setLoadingDoc(true);
+    setLeaseError("");
+
     try {
-      console.log("Fetching lease document...");
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/tenants/get-id?tenantId=${tenantId}&fileName=${leaseData?.currentLeaseDoc.fileName}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // /tenants/get-lease, not /tenants/get-id -- the latter serves government
+      // ID uploads. Both take the same parameters, so the mix-up returned the
+      // wrong document rather than an obvious error.
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/tenants/get-lease?tenantId=${encodeURIComponent(tenantId)}&fileName=${encodeURIComponent(leaseDoc.fileName)}`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+      );
 
       if (!response.ok) {
         throw new Error(`Retrieval failed: ${response.statusText}`);
       }
 
       const data = await response.json();
-      const cleanedBase64 = data.fileContent.replace(/^dataapplication\/pdfbase64/, ""); 
-      
-      console.log("Here's the doc", data);
+      if (!data?.fileContent) {
+        throw new Error('The document came back empty.');
+      }
 
-      const loadedDoc = {
+      // The server returns bare base64; strip a data-URI prefix only if one is
+      // present. The previous pattern was missing its ':' and ';' and so never
+      // matched anything.
+      const cleanedBase64 = String(data.fileContent).replace(/^data:[^;]+;base64,/, '');
+
+      setPreviewLease({
         fileContent: `data:${data.fileType};base64,${cleanedBase64}`,
-        fileName: leaseData.currentLeaseDoc.fileName,
+        fileName: leaseDoc.fileName,
         fileType: data.fileType,
-      };
-
-      console.log("Here's the loadedDoc", loadedDoc);
-      setPreviewLease(loadedDoc);
-
+      });
     } catch (error) {
       console.error("Error retrieving lease:", error);
+      setLeaseError("We could not open that lease document. Please try again.");
+    } finally {
+      setLoadingDoc(false);
     }
   };
 
@@ -116,8 +140,15 @@ const ManageLease = ({ leaseData }) => {
         {leaseData?.currentLeaseDoc?.subject ? leaseData?.currentLeaseDoc?.subject : " "}
       </p>
       <div className="manage-lease-actions">
-        <button onClick={fetchLeaseDocument}>View Lease</button>
+        <button onClick={fetchLeaseDocument} disabled={!hasLeaseDoc || loadingDoc}>
+          {loadingDoc ? 'Opening...' : 'View Lease'}
+        </button>
+        {!hasLeaseDoc && (
+          <span className="manage-lease-hint">No lease document uploaded yet.</span>
+        )}
       </div>
+
+      {leaseError && <p className="manage-lease-error">{leaseError}</p>}
       
       {previewLease && (
         <div className='preview-lease-overlay'>

@@ -68,3 +68,26 @@
   color: red;
   font-weight: bold;
 }
+
+.manage-lease-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manage-lease-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.manage-lease-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.manage-lease-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
