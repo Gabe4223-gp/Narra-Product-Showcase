@@ -106,14 +106,20 @@ input[type="radio"] {
   background: #218838;
 }
 
+/* Leaving without paying, so it should not read as a confirming action. */
 .pay-modal button.pay-exit {
   margin-top: 8px;
-  background: #6c757d;
+  background: #dc3545;
   color: white;
 }
 
 .pay-modal button.pay-exit:hover {
-  background: #5a6268;
+  background: #bd2130;
+}
+
+.pay-modal button.pay-exit:focus-visible {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
 }
 
 .pay-modal button:disabled {
@@ -163,11 +169,4 @@ input[type="radio"] {
 
 .card-element-wrapper.StripeElement--focus {
   border-color: #3b82f6;
-}
-
-.card-test-hint {
-  margin: 0 0 12px;
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.5;
 }

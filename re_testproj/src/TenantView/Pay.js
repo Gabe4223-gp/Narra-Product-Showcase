@@ -14,6 +14,10 @@ import "./Pay.css";
 const WISE_ENABLED = process.env.REACT_APP_WISE_ENABLED === "true";
 
 const CARD_ELEMENT_OPTIONS = {
+  // Stripe's built-in postal field validates US/Canadian formats, which
+  // rejects Philippine postal codes. Hidden rather than fought with; the
+  // charge does not require it.
+  hidePostalCode: true,
   style: {
     base: {
       fontSize: "16px",
@@ -550,10 +554,6 @@ const Pay = ({ bill, onClose, landlordData }) => {
                     }}
                   />
                 </div>
-                <p className="card-test-hint">
-                  Test mode: use card 4242 4242 4242 4242, any future expiry and
-                  any CVC.
-                </p>
                 <button
                   onClick={handleSend}
                   disabled={!stripe || !cardReady || processing}

@@ -121,3 +121,34 @@
   cursor: pointer;
 }
 
+
+/* Five other stylesheets define `.modal button:first-of-type` (blue) and
+   `:last-of-type` (grey), which made Cancel the primary action and Save the
+   quiet one. Those have specificity (0,2,1); scoping through .modal-buttons
+   here gives (0,3,1), so intent wins over source order regardless of how the
+   bundle is assembled. */
+.modal .modal-buttons button.btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+  border: 1px solid #3b82f6;
+}
+
+.modal .modal-buttons button.btn-primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.modal .modal-buttons button.btn-secondary {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.modal .modal-buttons button.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.modal .modal-buttons button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

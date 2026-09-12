@@ -114,8 +114,12 @@ function ManagePay({ onSave, onClose, initialData }) {
   
           {/* Buttons */}
           <div className="modal-buttons">
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button type="submit">Save</button>
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary">
+              Save
+            </button>
           </div>
         </form>
       </div>
