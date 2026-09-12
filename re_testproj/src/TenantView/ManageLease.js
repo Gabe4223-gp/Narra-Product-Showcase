@@ -9,6 +9,8 @@ const ManageLease = ({ leaseData }) => {
   const [previewLease, setPreviewLease] = useState(null);
   const [leaseError, setLeaseError] = useState("");
   const [loadingDoc, setLoadingDoc] = useState(false);
+  const [endingLease, setEndingLease] = useState(false);
+  const [endRequestMessage, setEndRequestMessage] = useState("");
 
   // Optional: this renders before the profile resolves on a cold load.
   const tenantId = userProfile?.id;
@@ -102,20 +104,37 @@ const ManageLease = ({ leaseData }) => {
   };
 
   const handleRequestEndLease = async () => {
-    const inputEmail = window.prompt("Enter your email to request lease end:");
-    if (!inputEmail) {
-      alert("Email is required to send an end lease request.");
+    if (!tenantId) {
+      setLeaseError("We could not identify your tenant record.");
       return;
     }
+    // The tenant is signed in, so asking them to retype their email served no
+    // purpose. The server resolves the tenancy from the session's profile.
+    if (!window.confirm("Send a request to your landlord to end this lease?")) {
+      return;
+    }
+
+    const reason = window.prompt("Add a note for your landlord (optional):") || "";
+
+    setEndingLease(true);
+    setLeaseError("");
+    setEndRequestMessage("");
+
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/leaseAgreement/end-request`, {
-        tenantEmail: inputEmail,
-        subject: "Tenant wants to end lease",
-      });
-      alert(res.data.message || "Lease end request sent.");
+      // /api/tenant/lease/end-request -- the old path (/api/leaseAgreement/...)
+      // was never mounted, so this always 404'd.
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/tenant/lease/end-request`,
+        { tenantId, reason }
+      );
+      setEndRequestMessage(res.data?.message || "Your request has been sent.");
     } catch (err) {
       console.error("Error sending lease end request:", err);
-      alert("Error sending lease end request.");
+      setLeaseError(
+        err?.response?.data?.message || "We could not send your request. Please try again."
+      );
+    } finally {
+      setEndingLease(false);
     }
   };
 
@@ -137,8 +156,16 @@ const ManageLease = ({ leaseData }) => {
       </div>
       <p>
         <h6>Subject:</h6>{" "}
-        {leaseData?.currentLeaseDoc?.subject ? leaseData?.currentLeaseDoc?.subject : " "}
+        {leaseDoc?.subject ? leaseDoc.subject : "—"}
       </p>
+
+      {hasLeaseDoc && (
+        <p className="manage-lease-status">
+          {leaseDoc.signed
+            ? "This lease has been signed."
+            : "Awaiting your signature."}
+        </p>
+      )}
       <div className="manage-lease-actions">
         <button onClick={fetchLeaseDocument} disabled={!hasLeaseDoc || loadingDoc}>
           {loadingDoc ? 'Opening...' : 'View Lease'}
@@ -146,7 +173,17 @@ const ManageLease = ({ leaseData }) => {
         {!hasLeaseDoc && (
           <span className="manage-lease-hint">No lease document uploaded yet.</span>
         )}
+
+        <button
+          className="end-lease-btn"
+          onClick={handleRequestEndLease}
+          disabled={endingLease}
+        >
+          {endingLease ? "Sending..." : "Request to End Lease"}
+        </button>
       </div>
+
+      {endRequestMessage && <p className="manage-lease-success">{endRequestMessage}</p>}
 
       {leaseError && <p className="manage-lease-error">{leaseError}</p>}
       

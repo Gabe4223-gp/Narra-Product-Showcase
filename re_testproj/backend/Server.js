@@ -2177,8 +2177,8 @@ app.post("/tenants/import", async (req, res) => {
         UPDATE "Tenants"
         SET "user_id" = u.id
         FROM "userProfile" u
-        WHERE "Tenants"."email" = u."email"
-          AND u."email" = :email
+        WHERE lower("Tenants"."email") = lower(u."email")
+          AND lower(u."email") = lower(:email)
           AND "Tenants"."id" = :tenantId;
       `;
 
@@ -2786,13 +2786,32 @@ app.get('/current-lease/:tenantId', async (req, res) => {
 
   try {
     // Raw query to fetch tenant data by id
+    // Tenants.user_id is only ever set when a tenant completes the Welcome
+    // form, matching on email. If the manager adds the tenant *after* they have
+    // signed up, that link is never made and stays NULL -- so looking up by
+    // user_id alone silently found nothing, even though notifications (which
+    // carry an explicit user_id) arrived fine. Fall back to the email on the
+    // signed-in profile.
     const [tenantData] = await sequelize.query(
-      'SELECT "leaseStarted", "leaseExpiry", "leaseDocs" FROM "Tenants" WHERE user_id = :tenantId::UUID',
+      `SELECT t.id, t."leaseStarted", t."leaseExpiry", t."leaseDocs"
+         FROM "Tenants" t
+         LEFT JOIN "userProfile" u ON u.id = :tenantId::UUID
+        WHERE t.user_id = :tenantId::UUID
+           OR (u.email IS NOT NULL AND lower(t.email) = lower(u.email))
+        LIMIT 1`,
       {
         replacements: { tenantId },
         type: sequelize.QueryTypes.SELECT,
       }
     );
+
+    // Repair the link so later lookups are direct rather than via email.
+    if (tenantData?.id) {
+      await sequelize.query(
+        'UPDATE "Tenants" SET user_id = :tenantId::UUID WHERE id = :rowId AND user_id IS NULL',
+        { replacements: { tenantId, rowId: tenantData.id }, type: sequelize.QueryTypes.UPDATE }
+      );
+    }
 
     if (!tenantData || tenantData.length === 0) {
       return res.status(404).json(null); // No tenant found, return null
@@ -2808,11 +2827,14 @@ app.get('/current-lease/:tenantId', async (req, res) => {
 
     // Raw query to fetch lease documents for the tenant
     const leaseDocs = await sequelize.query(
+      // No `signed = true` filter. A lease is uploaded unsigned -- the
+      // notification literally says "sent you a lease for signing" -- so
+      // requiring it signed meant the tenant could never see the document they
+      // had just been told about, nor reach it to sign.
       `SELECT *
        FROM "Leases"
        WHERE "id" = ANY (:leaseDocs::UUID[])
-       AND "signed" = true
-       ORDER BY "uploadedAt" DESC`,
+       ORDER BY "signed" ASC, "uploadedAt" DESC`,
       {
         replacements: { leaseDocs: leaseDocsArray },
         type: sequelize.QueryTypes.SELECT,

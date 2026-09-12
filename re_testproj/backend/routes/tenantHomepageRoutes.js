@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // For file uploads
-const { UserProfile, Unit } = require('../models'); // Import your models
+const { UserProfile, Unit, sequelize } = require('../models'); // Import your models
 
 // --- Mock Data ---
 let mockLease = {
@@ -41,12 +41,67 @@ let mockRenewLease = {
 
 // --- Endpoints ---
 
-// POST /tenant/lease/end-request
-router.post('/lease/end-request', (req, res) => {
-  const { tenantId, leaseId } = req.body;
-  // Update the database accordingly.
-  console.log(`End lease request for tenant ${tenantId}, lease ${leaseId}`);
-  res.json({ message: 'End lease request submitted successfully' });
+// POST /api/tenant/lease/end-request
+//
+// Was a stub that logged and returned success, so the landlord was never told.
+// Now resolves the tenant, finds the property owner, and files a notification
+// for them -- the same mechanism the lease upload uses in the other direction.
+router.post('/lease/end-request', async (req, res) => {
+  const { tenantId, reason } = req.body;
+
+  if (!tenantId) {
+    return res.status(400).json({ message: 'Missing tenantId.' });
+  }
+
+  try {
+    // Match on user_id or on the profile's email: Tenants.user_id is only
+    // linked when a tenant completes the Welcome form, so it can be null.
+    const [tenant] = await sequelize.query(
+      `SELECT t.id, t.name, t.email, t."propertyId"
+         FROM "Tenants" t
+         LEFT JOIN "userProfile" u ON u.id = :tenantId::UUID
+        WHERE t.user_id = :tenantId::UUID
+           OR (u.email IS NOT NULL AND lower(t.email) = lower(u.email))
+        LIMIT 1`,
+      { replacements: { tenantId }, type: sequelize.QueryTypes.SELECT }
+    );
+
+    if (!tenant) {
+      return res.status(404).json({ message: 'We could not find your tenancy record.' });
+    }
+    if (!tenant.propertyId) {
+      return res.status(409).json({ message: 'Your tenancy is not linked to a property yet.' });
+    }
+
+    const trimmedReason = (reason || '').trim();
+    const message = trimmedReason
+      ? `${tenant.name || tenant.email} has requested to end their lease: ${trimmedReason}`
+      : `${tenant.name || tenant.email} has requested to end their lease.`;
+
+    const inserted = await sequelize.query(
+      `INSERT INTO "Notifications" ("id", "user_id", "message", "type", "is_read", "created_at", "updated_at")
+       SELECT gen_random_uuid(), p."user_id", :message, 'lease', false, NOW(), NOW()
+         FROM "Properties" p
+        WHERE p."id" = :propertyId AND p."user_id" IS NOT NULL
+       RETURNING id`,
+      {
+        replacements: { message, propertyId: tenant.propertyId },
+        type: sequelize.QueryTypes.INSERT,
+      }
+    );
+
+    const notified = Array.isArray(inserted?.[0]) ? inserted[0].length : 0;
+
+    return res.json({
+      message: notified
+        ? 'Your request has been sent to your landlord.'
+        : 'Request recorded, but your property has no owner on file to notify.',
+      notified: notified > 0,
+    });
+  } catch (error) {
+    console.error('Error submitting end-of-lease request:', error);
+    return res.status(500).json({ message: 'Could not submit your request. Please try again.' });
+  }
 });
 
 // POST /tenant/billing/pay
