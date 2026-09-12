@@ -82,7 +82,9 @@ function Settings() {
           ? userProfile.dateofBirth.split('T')[0]
           : '',
         email: userProfile.email || '',
-        password: userProfile.password || '',
+        // Deliberately blank. The stored column is not the sign-in credential,
+        // so showing it would imply this field reflects the real password.
+        password: '',
       });
 
       setAddressDetails({
@@ -93,7 +95,9 @@ function Settings() {
       });
 
       setBankFormData({
-        bankName: userProfile.bank || '',
+        // The column is bankName; userProfile.bank is undefined, which is why
+        // the field came up empty when editing.
+        bankName: userProfile.bankName || '',
         landlordBankId: userProfile.landlordBankId || ''
       });
 
@@ -158,21 +162,38 @@ function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Profile details. The password is deliberately not sent here: it is a
+      // plain column in our database and changing it never affected signing in.
       const res = await axios.put(`${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}`, {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
         email: formData.email,
-        password: formData.password,
       });
-      setMessage(res.data.message || 'Settings updated successfully.');
+
+      let notice = res.data.message || 'Settings updated successfully.';
+
+      // A new password goes to Auth0, which is what actually authenticates.
+      if (formData.password) {
+        try {
+          const pw = await axios.put(
+            `${process.env.REACT_APP_API_URL}/api/user-profile/${formData.id}/password`,
+            { newPassword: formData.password }
+          );
+          notice = pw.data.message || 'Settings and password updated.';
+          setFormData((prev) => ({ ...prev, password: '' }));
+        } catch (pwErr) {
+          notice = pwErr?.response?.data?.message || 'Your details were saved, but the password could not be changed.';
+        }
+      }
+
+      setMessage(notice);
       updateUserProfile({
         id: formData.id,
         name: formData.name,
         phoneNumber: formData.phoneNumber,
         dateofBirth: formData.dateofBirth,
         email: formData.email,
-        password: formData.password,
       });
     } catch (err) {
       console.error('Error updating profile:', err);

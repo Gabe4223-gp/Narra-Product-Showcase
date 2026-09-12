@@ -31,10 +31,9 @@ function PaymentHistory({ tenantDetails, refresh}) {
     const fetchInitialPayments = async () => {
       try {
         /*
-        const token = await getAccessTokenSilently({
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: 'openid read:payments write:payments offline_access',
-        });*/
+        // v2 takes these under authorizationParams; the provider already sets
+        // them, so request the token with no arguments.
+        const token = await getAccessTokenSilently();*/
       
         console.log('tenantEmail before fetch:', tenantEmail);
         const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments/${tenantEmail}`);
@@ -107,10 +106,9 @@ function PaymentHistory({ tenantDetails, refresh}) {
   /*
     const fetchInitialPayments = async () => {
       try {
-        const token = await getAccessTokenSilently({
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: 'openid read:payments write:payments offline_access',
-        });
+        // v2 takes these under authorizationParams; the provider already sets
+        // them, so request the token with no arguments.
+        const token = await getAccessTokenSilently();
 
         const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payments?page=${currentPage}&limit=${entriesPerPage}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -132,10 +130,7 @@ function PaymentHistory({ tenantDetails, refresh}) {
   const fetchMorePayments = async () => {
     const nextPage = currentPage + 1;
     try {
-      const token = await getAccessTokenSilently({
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: 'openid read:payments write:payments offline_access',
-      });
+      const token = await getAccessTokenSilently();
 
       const response = await fetch(`${BaseURL}/api/payments?page=${nextPage}&limit=${entriesPerPage}`, {
         headers: { Authorization: `Bearer ${token}` },

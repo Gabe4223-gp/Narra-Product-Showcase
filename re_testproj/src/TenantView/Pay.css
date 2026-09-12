@@ -151,3 +151,23 @@ input[type="radio"] {
   margin: 8px 0;
   color: #495057;
 }
+/* Stripe CardElement needs a styled container: it renders an iframe with no
+   border or padding of its own. */
+.card-element-wrapper {
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  margin: 12px 0 8px;
+}
+
+.card-element-wrapper.StripeElement--focus {
+  border-color: #3b82f6;
+}
+
+.card-test-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}

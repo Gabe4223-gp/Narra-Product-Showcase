@@ -18,6 +18,38 @@ const { v4: uuidv4 } = require('uuid');
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
 const API_BASE_URL = process.env.API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// ---- Wise configuration -----------------------------------------------
+//
+// Deliberately NOT derived from NODE_ENV. That coupling meant Render, where
+// NODE_ENV=production, pointed a demo at api.transferwise.com with a live API
+// key -- a successful flow there moves real money.
+//
+//   WISE_ENABLED = "true"              opt in explicitly; off by default
+//   WISE_ENV     = "sandbox" | "live"  defaults to sandbox
+//   WISE_PROFILE_ID                    must match a profile on the token's account
+const WISE_ENABLED = process.env.WISE_ENABLED === 'true';
+const WISE_LIVE = process.env.WISE_ENV === 'live';
+const WISE_BASE = WISE_LIVE
+  ? 'https://api.transferwise.com'
+  : 'https://api.sandbox.transferwise.tech';
+
+// Guard for every Wise route: refuses rather than half-running.
+function wiseUnavailable(res) {
+  if (!WISE_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'Wise transfers are disabled on this deployment.',
+    });
+  }
+  if (!process.env.WISE_API_KEY || !process.env.WISE_PROFILE_ID) {
+    return res.status(503).json({
+      success: false,
+      message: 'Wise is not configured (missing API key or profile id).',
+    });
+  }
+  return null;
+}
+
 function generateCustomerTransactionId() {
   const prefix = 'WSTX'; // fixed prefix to ensure the id starts with a letter
   const timestampPart = Date.now().toString().slice(-6); // last 6 digits of the current timestamp
@@ -226,6 +258,9 @@ router.post('/gcash-webhook', async (req, res) => {
 // ==================== Wise Bank Transfer Endpoints ====================
 
 router.get("/wise-balance", async (req, res) => {
+  const blocked = wiseUnavailable(res);
+  if (blocked) return blocked;
+
   try {
     const { tenantId } = req.query;
     if (!tenantId) {
@@ -241,6 +276,9 @@ router.get("/wise-balance", async (req, res) => {
 });
 
 router.post("/wise-create-recipient", async (req, res) => {
+  const blocked = wiseUnavailable(res);
+  if (blocked) return blocked;
+
   try {
     // Destructure values from req.body using let so they can be reassigned.
     let {
@@ -278,7 +316,7 @@ router.post("/wise-create-recipient", async (req, res) => {
     }
 
     // ====== SANDBOX OVERRIDES ======
-    const isSandbox = process.env.NODE_ENV !== 'production';
+    const isSandbox = !WISE_LIVE;
     let processedCurrency = currency.toUpperCase();
     
     if (isSandbox) {
@@ -378,9 +416,7 @@ router.post("/wise-create-recipient", async (req, res) => {
     console.log("Final Payload to send to Wise:", JSON.stringify(finalPayload, null, 2));
 
     // ====== WISE API CALL ======
-    const wiseEndpoint = isSandbox 
-      ? 'https://api.sandbox.transferwise.tech/v1/accounts'
-      : 'https://api.transferwise.com/v1/accounts';
+    const wiseEndpoint = `${WISE_BASE}/v1/accounts`;
 
     const wiseResponse = await axios.post(wiseEndpoint, finalPayload, {
       headers: {
@@ -416,11 +452,14 @@ router.post("/wise-create-recipient", async (req, res) => {
 });
 
 router.post("/wise-transfer", async (req, res) => {
+  const blocked = wiseUnavailable(res);
+  if (blocked) return blocked;
+
   try {
     const { amount, currency, transferType } = req.body;
     // Optionally, recipientId may be provided; if not, we'll create one.
     let { recipientId } = req.body;
-    const isSandbox = process.env.NODE_ENV !== 'production';
+    const isSandbox = !WISE_LIVE;
     const profileId = process.env.WISE_PROFILE_ID;
     
     // If no recipientId is provided, dynamically create one
@@ -483,8 +522,7 @@ router.post("/wise-transfer", async (req, res) => {
 
     const quoteResponse = await axios.post(
       isSandbox
-        ? 'https://api.sandbox.transferwise.tech/v1/quotes'
-        : 'https://api.transferwise.com/v1/quotes',
+        `${WISE_BASE}/v1/quotes`,
       quoteData,
       {
         headers: {
@@ -526,8 +564,7 @@ router.post("/wise-transfer", async (req, res) => {
 
     const transferResponse = await axios.post(
       isSandbox
-        ? 'https://api.sandbox.transferwise.tech/v1/transfers'
-        : 'https://api.transferwise.com/v1/transfers',
+        `${WISE_BASE}/v1/transfers`,
       transferPayload,
       {
         headers: {
@@ -540,7 +577,7 @@ router.post("/wise-transfer", async (req, res) => {
     // ====== FUNDING (SANDBOX SIMULATION) ======
     if (isSandbox) {
       await axios.post(
-        `https://api.sandbox.transferwise.tech/v1/simulation/transfers/${transferResponse.data.id}/fund`,
+        `${WISE_BASE}/v1/simulation/transfers/${transferResponse.data.id}/fund`,
         {},
         {
           headers: { Authorization: `Bearer ${process.env.WISE_API_KEY}` }
@@ -572,13 +609,16 @@ router.post("/wise-transfer", async (req, res) => {
 });
 
 router.post("/wise-balance-transfer", async (req, res) => {
+  const blocked = wiseUnavailable(res);
+  if (blocked) return blocked;
+
   try {
     const { sourceBalanceId, targetBalanceId, amount } = req.body;
-    const isSandbox = process.env.NODE_ENV !== 'production';
+    const isSandbox = !WISE_LIVE;
 
     // ====== BALANCE VALIDATION ======
     const balanceCheck = await axios.get(
-      `https://api.${isSandbox ? 'sandbox.' : ''}transferwise.tech/v1/balances`,
+      `${WISE_BASE}/v1/balances`,
       {
         headers: { Authorization: `Bearer ${process.env.WISE_API_KEY}` } // Fixed closing braces
       }
@@ -593,7 +633,7 @@ router.post("/wise-balance-transfer", async (req, res) => {
 
     // ====== DIRECT BALANCE TRANSFER ======
     const transferResponse = await axios.post(
-      `https://api.${isSandbox ? 'sandbox.' : ''}transferwise.tech/v1/transfers`,
+      `${WISE_BASE}/v1/transfers`,
       {
         sourceBalance: sourceBalanceId,
         targetBalance: targetBalanceId,

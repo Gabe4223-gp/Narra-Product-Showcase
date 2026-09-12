@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { sequelize, UserProfile, Team } = require('../models');
 const { purgeUserData } = require('../services/purgeUserData');
-const { deleteAuth0UserByEmail } = require('../services/auth0Admin');
+const { deleteAuth0UserByEmail, changeAuth0Password } = require('../services/auth0Admin');
 const { Op } = require('sequelize');
 const axios = require('axios'); // For Wise API calls
 require('dotenv').config();
@@ -30,6 +30,9 @@ router.get('/payment-methods', async (req, res) => {
     const bankCardInfo = userProfile.storedPaymentMethods ? {
       type: "Bank & Card",
       nameOnAccount: userProfile.storedPaymentMethods.nameOnAccount || "",
+      // The edit form reads accountName; return both so neither side has to
+      // know about the other's naming.
+      accountName: userProfile.storedPaymentMethods.nameOnAccount || "",
       accountNumber: userProfile.storedPaymentMethods.accountNumber || "",
       routingNumber: userProfile.storedPaymentMethods.routingNumber || "",
       cardholderName: userProfile.storedPaymentMethods.cardholderName || "",
@@ -71,7 +74,13 @@ router.put('/payment-method', async (req, res) => {
     }
 
     if (paymentType === "Bank & Card") {
-      const { nameOnAccount, accountNumber, bankName, routingNumber, cardholderName, billingAddress, billingZipCode } = data;
+      const { accountNumber, bankName, routingNumber, cardholderName, billingAddress, billingZipCode } = data;
+
+      // The form sends accountName; this used to destructure nameOnAccount only,
+      // so the account holder's name was silently dropped on every save and came
+      // back blank when editing. Accept either, and keep storing it under the
+      // original key so existing records still read correctly.
+      const nameOnAccount = data.accountName ?? data.nameOnAccount ?? '';
 
       // Store only necessary details securely
       const storedPaymentMethods = {
@@ -99,10 +108,12 @@ router.put('/payment-method', async (req, res) => {
       }
       
       if (cardholderName !== null && cardholderName !== undefined && cardholderName !== '') {
+        // Was writing :bankName into creditCardName -- a copy-paste from the
+        // block above, so every tenant's card name was stored as their bank.
         await sequelize.query(
-          `UPDATE "Tenants" SET "creditCardName" = :bankName WHERE "user_id" = :userProfileId`,
+          `UPDATE "Tenants" SET "creditCardName" = :cardholderName WHERE "user_id" = :userProfileId`,
           {
-            replacements: { bankName, userProfileId },
+            replacements: { cardholderName, userProfileId },
             type: sequelize.QueryTypes.UPDATE,
           }
         );
@@ -609,6 +620,51 @@ router.put('/:id/business-bank-info', async (req, res) => {
 // the user's properties, units, issues, bills, leases and team memberships
 // orphaned in the database, and left their Auth0 login intact so they could
 // sign straight back in.
+// Changes the password used to sign in. The userProfile.password column is
+// not a credential -- Auth0 authenticates every login -- so a password change
+// has to go to Auth0 or it has no effect at all.
+router.put('/:id/password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid UUID format' });
+    }
+    if (!newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+    }
+
+    const profile = await UserProfile.findByPk(id);
+    if (!profile) {
+      return res.status(404).json({ message: 'UserProfile not found.' });
+    }
+
+    const result = await changeAuth0Password(profile.email, newPassword);
+
+    if (result.status === 'changed') {
+      return res.json({ message: 'Password updated. Use it the next time you sign in.', auth0: result });
+    }
+    if (result.status === 'social_only') {
+      return res.status(400).json({ message: result.detail, auth0: result });
+    }
+    if (result.status === 'skipped') {
+      return res.status(503).json({
+        message: 'Password changes are not available on this deployment.',
+        auth0: result,
+      });
+    }
+
+    return res.status(502).json({
+      message: result.detail || 'Could not update the password. Please try again.',
+      auth0: result,
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

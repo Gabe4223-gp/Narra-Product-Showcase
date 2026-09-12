@@ -41,10 +41,10 @@ function PaymentForm() {
     }
 
     try {
-      const token = await getAccessTokenSilently({
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: 'openid read:payments write:payments offline_access',
-      });
+      // auth0-react v2 expects these under authorizationParams; passing them
+      // at the top level silently yields a token for the wrong audience, which
+      // the API then rejects. The provider already sets both, so no args.
+      const token = await getAccessTokenSilently();
 
       const response = await fetch(`${BaseURL}/create-payment-intent`, {
         method: 'POST',

@@ -1,13 +1,36 @@
 // src/Pay.js
 import React, { useState, useEffect } from "react";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useUserProfile } from "../UserProfileContext";
+import useAuthedRequest from "../useAuthedRequest";
 import axios from "axios";
+import "./Pay.css";
 
-// We'll still load Stripe but won't use card payments right now
-//const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+// Stripe is provided by the <Elements> wrapper in index.js, so the hooks below
+// pick it up without loading it again here.
+
+// Wise moves real money and is off unless explicitly enabled. Mirrors
+// WISE_ENABLED on the server, which refuses the request regardless.
+const WISE_ENABLED = process.env.REACT_APP_WISE_ENABLED === "true";
+
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      fontSize: "16px",
+      color: "#32325d",
+      fontFamily: "inherit",
+      "::placeholder": { color: "#aab7c4" },
+    },
+    invalid: { color: "#e5424d" },
+  },
+};
 
 const Pay = ({ bill, onClose, landlordData }) => {
   const { userProfile } = useUserProfile();
+  const stripe = useStripe();
+  const elements = useElements();
+  const { getToken } = useAuthedRequest();
+  const [cardReady, setCardReady] = useState(false);
 
   // Payment Method States: "Transfer", "Credit/Debit", "GCash"
   const [paymentMethod, setPaymentMethod] = useState(null);
@@ -81,7 +104,7 @@ const Pay = ({ bill, onClose, landlordData }) => {
 
         // Determine available payment methods.
         let methods = [];
-        if (storedPaymentMethods) methods.push("Transfer");
+        if (WISE_ENABLED && storedPaymentMethods) methods.push("Transfer");
         methods.push("Credit/Debit");
         if (gcashMobileNumber) methods.push("GCash");
 
@@ -329,9 +352,62 @@ const Pay = ({ bill, onClose, landlordData }) => {
           setError("Wise bank transfer failed: " + (wiseRes.data.message || ""));
         }
       }
-      // --- Credit/Debit Flow (Placeholder) ---
+      // --- Credit/Debit Flow (Stripe) ---
       else if (paymentMethod === "Credit/Debit") {
-        alert("Credit/Debit payment processing not yet implemented.");
+        if (!stripe || !elements) {
+          setError("Card payments are still loading. Please try again in a moment.");
+          return;
+        }
+
+        const cardElement = elements.getElement(CardElement);
+        if (!cardElement) {
+          setError("Please enter your card details.");
+          return;
+        }
+
+        // The payment intent endpoint is authenticated: it reads the Auth0
+        // subject from the token to tag the charge.
+        const token = await getToken();
+
+        const intentRes = await axios.post(
+          `${process.env.REACT_APP_API_URL}/create-payment-intent`,
+          { amount: Math.round(parseFloat(amountPaid) * 100) },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const clientSecret = intentRes.data?.clientSecret;
+        if (!clientSecret) {
+          setError("Could not start the card payment. Please try again.");
+          return;
+        }
+
+        const result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: userProfile?.name || undefined,
+              email: userProfile?.email || undefined,
+            },
+          },
+        });
+
+        if (result.error) {
+          setError(result.error.message || "Your card could not be charged.");
+          return;
+        }
+
+        if (result.paymentIntent?.status === "succeeded") {
+          // Same completion path as GCash, so the bill is settled identically
+          // however it was paid.
+          await axios.post(`${process.env.REACT_APP_API_URL}/api/payments/update-status`, {
+            billId: bill.id,
+            status: "Paid",
+          });
+          alert("Payment successful!");
+          window.location.href = `/tenant/dashboard?redirected=true&status=success`;
+        } else {
+          setError(`Payment did not complete (${result.paymentIntent?.status || "unknown"}).`);
+        }
       }
     } catch (err) {
       console.error("Error processing payment:", err);
@@ -464,10 +540,25 @@ const Pay = ({ bill, onClose, landlordData }) => {
             {/* Credit/Debit Section (Placeholder) */}
             {paymentMethod === "Credit/Debit" && (
               <div className="pay-credit-debit-section">
-                <h4>Credit/Debit Payment</h4>
-                <p>This payment method is not yet implemented.</p>
-                <button onClick={() => alert("Credit/Debit processing not implemented.")}>
-                  Proceed
+                <h4>Card Payment</h4>
+                <div className="card-element-wrapper">
+                  <CardElement
+                    options={CARD_ELEMENT_OPTIONS}
+                    onChange={(e) => {
+                      setCardReady(e.complete);
+                      setError(e.error ? e.error.message : "");
+                    }}
+                  />
+                </div>
+                <p className="card-test-hint">
+                  Test mode: use card 4242 4242 4242 4242, any future expiry and
+                  any CVC.
+                </p>
+                <button
+                  onClick={handleSend}
+                  disabled={!stripe || !cardReady || processing}
+                >
+                  {processing ? "Processing..." : `Pay ₱${amountPaid}`}
                 </button>
               </div>
             )}

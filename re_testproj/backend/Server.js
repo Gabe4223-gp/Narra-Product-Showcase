@@ -3219,13 +3219,21 @@ app.post('/save-payment-history', async (req, res) => {
 });
 
 //Payment API Through Mastercard/Visa
-app.post('/create-payment-intent', async (req, res) => {
+// requireAuth is what populates req.auth. Without it this handler threw on
+// req.auth.payload and returned 500 for every card payment.
+app.post('/create-payment-intent', requireAuth, async (req, res) => {
   const { amount } = req.body;
-  const client_id = req.auth.payload.sub; // Auth0 user ID
+  const client_id = req.auth?.payload?.sub; // Auth0 user ID
   console.log('Payment Intent Data:', {amount, client_id});
 
   if (!amount || amount < 5000) { // 5000 centavos = PHP 50
     return res.status(400).json({ message: 'Amount must be at least PHP 50.' });
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({
+      message: 'Card payments are not configured on this deployment.',
+    });
   }
 
   try {
