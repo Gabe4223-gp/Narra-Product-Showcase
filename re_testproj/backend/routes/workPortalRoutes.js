@@ -119,8 +119,21 @@ router.put('/contractors', async (req, res) => {
   }
 
   try {
-    const portal = await WorkPortal.findOne({ where: { propertyId } });
-    if (!portal) return res.status(404).json({ error: 'WorkPortal not found.' });
+    // findOrCreate below would otherwise surface a foreign-key violation as a
+    // 500 for an unknown property.
+    const property = await Property.findByPk(propertyId);
+    if (!property) {
+      return res.status(404).json({ error: 'Property not found.' });
+    }
+
+    // Create the portal row on demand. It used to be created only by
+    // /update-location, which runs after a successful geocode -- so if the
+    // Maps API was unavailable the row never existed and adding a worker
+    // returned 404 forever. Managing contractors does not depend on the map.
+    const [portal] = await WorkPortal.findOrCreate({
+      where: { propertyId },
+      defaults: { propertyId, contractors: [], ratings: [] },
+    });
 
     const newContractor = {
       // Date.now() collides if two workers are added in the same millisecond.
