@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import { useJsApiLoader, GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import axios from "axios";
+import { useUserProfile } from "./UserProfileContext";
 import "./WorkPortal.css";
 
 // Must live outside the component. A new array on every render makes
@@ -42,6 +43,7 @@ const WorkPortal = () => {
   const [alphabeticalFilter, setAlphabeticalFilter] = useState("")
   const [contractors, setContractors] = useState([]);
   const calendarRef = useRef(null);
+  const { userProfile } = useUserProfile();
 
 
   //Select Property
@@ -209,7 +211,19 @@ const WorkPortal = () => {
   //Fetch Properties from API
   useEffect(() => {
     const fetchAndGeocodeProperties = async () => {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/properties`);
+      // Scoped to this user. Without the id the endpoint used to return every
+      // property in the database, so the selector listed other accounts'
+      // properties and the geocoding loop below ran against all of them --
+      // which exhausted the Maps quota and left every property without
+      // coordinates, hence the blank page after selecting one.
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/work-portal/properties?user_id=${encodeURIComponent(userProfile.id)}`
+      );
+      if (!res.ok) {
+        console.error('Failed to fetch work portal properties:', res.status);
+        setProperties([]);
+        return;
+      }
       const data = await res.json();
       const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   
@@ -258,8 +272,11 @@ const WorkPortal = () => {
       setSelectedProperty(validProperty || null);
     };
   
+    // Wait for the profile: this renders before it resolves on a cold load,
+    // and userProfile.id would throw.
+    if (!userProfile?.id) return;
     fetchAndGeocodeProperties();
-  }, []);
+  }, [userProfile?.id]);
 
   // Google Maps Autocomplete
   useEffect(() => {
@@ -381,6 +398,9 @@ const WorkPortal = () => {
             }
           }}          
         >
+          <option value="" disabled>
+            {properties.length ? "Select a property" : "No properties yet"}
+          </option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
               {p.propertyName}

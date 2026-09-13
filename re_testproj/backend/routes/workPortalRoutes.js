@@ -7,7 +7,17 @@ const { v4: uuidv4 } = require('uuid')
 //Get properties from Properties table.
 router.get('/properties', async (req, res) => {
   try {
-    const properties = await Property.findAll()
+    // Previously Property.findAll() with no filter, which returned every
+    // property in the database to any caller -- other landlords' property
+    // names and addresses included. Scope it to the requesting user, the same
+    // way GET /properties does.
+    const { user_id: userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'user_id is required.' });
+    }
+
+    const properties = await Property.findAll({ where: { user_id: userId } })
 
     const results = await Promise.all(
       properties.map(async (prop) => {
