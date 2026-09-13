@@ -76,8 +76,12 @@ router.get('/contractors/:propertyId', async (req, res) => {
   try {
     const portal = await WorkPortal.findOne({ where: { propertyId } });
 
+    // A property that has no WorkPortal row simply has no contractors yet.
+    // This used to 404 with an error object, which the client stored in state
+    // and then called .map() on -- "D.map is not a function", taking the whole
+    // page down with it.
     if (!portal) {
-      return res.status(404).json({ error: 'WorkPortal entry not found.' });
+      return res.json([]);
     }
 
     // Reviews live in portal.ratings keyed by contractorId, so the average has

@@ -59,12 +59,24 @@ const WorkPortal = () => {
 
   //Fetch Contractors from API
   const fetchContractors = async (propertyId) => {
+    if (!propertyId) {
+      setContractors([]);
+      return;
+    }
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL}/api/work-portal/contractors/${propertyId}`);
+      if (!res.ok) {
+        console.error('Failed to fetch contractors:', res.status);
+        setContractors([]);
+        return;
+      }
       const data = await res.json();
-      setContractors(data);
+      // Guard the shape as well as the status: anything that is not an array
+      // reaching this state crashes every .map() in the render.
+      setContractors(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch contractors:', err);
+      setContractors([]);
     }
   };
 
@@ -76,7 +88,7 @@ const WorkPortal = () => {
 
   const filteredContractors =
   selectedProperty?.location
-    ? contractors
+    ? (Array.isArray(contractors) ? contractors : [])
         .map((c) => {
           if (!c?.location || !c.location.lat || !c.location.lng) {
             return { ...c, distance: null };
@@ -700,7 +712,7 @@ const WorkPortal = () => {
                 />
 
                 {/* Contractor Markers */}
-                {contractors.map((c) =>
+                {(Array.isArray(contractors) ? contractors : []).map((c) =>
                   c.location?.lat && c.location?.lng ? (
                     <Marker
                       key={c.id}
