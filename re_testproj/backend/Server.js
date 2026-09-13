@@ -294,14 +294,11 @@ const Payment = sequelize.define('Payment', {
   ],
 });
 
-// Sync the model with the database
-sequelize.sync()
-  .then(() => {
-    console.log('Database & tables created!');
-  })
-  .catch((error) => {
-    console.error('Error syncing with the database:', error);
-});
+// No sequelize.sync() here on purpose. The migrations in backend/migrations
+// are the single source of truth for the schema; running sync() alongside them
+// gave the database two competing authorities, and it could silently alter
+// tables on boot. Payments -- the one table sync() used to create -- now has a
+// migration of its own (20260913100000-create-payments.js).
 
 //Send Mail/////////////////////////////////////////////////////////////////////////////////////
 async function sendEmailOnBehalf(landlordName, landlordEmail, tenantEmail, subject, text) {

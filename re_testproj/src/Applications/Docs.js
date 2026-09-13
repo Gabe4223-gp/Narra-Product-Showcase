@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DocBuilder from './DocBuilder';
 import './Docs.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const Docs = () => {
+  const { getToken } = useAuthedRequest();
   const [docs, setDocs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -15,7 +17,7 @@ const Docs = () => {
       const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/docs`, {
         params: { page: currentPage, limit: itemsPerPage },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token for auth
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
       setDocs(data.docs);
@@ -44,7 +46,7 @@ const Docs = () => {
       const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/docs/${id}/download`, {
         responseType: 'blob',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -65,7 +67,7 @@ const Docs = () => {
     try {
       await axios.delete(`${process.env.REACT_APP_BASE_URL}/docs/${id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
       alert('Document deleted successfully.');

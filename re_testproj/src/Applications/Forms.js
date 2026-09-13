@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import FormBuilder from './FormBuilder';
 import './Forms.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const Form = () => {
+  const { getToken } = useAuthedRequest();
   const [forms, setForms] = useState([
       {
         id: 999, // Unique ID
@@ -26,7 +28,7 @@ const Form = () => {
       const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/forms`, {
         params: { page: currentPage, limit: itemsPerPage },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${await getToken()}`,
         }
       });
 
@@ -51,7 +53,7 @@ const Form = () => {
     try {
       await axios.delete(`${process.env.REACT_APP_BASE_URL}/forms/${id}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${await getToken()}`,
           },
         }
       );
@@ -76,7 +78,7 @@ const Form = () => {
       const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/forms/${id}/download`, {
         responseType: 'blob',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
       

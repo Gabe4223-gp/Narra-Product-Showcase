@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Docs.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const DocBuilder = ({ onClose }) => {
+  const { getToken } = useAuthedRequest();
   const [docData, setDocData] = useState({
     name: '',
     type: 'Lease Contract',
@@ -30,7 +32,7 @@ const DocBuilder = ({ onClose }) => {
         },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token for authentication
+            Authorization: `Bearer ${await getToken()}`,
           },
         }
       );

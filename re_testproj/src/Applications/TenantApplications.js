@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './TenantApplications.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const TenantApplications = () => {
+  const { getToken } = useAuthedRequest();
   const [applications, setApplications] = useState([
     {
     id: 999,
@@ -35,7 +37,7 @@ const TenantApplications = () => {
   // Fetch applications from the backend
   const fetchApplications = async () => {
     try {
-      const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
+      const token = await getToken();
       const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/applications`, {
         params: { date: dateFilter, page: currentPage, limit: itemsPerPage },
         headers: {
@@ -60,7 +62,7 @@ const TenantApplications = () => {
   // Accept Application
   const handleAccept = async (id) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       await axios.post(
         `${process.env.REACT_APP_BASE_URL}/applications/${id}/accept`,
         {},
@@ -80,7 +82,7 @@ const TenantApplications = () => {
   // Decline Application
   const handleDecline = async (id) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       await axios.post(
         `${process.env.REACT_APP_BASE_URL}/applications/${id}/decline`,
         {},

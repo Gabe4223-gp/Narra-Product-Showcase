@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './FormBuilder.css';
+import useAuthedRequest from '../useAuthedRequest';
 
 const FormBuilder = ({ onClose, fetchForms }) => {
+  const { getToken } = useAuthedRequest();
   const [formType, setFormType] = useState('Tenant Application');
   const [billingType, setBillingType] = useState('Credit/Debit Card');
   const [formData, setFormData] = useState({
@@ -58,7 +60,7 @@ const FormBuilder = ({ onClose, fetchForms }) => {
       await axios.post(`${process.env.REACT_APP_BASE_URL}/forms`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
       alert('Form saved successfully!');
